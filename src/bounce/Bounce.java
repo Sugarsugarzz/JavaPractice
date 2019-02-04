@@ -72,5 +72,10 @@ class BounceFrame extends JFrame {
 
         Thread t = new Thread(r);
         t.start();
+
+        System.out.println(t.getState());
+
+        
+
     }
 }
