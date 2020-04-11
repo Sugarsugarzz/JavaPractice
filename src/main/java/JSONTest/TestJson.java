@@ -1,4 +1,4 @@
-package JsonTest;
+package JSONTest;
 import org.json.JSONObject;
 
 public class TestJson {
