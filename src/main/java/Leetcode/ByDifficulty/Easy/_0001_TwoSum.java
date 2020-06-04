@@ -17,7 +17,7 @@ public class _0001_TwoSum {
 		
 		// 测试
 		int[] nums = {2, 7, 11, 15};
-		int target = 9;
+		int target = 13;
 		int[] result = new int[2];
 		
 //		result = twoSum_method1(nums, target);
@@ -30,7 +30,9 @@ public class _0001_TwoSum {
 
 		result = twoSum_method3(nums, target);
 		for (int i: result)
-			System.out.println(">>>" + result[i]);
+			System.out.println(">>>" + i);
+
+
 	}
 	
 	// 暴力法
