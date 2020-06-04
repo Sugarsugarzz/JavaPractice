@@ -4,8 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.print.attribute.standard.NumberUpSupported;
-import javax.xml.bind.annotation.W3CDomHandler;
 
 /**
  * 

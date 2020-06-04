@@ -5,9 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
-import javax.print.attribute.standard.NumberUpSupported;
-import javax.xml.bind.annotation.W3CDomHandler;
-
 /**
  * 
  * title:给定一个只包括 '('，')'，'{'，'}'，'['，']' 的字符串，判断字符串是否有效。
