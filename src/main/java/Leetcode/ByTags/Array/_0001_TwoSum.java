@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 /**
  * 1.两数之和
+ * Easy
  */
 public class _0001_TwoSum {
 

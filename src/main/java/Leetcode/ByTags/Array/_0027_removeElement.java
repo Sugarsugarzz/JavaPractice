@@ -2,6 +2,7 @@ package Leetcode.ByTags.Array;
 
 /**
  * 27. 移除元素
+ * Easy
  */
 
 public class _0027_removeElement {

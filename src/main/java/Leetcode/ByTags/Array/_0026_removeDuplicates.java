@@ -2,6 +2,7 @@ package Leetcode.ByTags.Array;
 
 /**
  * 26.删除排序数组中的重复项
+ * Easy
  */
 
 public class _0026_removeDuplicates {

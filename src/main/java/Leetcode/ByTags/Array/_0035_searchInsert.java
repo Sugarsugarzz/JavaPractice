@@ -2,6 +2,7 @@ package Leetcode.ByTags.Array;
 
 /**
  * 35. 搜索插入位置
+ * Easy
  */
 
 public class _0035_searchInsert {
