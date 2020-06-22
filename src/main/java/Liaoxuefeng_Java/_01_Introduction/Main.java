@@ -1,5 +1,7 @@
 package Liaoxuefeng_Java._01_Introduction;
 
+import java.util.Scanner;
+
 public class Main {
 
     public static void main(String[] args) {
@@ -67,6 +69,43 @@ public class Main {
         names[1] = "cat";
         System.out.println(sss);
         System.out.println(names);
-
+        /*
+        格式化输出 %d整数  %f浮点数  %s字符串
+         */
+        double d = 3.1415926;
+        System.out.printf("%.2f", d);
+        /*
+        输入：从控制台读取
+         */
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Input your name：");
+        String name = scanner.nextLine();
+        System.out.print("Input your age：");
+        int age = scanner.nextInt();
+        System.out.printf("Hi, %s, you are %d years old", name, age);
+        /*
+        ==运算符：可以判断值类型的变量是否相等；判断引用类型的变量时，==表示引用是否相等，内容相同引用对象不同，依然判断为不相等。
+        equals()方法：判断引用类型的变量内容是否相等。
+            equals()，若变量为null，会报空指针错误，可以利用短路运算符 &&。
+            或者把一定不是null的放在前面。
+         */
+        String s1 = null;
+        if (s1 != null && s1.equals("hello"))
+            System.out.println("hello");
+        /*
+        Switch语句：万万不能漏了break
+         */
+        int option = 99;
+        switch (option) {
+            case 1:
+                System.out.println("Hello");
+                break;
+            case 2:
+                System.out.println("Hello 2");
+                break;
+            default:
+                System.out.println("Other");
+                break;
+        }
     }
 }
