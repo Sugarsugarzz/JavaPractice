@@ -1,5 +1,6 @@
 package Liaoxuefeng_Java._01_Introduction;
 
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class Main {
@@ -106,6 +107,58 @@ public class Main {
             default:
                 System.out.println("Other");
                 break;
+        }
+        /*
+        遍历数组
+        1、for
+        2、for each
+        直接打印数组，会打印出数组在JVM的引用地址，
+        打印方法：1、for each 2、Java标准库的Arrays.toString()
+         */
+        int[] nums = {1, 2, 3, 4};
+        System.out.println(Arrays.toString(nums));
+        /*
+        冒泡排序
+         */
+        int[] ns = {1, 5, 8, 2, 3, 9, 4};
+        System.out.println(Arrays.toString(ns));
+        for (int i = 0; i < ns.length - 1; i++) {
+            for (int j = 0; j < ns.length - 1 - i; j++) {
+                if (ns[j] > ns[j+1]) {
+                    int tmp = ns[j];
+                    ns[j] = ns[j+1];
+                    ns[j+1] = tmp;
+                }
+            }
+        }
+        System.out.println(Arrays.toString(ns));
+        /*
+        Java标准库内置了排序功能
+        Arrays.sort()
+        数组元素在内存中的位置没有变化，但是对每个元素的指向发生了变化。
+         */
+        ns = new int[] {28, 12, 89, 73, 55, 22, 33};
+        Arrays.sort(ns);
+        System.out.println(Arrays.toString(ns));
+        /*
+        打印二维数组的方法
+        1、两层嵌套for循环
+        2、Java标准库的Arrays.deepToString()
+         */
+        int[][] nss = {
+                {1, 2, 3, 4},
+                {5, 6, 7, 8},
+                {9, 10, 11, 12},
+        };
+        System.out.println(Arrays.deepToString(nss));
+        /*
+        命令行参数：根据不同的参数执行不同的代码
+         */
+        for (String arg: args) {
+            if ("-version".equals(arg)) {
+                System.out.println("v1.0");
+                break;
+            }
         }
     }
 }
