@@ -6,4 +6,12 @@ public class Book {
     public String author;
     public String isbn;
     public double price;
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
 }
