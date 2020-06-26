@@ -12,16 +12,15 @@ public class _0095_generateTrees {
 
     public static void main(String[] args) {
 
-        int n = 4;
+        int n = 3;
         List<TreeNode> res = generateTrees(n);
         System.out.println(res.size());
     }
 
     public static List<TreeNode> generateTrees(int n) {
 
-        List<TreeNode> res = new ArrayList<>();
         if (n == 0)
-            return res;
+            return new ArrayList<>();
         // 将1到n中间每个数作为根节点，利用二叉查找树的性质，小的作为左子树，大的作为右子树，左右组合
         return getAns(1, n);
     }
@@ -35,20 +34,12 @@ public class _0095_generateTrees {
             return res;
         }
 
-        if (start == end) {
-            TreeNode tree = new TreeNode(start);
-            res.add(tree);
-            return res;
-        }
-
         for (int i = start; i <= end; i++) {
             List<TreeNode> leftTrees = getAns(start, i - 1);
             List<TreeNode> rightTrees = getAns(i + 1, end);
 
             for (TreeNode leftTree: leftTrees) {
                 for (TreeNode rightTree: rightTrees) {
-                    // n = 3;
-                    // i = 2
                     TreeNode root = new TreeNode(i);
                     root.left = leftTree;
                     root.right = rightTree;
