@@ -1,6 +1,6 @@
 /.settings/  
 /target/  
-test
+
 # built application files  
 *.apk  
 *.ap_  

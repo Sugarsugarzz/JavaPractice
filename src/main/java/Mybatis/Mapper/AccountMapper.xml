@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Mybatis.Mapper.AccountMapper">
+
+    <insert id="save" parameterType="Mybatis.Entity.Account">
+        INSERT INTO t_account(username, password, age)
+        VALUES (#{username}, #{password}, #{age})
+    </insert>
+
+</mapper>
