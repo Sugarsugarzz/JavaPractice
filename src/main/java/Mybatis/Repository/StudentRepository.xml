@@ -17,4 +17,16 @@
         FROM student s, classes c
         WHERE s.id = #{id} and c.id = s.cid
     </select>
+
+    <!--    懒加载-->
+    <resultMap id="studentMapLazy" type="Mybatis.Entity.Student">
+        <id column="id" property="id"></id>
+        <result column="name" property="name"></result>
+        <!--  根据cid字段，去调用Classes的findByIdLazy方法，其结果为student对象的classes字段-->
+        <association property="classes" javaType="Mybatis.Entity.Classes" select="Mybatis.Repository.ClassesRepository.findByIdLazy" column="cid"/>
+    </resultMap>
+
+    <select id="findByIdLazy" parameterType="long" resultMap="studentMapLazy">
+        SELECT * FROM student WHERE id = #{id}
+    </select>
 </mapper>

@@ -17,4 +17,8 @@
         FROM student s, classes c
         WHERE c.id = #{id} and c.id = s.cid
     </select>
+
+    <select id="findByIdLazy" parameterType="long" resultType="Mybatis.Entity.Classes">
+        SELECT * FROM classes WHERE id = #{id}
+    </select>
 </mapper>
