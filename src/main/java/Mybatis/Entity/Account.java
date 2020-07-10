@@ -3,6 +3,7 @@ package Mybatis.Entity;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 public class Account {
@@ -11,5 +12,8 @@ public class Account {
     private String username;
     private String password;
     private int age;
+
+    // foreach 标签演示
+    private List<Long> ids;
 
 }

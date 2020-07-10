@@ -16,4 +16,8 @@ public interface AccountRepository {
 
     public int count();
     public String findNameById(long id);
+
+    // 动态SQL
+    public Account findByAccount(Account account);
+    public List<Account> findByIds(Account account);
 }
