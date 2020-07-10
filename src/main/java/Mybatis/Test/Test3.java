@@ -39,16 +39,15 @@ public class Test3 {
         GoodsRepository goodsRepository = sqlSession.getMapper(GoodsRepository.class);
         System.out.println(goodsRepository.findById(1L));
 
-        // 延迟加载
+        /*
+        延迟加载：减少与数据库不必要的交互
+         */
         System.out.println("----------------  延迟加载  ----------------");
         // 相比之前的方法，这种解耦合了
         Student student = studentRepository.findByIdLazy(1L);
         System.out.println(student.getName());  // 懒加载，不需要classes，所以只执行了一条查询student表的sql
         System.out.println(student.getClasses()); // 都加载
 //        System.out.println(classesRepository.findByIdLazy(student.getClasses().getId()));
-
-
-
 
         // 关闭
         sqlSession.close();

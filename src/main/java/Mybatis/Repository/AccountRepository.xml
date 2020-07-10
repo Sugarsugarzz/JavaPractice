@@ -2,6 +2,15 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="Mybatis.Repository.AccountRepository">
+    <!--    开启二级缓存  -->
+    <cache type="org.mybatis.caches.ehcache.EhcacheCache">
+        <!--    创建缓存后，最后一次访问缓存至缓存失效的时间间隔  -->
+        <property name="timeToIdleSeconds" value="3600"/>
+        <!--    创建自创建至失效的时间间隔  -->
+        <property name="timeToLiveSeconds" value="3600"/>
+        <!--    缓存回收策略，LRU表示移除近期使用最少的对象  -->
+        <property name="memoryStoreEvictionPolicy" value="LRU"/>
+    </cache>
 
     <!--    返回一定是int类型，影响的行数-->
     <insert id="save" parameterType="Mybatis.Entity.Account">
