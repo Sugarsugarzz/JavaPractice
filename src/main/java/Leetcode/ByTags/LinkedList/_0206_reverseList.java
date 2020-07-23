@@ -5,7 +5,7 @@ package Leetcode.ByTags.LinkedList;
  * Easy
  */
 
-public class _206_reverseList {
+public class _0206_reverseList {
 
     public static void main(String[] args) {
 

@@ -5,7 +5,7 @@ package Leetcode.ByTags.LinkedList;
  * Easy
  */
 
-public class _203_removeElements {
+public class _0203_removeElements {
 
     public static void main(String[] args) {
 
