@@ -1,4 +1,4 @@
-package MultiThread.demo03;
+package MultiThread.demo03_staticProxy;
 
 /*
 静态代理模式总结：

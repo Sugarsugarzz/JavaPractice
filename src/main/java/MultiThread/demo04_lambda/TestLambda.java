@@ -1,4 +1,4 @@
-package MultiThread.demo04;
+package MultiThread.demo04_lambda;
 
 /*
 前提：有函数式接口，才能用Lambda表达式
