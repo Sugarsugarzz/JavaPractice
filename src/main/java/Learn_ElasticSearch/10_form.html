@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>登录注册</title>
+</head>
+<body>
+
+<h1>注册</h1>
+
+<!--表单form
+action：表单提交的位置，可以是网站，也可以是请求处理的地址
+method：post，get 提交方式
+    get方式提交：可以在URL看到提交的信息，不安全，高效
+    post方式提交：安全，可以提交大文件
+-->
+<form action="01_first_page.html" method="get">
+    <!--文本输入框：input type="text"
+     value="用户名"  默认初始值
+     maxlength="8"  最多能写几个字符
+     size="30"  文本框长度
+     readonly 只读，不能修改
+    -->
+<!--    <p>名字：<input type="text" name="username" value="admin" readonly></p>-->
+    <p>名字：<input type="text" name="username" placeholder="请输入用户名" required></p>
+    <!--密码框：input type="password"-->
+    <p>密码：<input type="password" name="pwd" hidden value="123456"></p>
+
+    <!--单选框标签
+    input type="radio"
+    value="boy"  单选框的值
+    name="sex"  表示组
+    disabled 不可选
+    -->
+    <p>
+        <input type="radio" value="boy" name="sex" disabled>男
+        <input type="radio" value="girl" name="sex" checked>女
+
+    </p>
+
+    <!--多选框
+    input type="checkbox"
+    -->
+    <p>
+        <input type="checkbox" value="sleep" name="hobby">睡觉
+        <input type="checkbox" value="code" name="hobby" checked>敲代码
+        <input type="checkbox" value="chat" name="hobby">聊天
+    </p>
+
+    <!--按钮
+    input type="button"  普通按钮
+    input type="image"  图像按钮
+    input type="submit"  提交按钮
+    input type="reset"  重置
+    -->
+    <p>
+        <input type="button" name="btn1" value="点击">
+        <input type="image" src="resources/image1.png">
+    </p>
+
+    <!--下拉框，列表框
+    -->
+    <p>国家：
+        <select name="列表名称">
+            <option value="cn" selected>中国</option>
+            <option value="usa">美国</option>
+            <option value="eth">瑞士</option>
+            <option value="indian">印度</option>
+        </select>
+    </p>
+
+    <!--文本域
+    name="textarea" cols="30" rows="5"
+    -->
+    <p>反馈：
+        <textarea name="textarea" cols="30" rows="5">文本内容</textarea>
+    </p>
+
+    <!--文本域
+    input type="file" name="files"
+    -->
+    <p>文件：
+        <input type="file" name="files">
+        <input type="button" value="上传" name="upload">
+    </p>
+
+    <!--邮件验证
+    -->
+    <p>邮件验证：
+        <input type="email" name="email">
+    </p>
+
+    <!--URL验证
+    -->
+    <p>URL验证：
+        <input type="url" name="url">
+    </p>
+
+    <!--数字验证
+    -->
+    <p>商品数量：
+        <input type="number" name="num" max="100" min="0" step="1">
+    </p>
+
+    <!--滑块
+    input type="range"
+    -->
+    <p>音量：
+        <input type="range" name="voice" min="0" max="100" step="2">
+    </p>
+
+    <!--搜索框
+    -->
+    <p>搜索框：
+        <input type="search" name="search">
+    </p>
+
+    <!--增强鼠标可用性-->
+    <p>
+        <label for="mark">点我</label>
+        <input type="text" id="mark">
+    </p>
+
+    <!--自定义邮箱
+    正则表达式大全：https://www.jb51.net/tools/regexsc.htm-->
+    <p>自定义邮箱：
+        <input type="text" name="diymail" pattern="^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$">
+    </p>
+
+    <p>
+        <input type="submit" value="提交">
+        <input type="reset" value="清空表单">
+    </p>
+</form>
+
+</body>
+</html>
