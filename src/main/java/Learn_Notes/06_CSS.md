@@ -1,0 +1,307 @@
+HTML + CSS + JavaScript
+
+结构 + 表现 + 交互
+
+### 1. 什么是CSS
+
+如何学习
+
+1. CSS是什么
+2. CSS怎么用（快速入门）
+3. **CSS选择器（重点+难点）**
+4. 美化网页（文字，阴影，超链接，列表，渐变...）
+5. 盒子模型
+6. 浮动
+7. 定位
+8. 网页动画（特效）
+
+#### 1.1 什么是CSS
+
+Cascading Style Sheet 层叠级联样式表
+
+CSS：表现层（美化网页）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200806091351357.png" alt="image-20200806091351357" style="zoom:50%;" />
+
+#### 1.2 CSS发展史
+
+CSS1.0
+
+CSS2.0  DIV（块）+ CSS，HTML与CSS结构分离的思想，SEO
+
+CSS2.1  浮动，定位
+
+CSS3.0  圆角，阴影，动画... 浏览器兼容性
+
+#### 1.3 快速入门
+
+Style
+
+建议样式：
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200806092711656.png" alt="image-20200806092711656" style="zoom:50%;" />
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <!--规范，<style> 可以编写css的代码，每个声明最好使用分号结尾
+    语法：
+        选择器 {
+            声明1;
+            声明2;
+            声明3;
+        }
+    -->
+
+    <link rel="stylesheet" href="css/style.css">
+
+</head>
+<body>
+
+<h1>标题</h1>
+
+</body>
+</html>
+```
+
+```css
+h1 {
+    color: red;
+}
+```
+
+##### CSS的优势：
+
+1. 内容和表现分离
+2. 网页结构表现统一，可以实现复用
+3. 样式丰富
+4. 建议使用独立于HTML的CSS文件
+5. 利用SEO，容易被搜索引擎收录
+
+#### 1.4 CSS三种导入方式
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <!--内部样式-->
+    <style>
+        h1 {
+            color: green;
+        }
+    </style>
+    
+    <!--外部样式-->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!--优先级：就近原则-->
+
+<!--行内样式：在标签元素中，编写一个style属性，编写样式即可-->
+<h1 style="color: red">标题</h1>
+
+</body>
+</html>
+```
+
+扩展：外部样式两种写法
+
+- 链接式
+
+  Html
+
+  ```html
+      <!--外部样式-->
+      <link rel="stylesheet" href="css/style.css">
+  ```
+
+- 导入式
+
+  css2.1
+
+  ```html
+      <!--外部样式-->
+      <style>
+          @import url("css/style.css");
+      </style>
+  ```
+
+  一般使用link较多，也推荐使用link。
+
+### 2. 选择器
+
+作用：选择页面上的某一个或者某一类元素
+
+#### 2.1 基本选择器
+
+##### 1. 标签选择器：选择一类标签  标签{}
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>标签选择器</title>
+
+    <style>
+        /* 标签选择器，会选择到页面上所有的这个标签的元素 */
+        h1 {
+            color: red;
+            background: lightblue;
+            border-radius: 24px;
+        }
+
+        p {
+            font-size: 80px;
+        }
+    </style>
+
+</head>
+<body>
+
+<h1>学Java</h1>
+<h1>学Java</h1>
+<p>Sugar</p>
+
+</body>
+</html>
+```
+
+##### 2. 类选择器 class：选中所有class属性一致的标签，跨标签   .class{}
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>类选择器</title>
+
+    <style>
+        /* 类选择器的样式  .class的名称{ }
+        好处：可以多个标签归类，是同一个 class，可以复用
+        */
+        .sugar {
+            color: blue;
+        }
+
+        .tang {
+            color: red;
+        }
+    </style>
+
+</head>
+<body>
+
+<h1 class="sugar">标题1</h1>
+<h1 class="tang">标题2</h1>
+<h1 class="sugar">标题3</h1>
+
+<p class="sugar">P标签</p>
+
+</body>
+</html>
+```
+
+##### 3. id选择器：全局唯一  #id{}
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>id选择器</title>
+
+    <style>
+        /* id选择器 ： id必须保证全局唯一！
+          #id {}
+          不遵循就近原则，固定的
+          id选择器 > class选择器 > 标签选择器
+       */
+        #sugar {
+            color: red;
+        }
+
+        .style1 {
+            color: blue;
+        }
+
+        h1 {
+            color: green;
+        }
+    </style>
+
+</head>
+<body>
+
+<h1 class="style1" id="sugar">标题1</h1>
+<h1 class="style1">标题2</h1>
+<h1 class="style1">标题3</h1>
+<h1>标题4</h1>
+<h1>标题5</h1>
+
+</body>
+</html>
+```
+
+**优先级：id > class > 标签**
+
+#### 2.2 层次选择器
+
+##### 1. 后代选择器：在某个元素的后面所有元素
+
+```css
+/*后代选择器*/
+body p {
+  background: red;
+}
+```
+
+##### 2. 子选择器：儿子一代
+
+```css
+/*子选择器*/
+body > p {
+  background: blueviolet;
+}
+```
+
+##### 3. 相邻兄弟选择器：同辈，相邻，对下不对上
+
+```css
+/*相邻兄弟选择器，只有一个，相邻向下*/
+.active + p {
+  background: gray;
+}
+```
+
+##### 4. 通用选择器
+
+```css
+/*通用选择器，当前选中玄素的向下的所有兄弟元素*/
+.active ~ p {
+  background: lightblue;
+}
+```
+
+#### 2.3 结构伪类选择器
+
+```css
+/*ul的第一个子元素*/
+ul li:first-child {
+  background: red;
+}
+
+/*ul的最后一个子元素*/
+ul li:last-child {
+  background: blue;
+}
+```
+
