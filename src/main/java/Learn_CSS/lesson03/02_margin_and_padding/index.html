@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>外边距</title>
+
+    <!--外边距的妙用：居中元素
+    margin: 0 auto;
+    -->
+    <style>
+        #box {
+            width: 300px;
+            border: 1px solid red;
+            margin: 0 auto;
+        }
+
+        /*
+        外间距，顺时针
+        margin: 0
+        margin: 0 1px 上下 和 左右
+        margin 0 1px 2px 3px  上右下左
+         */
+        h2 {
+            font-size: 16px;
+            background-color: green;
+            line-height: 30px;
+            color: white;
+            margin: 0 1px;
+
+        }
+        form {
+            background: #21D4FD;
+        }
+        input {
+            border: 1px solid black;
+        }
+        div:nth-of-type(1) {
+            padding: 10px 2px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="box">
+    <h2>会员登录</h2>
+    <form action="#">
+        <div>
+            <span>用户名：</span>
+            <input type="text">
+        </div>
+        <div>
+            <span>密码：</span>
+            <input type="text">
+        </div>
+        <div>
+            <span>邮箱：</span>
+            <input type="text">
+        </div>
+    </form>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,44 @@
+#nav {
+    width: 300px;
+    background: gray;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: bold;
+    text-indent: 1em;
+    line-height: 35px;
+    /*颜色，图片，图片位置，平铺方式*/
+    background: red url("../images/image1.png") 10px 10px no-repeat;
+}
+
+/*ul li*/
+/*
+list-style: none;
+    none  去掉原点，数字
+    circle  空心圆
+    decimal  数字
+    square  正方形
+*/
+ul {
+    background: gray;
+}
+ul li {
+    height: 30px;
+    list-style: none;
+    text-indent: 1em;
+    background-image: url("../images/image1.png");
+    background-repeat: no-repeat;
+    background-position: 10px 2px;
+}
+
+a {
+    text-decoration: none;
+    font-size: 14px;
+    color: black;
+}
+
+a:hover {
+    color: orange;
+    text-decoration: underline;
+}
