@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>超链接伪类</title>
+
+    <style>
+        /*默认的颜色*/
+        a {
+            text-decoration: none;
+            color: black;
+        }
+        /*鼠标悬浮的颜色*/
+        a:hover {
+            color: orange;
+            font-size: 50px;
+        }
+        /*鼠标按住未释放的状态*/
+        a:active {
+            color: green;
+        }
+        /*访问后的状态*/
+        a:visited {
+            color: mediumvioletred;
+        }
+        /*text-shadow: 阴影颜色，水平偏移，垂直偏移，阴影半径*/
+        #price {
+            text-shadow: lightblue 10px 10px 5px;
+        }
+    </style>
+</head>
+<body>
+
+<a href="#">
+    <img src="images/image1.png" alt="">
+</a>
+<p>
+    <a href="#">Java开发手册</a>
+</p>
+<p>
+    <a href="#">作者：Sugar</a>
+</p>
+<p id="price">
+    $99
+</p>
+</body>
+</html>
