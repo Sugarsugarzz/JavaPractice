@@ -542,7 +542,7 @@ color：字体颜色
 </html>
 ```
 
-### 3.4 阴影
+#### 3.4 阴影
 
 ```css
 /*text-shadow: 阴影颜色，水平偏移，垂直偏移，阴影半径*/
@@ -607,7 +607,342 @@ color：字体颜色
 
 #### 3.6 列表
 
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>列表样式</title>
+    <link rel="stylesheet" href="css/style.css" type="text/css">
+</head>
+<body>
 
+<div id="nav">
+    <h2 class="title">全部商品分类</h2>
+    <ul>
+        <li>
+            <a href="#">图书</a>
+            <a href="#">音像</a>
+            <a href="#">数字商品</a>
+        </li>
+        <li>
+            <a href="#">家用电器</a>
+            <a href="#">手机</a>
+            <a href="#">数码</a>
+        </li>
+        <li>
+            <a href="#">电脑</a>
+            <a href="#">办公</a>
+        </li>
+        <li>
+            <a href="#">家居</a>
+            <a href="#">家装</a>
+            <a href="#">厨具</a>
+        </li>
+        <li>
+            <a href="#">服饰鞋帽</a>
+            <a href="#">个性化妆</a>
+        </li>
+        <li>
+            <a href="#">礼品箱包</a>
+            <a href="#">钟表</a>
+            <a href="#">珠宝</a>
+        </li>
+        <li>
+            <a href="#">食品饮料</a>
+            <a href="#">保健食品</a>
+        </li>
+        <li>
+            <a href="#">彩票</a>
+            <a href="#">旅行</a>
+            <a href="#">充值</a>
+            <a href="#">票务</a>
+        </li>
+    </ul>
+</div>
 
+</body>
+</html>
+```
 
+```css
+#nav {
+    width: 300px;
+    background: gray;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: bold;
+    text-indent: 1em;
+    line-height: 35px;
+    /*颜色，图片，图片位置，平铺方式*/
+    background: red url("../images/image1.png") 10px 10px no-repeat;
+}
+
+/*ul li*/
+/*
+list-style: none;
+    none  去掉原点，数字
+    circle  空心圆
+    decimal  数字
+    square  正方形
+*/
+ul {
+    background: gray;
+}
+ul li {
+    height: 30px;
+    list-style: none;
+    text-indent: 1em;
+    background-image: url("../images/image1.png");
+    background-repeat: no-repeat;
+    background-position: 10px 2px;
+}
+
+a {
+    text-decoration: none;
+    font-size: 14px;
+    color: black;
+}
+
+a:hover {
+    color: orange;
+    text-decoration: underline;
+}
+
+```
+
+#### 3.7 背景
+
+背景颜色
+
+背景图片
+
+```css
+    <style>
+        div {
+            width: 1000px;
+            height: 700px;
+            border: 1px solid red;
+            background-image: url("images/image1.png");
+            /*默认是全部平铺的*/
+        }
+
+        .div1 {
+            background-repeat: repeat-x;
+        }
+        .div2 {
+            background-repeat: repeat-y;
+        }
+        .div3 {
+            background-repeat: no-repeat;
+        }
+    </style>
+```
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200810233258378.png" alt="image-20200810233258378" style="zoom:50%;" />
+
+#### 3.8 渐变
+
+> www.grabient.com
+
+```css
+    <!--径向渐变，圆形渐变-->
+    <style>
+        body {
+            /*background-color: #21D4FD;*/
+            background-image: linear-gradient(19deg, #21D4FD 0%, #B721FF 100%);
+        }
+    </style>
+```
+
+### 4. 盒子模型
+
+#### 4.1 什么是盒子
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200810233911264.png" alt="image-20200810233911264" style="zoom:50%;" />
+
+**margin**：外边距
+
+**padding**：内边距
+
+**border**：边框
+
+#### 4.2 边框
+
+1. 边框的粗细
+2. 边框的样式
+3. 边框的颜色
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>盒子模型</title>
+
+    <style>
+        /*body 总有一个默认的外边距margin：0，常见初始化操作*/
+        /*h1, ul, li, a, body {*/
+        /*    margin: 0;*/
+        /*    padding: 0;*/
+        /*    text-decoration: none;*/
+        /*}*/
+        /*border: 粗细，样式，颜色*/
+        #box {
+            width: 300px;
+            border: 1px solid red;
+        }
+        h2 {
+            font-size: 16px;
+            background-color: green;
+            line-height: 30px;
+            color: white;
+        }
+        form {
+            background: #21D4FD;
+        }
+        div:nth-of-type(1) input {
+            border: 3px solid black;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="box">
+    <h2>会员登录</h2>
+    <form action="#">
+        <div>
+            <span>用户名：</span>
+            <input type="text">
+        </div>
+        <div>
+            <span>密码：</span>
+            <input type="text">
+        </div>
+        <div>
+            <span>邮箱：</span>
+            <input type="text">
+        </div>
+    </form>
+</div>
+
+</body>
+</html>
+```
+
+#### 4.3 内外边距
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>外边距</title>
+
+    <!--外边距的妙用：居中元素
+    margin: 0 auto;
+    -->
+    <style>
+        #box {
+            width: 300px;
+            border: 1px solid red;
+            margin: 0 auto;
+        }
+
+        /*
+        外间距，顺时针
+        margin: 0
+        margin: 0 1px 上下 和 左右
+        margin 0 1px 2px 3px  上右下左
+         */
+        h2 {
+            font-size: 16px;
+            background-color: green;
+            line-height: 30px;
+            color: white;
+            margin: 0 1px;
+
+        }
+        form {
+            background: #21D4FD;
+        }
+        input {
+            border: 1px solid black;
+        }
+        div:nth-of-type(1) {
+            padding: 10px 2px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="box">
+    <h2>会员登录</h2>
+    <form action="#">
+        <div>
+            <span>用户名：</span>
+            <input type="text">
+        </div>
+        <div>
+            <span>密码：</span>
+            <input type="text">
+        </div>
+        <div>
+            <span>邮箱：</span>
+            <input type="text">
+        </div>
+    </form>
+</div>
+
+</body>
+</html>
+```
+
+盒子的计算方式：你这个元素到底多大？
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200811001447575.png" alt="image-20200811001447575" style="zoom:50%;" />
+
+**margin + border +padding + 内容宽度**
+
+#### 4.4 圆角边框
+
+​	4 个角
+
+```css
+    <!--
+    左上  右上  右下  左下（顺时针方向）
+    -->
+    <!--
+       圆圈：  圆角 = 半径！
+    -->
+    <style>
+        div {
+            width: 100px;
+            height: 100px;
+            border: 10px solid red;
+            border-radius: 100px;
+        }
+    </style>
+```
+
+#### 4.5 阴影
+
+```css
+    <style>
+        /*margin: 0 auto;  居中
+        要求：块元素，有固定的宽度
+        */
+        div {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+            border: 10px solid red;
+            box-shadow: 10px 10px 100px yellow;
+        }
+    </style>
+```
 
