@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>伪类选择器</title>
+    <title>结构伪类选择器</title>
 
     <!--避免使用 .class id选择器-->
     <style>
@@ -16,12 +16,26 @@
             background: blue;
         }
 
-        /*选中p1 ：*/
+        /*选中p1 ：定位到父元素，选择当前的第一个元素
+        选择当前p元素的父级元素，选中父级元素的第一个元素，并且是当前类型（p）元素才生效！
+        */
+        p:nth-child(2) {
+            background: lightblue;
+        }
+        /*选中父元素下的同类型（p）元素的第二个*/
+        p:nth-of-type(2) {
+            background: yellow;
+        }
 
+        /*鼠标悬浮变色*/
+        a:hover {
+            background: antiquewhite;
+        }
     </style>
 </head>
 <body>
-
+<a href="">321</a>
+<h1>h1</h1>
 <p>p1</p>
 <p>p2</p>
 <p>p3</p>
