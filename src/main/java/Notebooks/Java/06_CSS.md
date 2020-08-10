@@ -457,7 +457,90 @@ color：字体颜色
 </style>
 ```
 
+#### 3.3 文本样式
 
+1. 颜色  color  rbg  rgba
+2. **文本对齐的方式  text-align = center**
+3. **首行缩进  text-indent: 2em;**
+4. **行高  line-height**  单行文字上下居中！line-height = height
+5. 装饰  text-decoration
+6. 文本图片水平对齐 vertical-align: middle;
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>文本样式</title>
+
+    <!--
+    颜色：
+        单词
+        RGB 0~F
+        RGBA A：0~1
+        text-align：排版，居中
+        text-indent: 2em;  段落首行缩进
+        height: 300px;
+        line-height: 300px;
+            行高 和 块 的高度一致，就可以实现上下居中。
+    -->
+    <style>
+      h1 {
+          color: rgba(0, 255, 255, 0.3);
+          text-align: center;
+      }
+      .p1 {
+          text-indent: 2em;
+      }
+      .p2 {
+          background: blue;
+          height: 300px;
+          line-height: 300px;
+      }
+      /*上划线*/
+      .l1 {
+          text-decoration: underline;
+      }
+      /*中划线*/
+      .l2 {
+          text-decoration: line-through;
+      }
+      /*下划线*/
+      .l3 {
+          text-decoration: overline;
+      }
+      /*a标签去下划线*/
+      a {
+          text-decoration: none;
+      }
+      /*水平对齐 参照物， a, b*/
+      p {
+              vertical-align: middle;
+          }
+    </style>
+</head>
+<body>
+
+<a href="">123</a>
+
+<p class="l1">123123</p>
+<p class="l2">123123</p>
+<p class="l3">123123</p>
+
+<h1>故事介绍</h1>
+
+<p class="p1">TDP-43是一种重要的RNA结合蛋白，其基因突变可引起肌萎缩性侧索硬化症（ALS，俗称“渐冻人症”）。</p>
+
+<p class="p2">最近，中科院上海有机所揭示RNA调控渐冻人症致病蛋白TDP-43形成应激核体。</p>
+
+<p>
+    <img src="images/image1.png" alt="">
+    <span>sfdsafdsa</span>
+</p>
+
+</body>
+</html>
+```
 
 
 
