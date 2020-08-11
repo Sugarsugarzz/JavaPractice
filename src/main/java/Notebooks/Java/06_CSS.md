@@ -929,7 +929,7 @@ a:hover {
     </style>
 ```
 
-#### 4.5 阴影
+#### 4.5 盒子阴影
 
 ```css
     <style>
@@ -946,3 +946,470 @@ a:hover {
     </style>
 ```
 
+### 5. 浮动
+
+#### 5.1 标准文档流
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200811090847470.png" alt="image-20200811090847470" style="zoom:50%;" />
+
+块级元素：独占一行
+
+> H1-h6   p  div 列表...
+
+行内元素：不独占一行
+
+> span a img strong...
+
+行内元素可以被包含在块级元素中，反之则不可以。
+
+#### 5.2 display
+
+```css
+    <!--
+    display
+        block 块元素
+        inline 行内元素
+        inline-block  是块元素，但是可以内联，在一行！保持块的大小，但是能在行内内联。
+        none  消失
+    -->
+    <style>
+        div {
+            width: 100px;
+            height: 100px;
+            border: 1px solid red;
+            display: inline-block;
+        }
+        span {
+            width: 100px;
+            height: 100px;
+            border: 1px solid red;
+            display: inline;
+        }
+    </style>
+```
+
+1. 这也是一种实现行内元素排列的方式，但是很多情况都是用 float。
+
+#### 5.3 float
+
+1. 左右浮动 float
+
+   float: right / left  元素都浮动在一层，在改变页面大小时位置会改变。
+
+   clear: both  加一句这个，能让其在另起一行浮动。
+
+```css
+div {
+    margin: 10px;
+    padding: 5px;
+}
+
+#father {
+    border: 1px #000 solid;
+}
+
+.layer01 {
+    border: 1px #F00 dashed;
+    display: inline-block;
+    float: left;
+}
+.layer02 {
+    border: 1px #00F dashed;
+    display: inline-block;
+    float: right;
+}
+.layer03 {
+    border: 1px #060 dashed;
+    display: inline-block;
+    float: right;
+}
+.layer04 {
+    border: 1px #666 dashed;
+    font-size: 12px;
+    line-height: 23px;
+    display: inline-block;
+}
+```
+
+#### 5.4 父级边框塌陷的问题
+
+clear
+
+```css
+/*
+clear: right;  右侧不允许有浮动元素
+clear: left;  左侧不允许有浮动元素
+clear: both;  两侧不允许有浮动元素
+clear: none;  两侧不允许有浮动元素
+*/
+```
+
+解决方案：
+
+1. 增加父级元素的高度
+
+   ```css
+   #father {
+       border: 1px #000 solid;
+       height: 800px;
+   }
+   ```
+
+2. 增加一个空的div标签，然后清除浮动
+
+   ```html
+       <div class="clear"></div>
+   
+   /*防止父级元素塌陷*/
+   <style>
+     .clear {
+       clear: both;
+       margin: 0;
+       padding: 0;
+   	}
+   </style>
+   ```
+
+3. overflow
+   在父级元素中增加一个overflow属性。比较常用。
+
+   ```css
+   #father {
+       border: 1px #000 solid;
+       /*在父级元素定义overflow：hidden，同样可以解决父级元素塌陷的问题*/
+       overflow: hidden;
+   }
+   ```
+
+4. 父类添加一个伪类：after
+
+   ```css
+   /*给父级添加伪类，解决父级元素塌陷问题（最常用的方法）*/
+   #father:after {
+       content: '';
+       display: block;
+       clear: both;
+   }
+   ```
+
+**小结**：
+
+1. 浮动元素后面增加空的div
+   简单，代码中尽量避免空的 div
+2. 设置父元素的高度
+   简单，元素假设有个固定的高度，就会被限制
+3. overflow 
+   简单，下拉的一些场景避免使用
+4. 父类添加伪类：after，推荐使用
+   写法稍微复杂，但是没有副作用，推荐！
+
+#### 5.5 对比
+
+- display
+
+  方向不可控制，没有父级边框塌陷的问题
+
+- float
+
+  浮动起来的话会脱离标准文档流，所以要解决父级边框塌陷的问题
+
+#### 6. 定位
+
+#### 6.1 相对定位
+
+​	相对于原来的位置，进行指定的偏移。
+
+​	相对定位后，它仍然在标准文档流中，原来的位置会被保留。
+
+​	先带上 position: relative，然后设置方向，负数为同方向，正数为相反方向。
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>相对定位</title>
+    <!--相对定位
+    相对于自己原来的位置进行偏移
+    -->
+    <style>
+        body {
+            padding: 20px;
+        }
+        div {
+            margin: 10px;
+            padding: 5px;
+            line-height: 25px;
+        }
+        #father {
+            border: 1px #666 solid;
+            padding: 0;
+        }
+        #first {
+            border: 1px #644 dashed;
+            background-color: cornflowerblue;
+            position: relative;  /*相对定位，上下左右*/
+            top: -20px;
+            left: 20px;
+        }
+        #second {
+            border: 1px #611 dashed;
+            background-color: indianred;
+        }
+        #third {
+            border: 1px #622 dashed;
+            background-color: yellow;
+            position: relative;
+            bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="father">
+    <div id="first">第一个盒子</div>
+    <div id="second">第二个盒子</div>
+    <div id="third">第三个盒子</div>
+</div>
+
+</body>
+</html>
+```
+
+##### 练习题：方块定位练习
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200811102730646.png" alt="image-20200811102730646" style="zoom:50%;" />
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>方块定位练习</title>
+
+    <style>
+        #box {
+            width: 300px;
+            height: 300px;
+            padding: 10px;
+            border: 1px solid red;
+        }
+        a {
+            width: 100px;
+            height: 100px;
+            text-decoration: none;
+            background: pink;
+            line-height: 100px;
+            text-align: center;
+            color: white;
+            display: block;
+        }
+        a:hover {
+            background: lightskyblue;
+        }
+        .a2, .a4 {
+            position: relative;
+            right: -200px;
+            top: -100px;
+        }
+        .a5 {
+            position: relative;
+            top: -300px;
+            right: -100px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="box">
+    <a class="a1" href="#">链接1</a>
+    <a class="a2" href="#">链接2</a>
+    <a class="a3" href="#">链接3</a>
+    <a class="a4" href="#">链接4</a>
+    <a class="a5" href="#">链接5</a>
+</div>
+
+</body>
+</html>
+```
+
+#### 6.2 绝对定位
+
+定位：基于xxx定位，上下左右。
+
+1. 没有父级元素定位的前提下，相对于浏览器定位。
+2. 假设父级元素存在定位（position：relative），我们通常会相对于父级元素进行偏移。
+3. 在父级元素范围内移动。
+   相对于父级或浏览器的位置，进行指定的偏移，绝对定位后，它不在标准文档流中，原来的位置不会被保留。
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>默认情况</title>
+
+    <style>
+        div {
+            margin: 10px;
+            padding: 5px;
+            line-height: 25px;
+        }
+        #father {
+            border: 1px #666 solid;
+            padding: 0;
+            /*父级元素定位*/
+            position: relative;
+        }
+        #first {
+            border: 1px #644 dashed;
+            background-color: cornflowerblue;
+        }
+        #second {
+            border: 1px #611 dashed;
+            background-color: indianred;
+            /*绝对定位相对于父级元素，父级元素无定位则相对于浏览器*/
+            position: absolute;
+            right: 30px;
+            top: -10px;
+        }
+        #third {
+            border: 1px #622 dashed;
+            background-color: yellow;
+        }
+    </style>
+</head>
+<body>
+
+<div id="father">
+    <div id="first">第一个盒子</div>
+    <div id="second">第二个盒子</div>
+    <div id="third">第三个盒子</div>
+</div>
+
+</body>
+</html>
+```
+
+#### 6.3 固定定位  fixed
+
+​	可以用在 返回顶部 按钮。
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>固定定位</title>
+
+    <style>
+        body {
+            height: 3000px;
+        }
+        div:nth-of-type(1) {  /*绝对定位：相对于浏览器*/
+            width: 100px;
+            height: 100px;
+            background: red;
+            position: absolute;
+            right: 0;
+            bottom: 0;
+        }
+        div:nth-of-type(2) {  /*固定定位*/
+            width: 50px;
+            height: 50px;
+            background: yellow;
+            position: fixed;
+            right: 0;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div>div1</div>
+<div>div2</div>
+
+</body>
+</html>
+```
+
+#### 6.4 z-index和透明度
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200811104456792.png" alt="image-20200811104456792" style="zoom:50%;" />
+
+图层
+
+Z-index：默认是0（最低），最高无限 999
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Z-index</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="content">
+    <ul>
+        <li><img src="images/image1.png" alt=""></li>
+        <li class="tipText">学习Java</li>
+        <li class="tipBg"></li>
+        <li>时间：2020</li>
+        <li>地点：北京</li>
+    </ul>
+</div>
+
+</body>
+</html>
+```
+
+```css
+#content {
+    width: 380px;
+    padding: 0px;
+    margin: 0px;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 25px;
+    border: 1px black solid;
+}
+ul, li {
+    padding: 0px;
+    margin: 0px;
+    list-style: none;
+}
+/*父级元素相对定位*/
+#content ul {
+    position: relative;
+}
+.tipText, .tipBg {
+    position: absolute;
+    width: 380px;
+    height: 25px;
+    top: 310px;
+}
+.tipText {
+    color: white;
+    z-index: 999;  /*层级，0最低，999最高*/
+}
+.tipBg {
+    background: black;
+    opacity: 0.5;  /*透明度*/
+    /*filter: Alpha(opacity=50); !*透明度另一种写法*!*/
+}
+```
+
+### 7. 动画
+
+**less自动生成css。**
+
+**菜鸟教程**的**CSS动画**教程。
+
+一般动画都是由 **JavaScript + canvas** 写的。
+
+### 8. 总结
+
+见对应Xmind。
