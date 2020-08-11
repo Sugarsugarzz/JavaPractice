@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>默认情况</title>
+
+    <style>
+        div {
+            margin: 10px;
+            padding: 5px;
+            line-height: 25px;
+        }
+        #father {
+            border: 1px #666 solid;
+            padding: 0;
+            /*父级元素定位*/
+            position: relative;
+        }
+        #first {
+            border: 1px #644 dashed;
+            background-color: cornflowerblue;
+        }
+        #second {
+            border: 1px #611 dashed;
+            background-color: indianred;
+            /*绝对定位相对于父级元素，父级元素无定位则相对于浏览器*/
+            position: absolute;
+            right: 30px;
+            top: -10px;
+        }
+        #third {
+            border: 1px #622 dashed;
+            background-color: yellow;
+        }
+    </style>
+</head>
+<body>
+
+<div id="father">
+    <div id="first">第一个盒子</div>
+    <div id="second">第二个盒子</div>
+    <div id="third">第三个盒子</div>
+</div>
+
+</body>
+</html>

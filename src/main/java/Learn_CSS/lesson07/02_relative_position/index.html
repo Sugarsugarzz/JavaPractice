@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>相对定位</title>
+    <!--相对定位
+    相对于自己原来的位置进行偏移
+    -->
+    <style>
+        body {
+            padding: 20px;
+        }
+        div {
+            margin: 10px;
+            padding: 5px;
+            line-height: 25px;
+        }
+        #father {
+            border: 1px #666 solid;
+            padding: 0;
+        }
+        #first {
+            border: 1px #644 dashed;
+            background-color: cornflowerblue;
+            position: relative;  /*相对定位，上下左右*/
+            top: -20px;
+            left: 20px;
+        }
+        #second {
+            border: 1px #611 dashed;
+            background-color: indianred;
+        }
+        #third {
+            border: 1px #622 dashed;
+            background-color: yellow;
+            position: relative;
+            bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="father">
+    <div id="first">第一个盒子</div>
+    <div id="second">第二个盒子</div>
+    <div id="third">第三个盒子</div>
+</div>
+
+</body>
+</html>
