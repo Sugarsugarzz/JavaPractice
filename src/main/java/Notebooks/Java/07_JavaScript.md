@@ -534,6 +534,8 @@ for (let i = 0; i < 100; i++) {
 
 **forEach循环**
 
+> ES 5.1 引入
+
 ```javascript
 // 函数
 var arr = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -549,9 +551,13 @@ arr.forEach(function (value) {
 for(Type str: Type[] strs)
  */
 // for(var index in object) {}
-// 遍历的是数组下标
+// 打印下标
 for (var num in arr) {
-    console.log(arr[num]);
+  console.log(arr[num]);
+}
+// 打印值
+for (var num of arr) {
+  console.log(num);
 }
 ```
 
@@ -586,15 +592,158 @@ console.log(set.has(1)) // 判断是否包含某个元素
 
 #### 3.6 iterator
 
-### 4. 函数及面向对象
+> ES6 新特性
 
-### 5. 常用对象
+**遍历数组**
 
-### 6. 操作Dom对象
+```javascript
+// 通过 for of 打印值
+var arr = [3, 4, 5];
+for (var x of arr) {
+  console.log(x)
+}
+```
 
-### 7. 操作Bom元素
+**遍历map**
 
+```javascript
+var map = new Map([['tom', 100], ['jack', 90], ['haha', 80]]);
+for (var x of map) {
+    console.log(x);
+}
+```
 
+**遍历set**
+
+```javascript
+// 遍历set
+var set = new Set([5, 6, 7]);
+for (var x of set) {
+    console.log(x);
+}
+```
+
+### 4. 函数
+
+#### 4.1 定义函数
+
+**定义方式一**
+
+```javascript
+// **绝对值函数**
+function abs(x) {
+  if (x >= 0) {
+    return x;
+  } else {
+    return -x;
+  }
+}
+```
+
+一旦执行到 return 代表函数结束，返回结果。
+
+如果没有执行，函数执行完也会返回结果，结果就是 **undefined**.
+
+**定义方式二**
+
+```javascript
+var abs = function (x) {
+  if (x >= 0) {
+    return x;
+  } else {
+    return -x;
+  }
+}
+```
+
+function(x) {...}  这是一个**匿名函数**，但是可以把结果赋值给 abs，通过 abs 就可以调用函数！
+
+方式一和方式二等价！
+
+**调用函数**
+
+```javascript
+abs(10) // 10
+abs(-10)  // 10
+```
+
+参数问题： JavaScript 可以传任意个参数，也可以不传递参数
+
+参数进来是否存在问题？假设不存在参数，如何规避？
+
+```javascript
+var abs = function (x) {
+    // 手动抛出异常
+    if (typeof x !== 'number') {
+        throw 'Not a number';
+    }
+    
+    if (x >= 0) {
+        return x;
+    } else {
+        return -x;
+    }
+}
+```
+
+**arguments**
+
+arguments 是一个JS免费赠送的关键字；
+
+代表，传递进来的所有参数，是一个数组。
+
+```javascript
+var abs = function (x) {
+    // 手动抛出异常
+    // if (typeof x !== 'number') {
+    //     throw 'Not a number';
+    // }
+
+    console.log("x=>" + x);
+
+    for (var i = 0; i < arguments.length; i++) {
+        console.log(arguments[i]);
+    }
+
+    if (x >= 0) {
+        return x;
+    } else {
+        return -x;
+    }
+}
+```
+
+问题：arguments 包含所有的参数，有时候想使用多余的参数来进行附加操作，需要排序已有的参数。
+
+**rest**
+
+以前：
+
+```javascript
+function aaa(a, b) {
+    console.log("a" + a);
+    console.log("b" + b);
+    if (arguments.length > 2) {
+        for (var i = 2; i < arguments.length; i++) {
+            // ...
+        }
+    }
+}
+```
+
+ES6 引入的新特性，获取除了已经定义的参数之外的所有参数~ ...
+
+现在：
+
+```javascript
+function aaa(a, b, ...rest) {
+    console.log("a" + a);
+    console.log("b" + b);
+    console.log("rest" + rest);
+}
+```
+
+rest 参数只能写在最后面，必须用 ... 标识。
 
 
 
