@@ -422,3 +422,185 @@ arr[0] = 1
     > 1
     ```
 
+#### 3.3 对象
+
+若干个键值对
+
+```javascript
+var person = {
+	属性名：属性值,
+  属性名：属性值,
+  属性名：属性值
+}
+
+// 定义了一个person对象，有五个属性
+var person = {
+  name: "Sugar",
+  age: 3,
+  email: "406857586@qq.com",
+  score: 0
+}
+```
+
+JS 中的对象，用 {...} 表示一个对象，以键值对描述属性 xxx: xxx，多个属性之间使用逗号隔开，最后一个属性不加逗号！
+
+JavaScript 中的所有**键都是字符串**，**值是任意对象**！
+
+1. 对象赋值
+
+   ```javascript
+   person.name = "qinjiang"
+   > "qinjiang"
+   person.name
+   > "qinjiang"
+   ```
+
+2. 使用一个不存在的对象属性，不会报错。 
+
+   ```javascript
+   person.haha
+   > undefined
+   ```
+
+3. 动态的删减属性，通过 delete 删除对象的属性
+
+   ```javascript
+   delete person.name
+   > true
+   ```
+
+4. 动态的添加属性，直接给新的属性添加值即可
+
+   ```javascript
+   person.haha = "haha"
+   > "haha"
+   ```
+
+5. 判断属性值是否在这个对象中  xxx in xxx
+
+   ```javascript
+   'age' in person
+   > true
+   // 继承父类的属性
+   'toString' in person
+   > true
+   ```
+
+6. 判断一个属性是否是这个对象自身拥有的  hasOwnProperty()
+
+   ```javascript
+   person.hasOwnProperty('toString')
+   > false
+   person.hasOwnProperty('age')
+   > true
+   ```
+
+#### 3.4 流程控制
+
+**if 判断**
+
+```javascript
+var age = 3;
+if (age > 3) {
+    alert("haha");
+} else if {
+    alert("aaa");
+} else {
+    alert("kua");
+}
+```
+
+**while do-while 循环**
+
+```javascript
+while(age < 100) {
+    age = age + 1;
+    console.log(age);
+}
+
+do {
+    age = age + 1;
+    console.log(age);
+} while(age < 100) 
+```
+
+**for 循环**
+
+```javascript
+for (let i = 0; i < 100; i++) {
+    console.log(i);
+}
+```
+
+**forEach循环**
+
+```javascript
+// 函数
+var arr = [1, 2, 3, 4, 5, 6, 7, 8];
+arr.forEach(function (value) {
+    console.log(value);
+})
+```
+
+**for...in循环**
+
+```javascript
+/*
+for(Type str: Type[] strs)
+ */
+// for(var index in object) {}
+// 遍历的是数组下标
+for (var num in arr) {
+    console.log(arr[num]);
+}
+```
+
+#### 3.5 Map 和 Set
+
+**Map**
+
+```javascript
+// ES6  Map
+// 学生的成绩，学生的名字
+// var names = ["tom", "jack", "haha"];
+// var scores = [100, 90, 80];
+
+var map = new Map([['tom', 100], ['jack', 90], ['haha', 80]]);
+var name = map.get('tom');  // 通过 key 获得 value
+map.set('admin', 123456);  // 新增或修改
+console.log(map);
+map.delete('tom');  // 删除
+console.log(map);
+```
+
+**Set**：无序不重复的集合
+
+```javascript
+var set = new Set([3, 2, 2, 1, 1]);  // set 可以去重
+set.add(3);  // 添加
+console.log(set);
+set.delete(1);  // 删除
+console.log(set);
+console.log(set.has(1)) // 判断是否包含某个元素
+```
+
+#### 3.6 iterator
+
+### 4. 函数及面向对象
+
+### 5. 常用对象
+
+### 6. 操作Dom对象
+
+### 7. 操作Bom元素
+
+
+
+
+
+
+
+
+
+
+

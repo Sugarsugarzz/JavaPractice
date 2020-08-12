@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>流程控制</title>
+
+    <script>
+        'use strict';
+
+        var age = 3;
+        if (age > 3) {
+            alert("haha");
+        } else {
+            alert("kua");
+        }
+
+        while(age < 100) {
+            age = age + 1;
+            console.log(age);
+        }
+
+        for (let i = 0; i < 100; i++) {
+            console.log(i);
+        }
+
+        // 函数
+        var arr = [1, 2, 3, 4, 5, 6, 7, 8];
+        arr.forEach(function (value) {
+            console.log(value);
+        })
+
+        /*
+        for(Type str: Type[] strs)
+         */
+        // for(var index in object) {}
+        for (var num in arr) {
+            console.log(arr[num]);
+        }
+    </script>
+</head>
+<body>
+
+</body>
+</html>
