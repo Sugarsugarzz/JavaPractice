@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>方法</title>
+</head>
+<body>
+
+<script>
+
+    function getAge() {
+        // 今年 - 出生的年
+        var now = new Date().getFullYear();
+        return now - this.birth;
+    }
+
+    var sugar = {
+        name: 'sugar',
+        birth: 1997,
+        // 方法
+        age: getAge
+    }
+    // sugar.age()  ok
+    // getAge()  Nan
+
+    getAge.apply(sugar, [])  // this，指向 sugar，参数为空
+</script>
+
+</body>
+</html>

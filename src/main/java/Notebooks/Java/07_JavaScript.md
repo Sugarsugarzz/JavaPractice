@@ -627,7 +627,7 @@ for (var x of set) {
 
 #### 4.1 定义函数
 
-**定义方式一**
+- **定义方式一**
 
 ```javascript
 // **绝对值函数**
@@ -644,7 +644,7 @@ function abs(x) {
 
 如果没有执行，函数执行完也会返回结果，结果就是 **undefined**.
 
-**定义方式二**
+- **定义方式二**
 
 ```javascript
 var abs = function (x) {
@@ -660,7 +660,7 @@ function(x) {...}  这是一个**匿名函数**，但是可以把结果赋值给
 
 方式一和方式二等价！
 
-**调用函数**
+- **调用函数**
 
 ```javascript
 abs(10) // 10
@@ -686,7 +686,7 @@ var abs = function (x) {
 }
 ```
 
-**arguments**
+- **arguments**
 
 arguments 是一个JS免费赠送的关键字；
 
@@ -715,7 +715,7 @@ var abs = function (x) {
 
 问题：arguments 包含所有的参数，有时候想使用多余的参数来进行附加操作，需要排序已有的参数。
 
-**rest**
+- **rest**
 
 以前：
 
@@ -745,11 +745,602 @@ function aaa(a, b, ...rest) {
 
 rest 参数只能写在最后面，必须用 ... 标识。
 
+#### 4.2 变量的作用域
 
+在 JavaScript 中，var 定义变量实际是有作用域的。
 
+假设在函数体中声明，则在函数体外不可以使用。（非要想实现的话，可以研究下**闭包**）
 
+```javascript
+function sugar() {
+    var x = 1;
+    x = x + 1;
+}
 
+x = x + 2;  // Uncaught ReferenceError: x is not defined
+```
 
+如果两个函数使用相同的变量名，只要在函数内部，就不冲突。
 
+```javascript
+function sugar() {
+    var x = 1;
+    x = x + 1;
+}
 
+function sugar2() {
+    var x = 1;
+    x = x + 1;
+}
+```
 
+内部函数可以访问外部函数的成员，反之则不行。
+
+```javascript
+function sugar() {
+    var x = 1;
+    // 内部函数可以访问外部函数的成员，反之则不行。
+    function sugar3() {
+        var y = x + 1;  // 2
+    }
+    var z = y + 1;  // Uncaught ReferenceError: y is not defined
+}
+```
+
+假设，内部函数变量和外部函数变量，重名！
+
+假设在 JavaScript 中，函数查找变量从自身函数开始，由“**内**”向“**外**”查找。如果外部存在这个同名的函数变量，则内部函数会屏蔽外部的函数变量。（就近原则）
+
+```javascript
+function sugar4() {
+    var x = 1;
+
+    function sugar5() {
+        var x = 'A';
+        console.log('inner' + x);  // interA
+    }
+    console.log('outer' + x)  // outer1
+    sugar5()
+}
+```
+
+- **提升变量的作用域**
+
+说明，JavaScript 的执行引擎，自动提升了 y 声明，但是不会提升 y 的赋值。
+
+这个是在 JavaScript 建立之初就存在的特性。
+
+**养成规范**：所有的变量定义都放在函数的头部，不要乱放，便于代码的维护。
+
+```javascript
+function sugar6() {
+    var x = "x" + y;
+    console.log(x);  //xundefined
+    var y = "y";
+}
+
+// 等价于 sugar6
+function sugar7() {
+    // 因为会自动提升声明，所以都会把变量声明写到最前面
+  	// var x, y, z, a, b, c, ...  
+    var y;
+    var x = "x" + y;
+    console.log(x);
+    y = "y";
+}
+```
+
+- **全局函数**
+
+```javascript
+// 全局变量
+var a = 1;
+function f() {
+    console.log(x);
+}
+console.log(x);
+```
+
+全局变量 window
+
+```javascript
+var b = 'xxx';
+alert(b);
+alert(window.b);  // 默认所有的全局变量，都会自动绑定到 window 对象下。
+window.alert(window.b);
+```
+
+alert() 这个函数本身也是一个 window 变量。
+
+```javascript
+var c = 'xxx';
+window.alert(c);
+
+var old_alert = window.alert;
+// old_alert(c);
+
+window.alert = function () {
+    
+};
+// 发现 alert() 失效了
+window.alert(123);
+
+// 恢复
+window.alert = old_alert;
+window.alert(456);
+```
+
+JavaScript 实际上只有一个全局作用域，任何变量（函数也可以视为变量），假设没有在函数作用范围内找到，就会向外查找，如果全局作用域都没有找到，报错 《RefrenceError》。
+
+- **规范**
+
+由于所有的全局变量都会绑定到 window 上，如果不同的JS文件使用相同的全局变量，则会产生**冲突**，如何减少冲突？
+
+- 把自己的代码全部放入自己定义的唯一命名空间中，降低全局命名冲突的问题。
+- JQuery 就是这么做的，为了简化，JQuery 将自己简化为 $ 符号。
+
+```javascript
+// 避免绑定全局变量冲突，自定义一个唯一全局变量
+var SugarApp = {};
+// 定义全局变量
+SugarApp.name = "sugar";
+SugarApp.add = function (a, b) {
+    return a + b;
+}
+```
+
+- **局部作用域 let**
+
+```javascript
+function aaa() {
+    for (var i = 0; i < 100; i++) {
+        console.log(i);
+    }
+    console.log(i+1);  // 问题：i 出了这个作用域还可以使用，能够打印出 101
+}
+```
+
+ES6 let 关键字，解决局部作用域冲突的问题！
+
+```javascript
+function bbb() {
+    for (let i = 0; i < 100; i++) {
+        console.log(i);
+    }
+    console.log(i+1);  // Uncaught ReferenceError: i is not defined
+}
+```
+
+**建议使用 let 去定义局部作用域的变量。**
+
+- **常量 const**
+
+在 ES6 之前，定义常量的方法：只有用全部大写字母命名的变量就是常量，建议不要修改这样的值。
+
+```javascript
+var PI = '3.14';
+console.log(PI);
+PI = '213';  // 可以修改这个常量的值
+console.log(PI);
+```
+
+在 ES6 引入常量关键字，**const**
+
+```javascript
+const PI = '3.14';  // 只读常量
+console.log(PI);
+PI = '213';  // 报错 TypeError: Assignment to constant variable.
+consolo.log(PI);
+```
+
+#### 4.3 方法
+
+- **定义方法**
+
+  方法就是把函数放在对象的里面，对象只有两个东西：**属性和方法**。
+
+  ```javascript
+  var sugar = {
+      name: 'sugar',
+      birth: 1997,
+      // 方法
+      age: function () {
+          // 今年 - 出生的年
+          var now = new Date().getFullYear();
+          return now - this.birth;
+      }
+  }
+  
+  // 属性
+  sugar.name
+  // 方法（一定要带括号）
+  sugar.age()
+  ```
+
+  this. 代表什么？拆开上面的代码看看。
+
+  ```javascript
+  function getAge() {
+      // 今年 - 出生的年
+      var now = new Date().getFullYear();
+      return now - this.birth;
+  }
+  
+  var sugar = {
+      name: 'sugar',
+      birth: 1997,
+      // 方法
+      age: getAge
+  }
+  // sugar.age()  ok
+  // getAge()  Nan
+  ```
+
+  this 是无法指向的，是默认指向调用它的那个对象。
+
+- **apply**
+
+  apply 可以在 JS 中控制 this 的指向。8
+
+  ```javascript
+  function getAge() {
+    // 今年 - 出生的年
+    var now = new Date().getFullYear();
+    return now - this.birth;
+  }
+  
+  var sugar = {
+    name: 'sugar',
+    birth: 1997,
+    // 方法
+    age: getAge
+  }
+  // sugar.age()  ok
+  // getAge()  Nan
+  
+  getAge.apply(sugar, [])  // this，指向 sugar，参数为空
+  ```
+
+### 5. 内部对象
+
+- 标准对象
+
+  ```javascript
+  typeof 123
+  "number"
+  typeof '123'
+  "string"
+  typeof true
+  "boolean"
+  typeof NaN
+  "number"
+  typeof []
+  "object"
+  typeof {}
+  "object"
+  typeof Math.abs
+  "function"
+  typeof undefined
+  "undefined"
+  ```
+
+#### 5.1 Date
+
+- 基本使用
+
+  ```javascript
+  var now = new Date();  // Date Thu Aug 13 2020 10:30:29 GMT+0800 (中国标准时间)
+  now.getFullYear();  // 年
+  now.getMonth();  // 月  0~11 下标从0开始
+  now.getDate();  // 日
+  now.getDay();  // 星期几
+  now.getHours();  // 时
+  now.getMinutes();  // 分
+  now.getSeconds();  // 秒
+  
+  now.getTime()  // 时间戳，全世界统一， 1970.1.1 0:00:00 到现在的毫秒数
+  
+  console.log(new Date(1597286292465)); // 时间戳 转 时间
+  ```
+
+- 转换
+
+  ```javascript
+  now = new Date(1597286292465);
+  Date Thu Aug 13 2020 10:38:12 GMT+0800 (中国标准时间)
+  
+  now.toLocaleString()
+  "2020/8/13 上午10:38:12"
+  now.toGMTString()
+  "Thu, 13 Aug 2020 02:38:12 GMT"
+  ```
+
+#### 5.2 JSON
+
+> - JSON（JavsScript Object Notation，JS对象简谱）是一种轻量级的数据交换格式。
+> - 简洁和清晰的层次结构使得 JSON 成为理想的数据交换语言。
+> - 易于人阅读和编写，同时也易于机器解析和生成，并有效地提升网络传输效率。
+
+早期，所有数据传输习惯使用 XML 文件。
+
+在 JavaScript 中，一切皆为对象，任何 JS 支持的类型都可以用 JSON 来表示。
+
+格式：
+
+- 对象都用 {}
+- 数组都用 []
+- 所有的键值对 都是用 key: value
+
+JSON字符串和 JS对象的转化：
+
+```javascript
+var user = {
+    name: "sugar",
+    age: 3,
+    sex: '男'
+}
+
+// 对象转化为json字符串
+var jsonUser = JSON.stringify(user);
+
+// json字符串转化为对象  参数为 json字符串
+var obj = JSON.parse('{"name": "sugar", "age":3, "sex": "男"}');
+```
+
+JSON 和 JS对象 的区别
+
+```javascript
+var obj = {a: 'hello', b: 'hellob'};
+var json = '{"a": "hello", "b": "hellob"}'
+```
+
+#### 5.3 Ajax
+
+- 原生的JS写法 xhr 异步请求
+- JQuery 封装好的方法 $("#name").ajax("")
+- axios 请求
+
+### 6. 面向对象编程
+
+#### 6.1 什么是面向对象
+
+​	JavaScript、Java、C#。。。
+
+​	面向对象：JavaScript有一些区别！
+
+**类**：模板 原型对象
+
+**对象**：具体的实例
+
+在JavaScript中，这个需要更换一下思维方式。
+
+- 原型
+
+```javascript
+var Student = {
+    name: "student",
+    age: 3,
+    run: function () {
+        console.log(this.name + " run...");
+    }
+};
+
+var xiaoming = {
+    name: "xiaoming"
+}
+
+// 小明的原型是 Student
+xiaoming.__proto__ = Student;
+
+var Bird = {
+    fly: function () {
+        console.log(this.name + " fly...");
+    }
+}
+// 能随时修改其继承的原型
+xiaoming.__proto__ = Bird;
+```
+
+```javascript
+function Student(name) {
+    this.name = name;
+    
+}
+// 给Student新增一个方法
+Student.prototype.hello = function () {
+    alert("hello");
+};
+```
+
+- class 继承
+
+  class 关键字是在 ES6 引入的。
+
+  1. 定义一个类，属性和方法
+
+     ```javascript
+     // ES6 以后
+     // 定义一个学生的类
+     class Student {
+         constructor(name) {
+             this.name = name;
+         }
+     
+         hello() {
+             alert("hello");
+         }
+     }
+     
+     var xiaoming = new Student("xiaoming");
+     var xiaohong = new Student("xiaohong");
+     xiaoming.hello();
+     ```
+
+  2. 继承
+
+     ```javascript
+     // 定义一个学生的类
+     class Student {
+       constructor(name) {
+         this.name = name;
+       }
+     
+       hello() {
+         alert("hello");
+       }
+     }
+     // 定义一个继承的子类
+     class JuniorStudent extends Student {
+       constructor(name, grade) {
+         super(name);
+         this.grade = grade;
+       }
+     
+       myGrade() {
+         alert("我是小学生");
+       }
+     }
+     
+     var xiaoming = new Student("xiaoming");
+     var xiaohong = new JuniorStudent("xiaohong", 1);
+     ```
+
+     本质：查看对象原型
+
+     <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200813123237216.png" alt="image-20200813123237216" style="zoom:50%;" />
+
+- 原型链
+
+  __proto__：
+
+  <img src="https://picb.zhimg.com/80/v2-4374168403bf51faa50176cf1e7067ce_720w.jpg" alt="img" style="zoom:50%;" />
+
+### 7. 操作BOM对象（重点）
+
+- 浏览器介绍
+
+  JavaScript 和 浏览器的关系？
+
+  为了能够让JavaScript在浏览器中运行！
+
+  BOM：浏览器对象模型
+
+  - IE 6~11
+  - Chrome
+  - Safari
+  - FireFox（Linux默认）
+
+  第三方浏览器：
+
+  - QQ浏览器
+  - 360浏览器
+
+- **window对象**
+
+  window 代表浏览器窗口。
+
+  ```javascript
+  window.alert(1)  // 弹窗
+  window.innerHeight // 内高
+  window.innerWidth  // 内宽
+  window.outerHeight  // 外高
+  window.outerWidth  // 外宽
+  // 可以调整浏览器窗口调节
+  ```
+
+- Navigator（不建议使用，可人为修改）
+
+  Navigator 封装了浏览器的信息。
+
+  ```javascript
+  navigator.appName
+  "Netscape"
+  navigator.appVersion
+  "5.0 (Macintosh)"
+  navigator.userAgent
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:79.0) Gecko/20100101 Firefox/79.0"
+  navigator.platform
+  "MacIntel"
+  ```
+
+  大多数时候，不会使用 navigator 对象，因为会被人为修改。
+
+  不建议使用这些属性来判断和编写代码。
+
+- screen
+
+  screen 获取显示器的信息。
+
+  ```javascript
+  screen.width
+  2520
+  screen.height
+  1575
+  ```
+
+- **location**
+
+  locatoin代表当前页面的 URL 信息。
+
+  ```javascript
+  host:"www.baidu.com"
+  href:"https://www.baidu.com"
+  protocol:"https:"
+  reload:f reload()  // 刷新网页
+  // 设置新的地址
+  location.assign("https://www.tzchuan.com")
+  ```
+
+- document
+
+  document代表当前的页面。HTMl、DOM文档树。
+
+  ```javascript
+  document.title
+  "百度一下，你就知道"
+  document.title = 'sugar'
+  "sugar"
+  ```
+
+  获取具体的文档树节点。
+
+  ```html
+  <dl id="app">
+      <dt>Java</dt>
+      <dt>JavaSE</dt>
+      <dt>JavaEE</dt>
+  </dl>
+  
+  <script>
+      var dl = document.getElementById('app')
+  </script>
+  ```
+
+  获取 cookie
+
+  ```javascript
+  document.cookie
+  "BIDUPSID=6B64B237F51CAC4AECBFC6DC757DAFA3; BAIDUID=C23D35B861059E4DBA023B5123E4D529:FG=1; PSTM=1585555733; BD_HOME=1; H_PS_PSSID=1428_32301_32046_32394_32116_26350_32503; BD_UPN=133252"
+  ```
+
+  劫持 cookie 的原理
+
+  www.baidu.com
+
+  ```html
+  <script src="aa.js"></script>
+  <!--恶意人员，获取你的cookie上传到他的服务器-->
+  ```
+
+  服务器端可以设置 cookie:httpOnly，只读，保证cookie安全
+
+- history	
+
+  hisotry 代表浏览器的历史记录。
+
+  ```javascript
+  history.back()  // 后退
+  history.forward()  // 前进
+  ```
+
+  
