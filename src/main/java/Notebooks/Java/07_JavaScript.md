@@ -1518,7 +1518,7 @@ form、DOM树
 - 密码框  password
 - ...
 
-表单的目的：提交信息
+**表单的目的：**提交信息
 
 - 获取要提交的信息
 
@@ -1595,4 +1595,268 @@ form、DOM树
   </script>
   ```
 
+### 10. jQuery
+
+​	jQuery库：里面存在大量的 JavaScript 函数。
+
+- 获取jQuery
+
+  ```html
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <title>初识jQuery</title>
+      <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+  </head>
+  <body>
   
+  <!--
+  
+  公式：$(selector).action()
+  
+  -->
+  
+  <a href="#" id="test-jquery">点我</a>
+  
+  <script>
+      document.getElementById("test-jquery")
+  
+      // 选择器就是 css选择器
+      $('#test-jquery').click(function () {
+          alert("hello, jquery");
+      })
+  </script>
+  
+  </body>
+  </html>
+  ```
+
+- 选择器
+
+  ```html
+  <script>
+      /*
+      原生JS，选择器少，也不好记
+       */
+      // 标签
+      document.getElementsByTagName();
+      // id
+      document.getElementById();
+      // 类
+      document.getElementsByClassName();
+  
+      /*
+      jQuery：css选择器都能用
+      http://jquery.cuishifeng.cn/
+       */
+      // 标签
+      $('p').click()
+      // id
+      $('#id').click()
+      // 类
+      $('.class').click()
+  </script>
+  ```
+
+  文档工具站：http://jquery.cuishifeng.cn/
+
+- 事件 action
+
+  鼠标事件，键盘事件，其他事件。。。
+
+  <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200814094914290.png" alt="image-20200814094914290" style="zoom:50%;" />
+
+  获取鼠标移动的坐标：
+
+  ```html
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <title>事件</title>
+      <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+      <style>
+          #divMove {
+              width: 500px;
+              height: 500px;
+              border: 1px solid red;
+          }
+      </style>
+  </head>
+  <body>
+  
+  <!--要求：获取鼠标当前的一个坐标-->
+  mouse：<span id="mouseMove"></span>
+  <div id="divMove">
+      在这里移动鼠标
+  </div>
+  
+  <script>
+      // 当网页元素加载完毕之后，响应事件
+      // $(document).ready(function () {
+      //
+      // })
+      // 等价于上面的写法，做了简化
+      $(function () {
+         $('#divMove').mousemove(function (e) {
+             $('#mouseMove').text('x:' + e.pageX + 'y:' + e.pageY);
+         })
+      });
+  
+  </script>
+  
+  </body>
+  </html>
+  ```
+
+- 操作DOM
+
+  节点文本操作
+
+  ```javascript
+  // 无参 就是 获得值
+  $('#test-ul li[name=python]').text();
+  // 有参 就是 设置值
+  $('#test-ul li[name=python]').text('123');
+  // 无参 就是 获得值
+  $('#test-ul').html();
+  // 有参 就是 设置值
+  $('#test-ul').html('<strong>123</strong>');
+  ```
+
+  Css 操作
+
+  ```javascript
+  $('#test-ul li[name=python]').css("color", "red");
+  ```
+
+  元素的显示和隐藏：本质 display：none
+
+  ```javascript
+  // 显示和隐藏元素
+  $('#test-ul li[name=python]').show();
+  $('#test-ul li[name=python]').hide();
+  ```
+
+  娱乐测试
+
+  ```javascript
+  $(window).width();
+  $(window).width();
+  $('#test-ul li[name=python]').toggle();
+  ```
+
+  未来Ajax：（在SpringMVC讲）
+
+  ```javascript
+  $('#form').ajax()
+  
+  $.ajax({ url: "test.html", context: document.body, success: function() {
+    $(this).addClass("done");
+  }});
+  ```
+
+### 11. 模板框架
+
+ - 友人C
+ - Ant Design
+ - docsify
+ - layui
+ - Element-ui
+ - Bootstrap
+
+### 12. 小技巧
+
+1. 如何巩固JS
+
+   看 jQuery 源码，看游戏源码
+
+2. 巩固 HTML、CSS
+
+   扒网站，全部down下来，然后对应修改看效果
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

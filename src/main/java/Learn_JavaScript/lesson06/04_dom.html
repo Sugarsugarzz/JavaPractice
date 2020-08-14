@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>操作DOM</title>
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+</head>
+<body>
+
+<ul id="test-ul">
+    <li class="js">JavaScript</li>
+    <li name="python">Python</li>
+</ul>
+
+<script>
+    // document.getElementById('')
+
+    // 节点文本操作
+    // // 无参 就是 获得值
+    // $('#test-ul li[name=python]').text();
+    // // 有参 就是 设置值
+    // $('#test-ul li[name=python]').text('123');
+    // // 无参 就是 获得值
+    // $('#test-ul').html();
+    // // 有参 就是 设置值
+    // $('#test-ul').html('<strong>123</strong>');
+
+
+    // css操作
+    $('#test-ul li[name=python]').css("color", "red");
+
+    // 显示和隐藏元素
+    $('#test-ul li[name=python]').show();
+    $('#test-ul li[name=python]').hide();
+
+
+</script>
+
+</body>
+</html>
