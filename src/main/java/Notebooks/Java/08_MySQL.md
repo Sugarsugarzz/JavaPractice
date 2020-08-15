@@ -85,3 +85,45 @@ MySQL是一个**关系型数据库管理系统**。
 9. 进入mysql 命令：-u root -p密码（不能加空格），修改密码（sql语句后面一定要加；）
 10. 注掉 ini 中的跳过密码验证
 11. 重启mysql，连接测试。
+
+#### 1.6 安装SQLyog
+
+还是navicat吧
+
+1. 新建数据库 school
+
+2. 新建一张表 student
+
+   ```sql
+   字段：id，name，age
+   ```
+
+3. 查看表
+
+#### 1.7 连接数据库
+
+命令行连接！
+
+```sql
+mysql -u root -p123456  -- 连接数据库
+
+update mysql.user set authentication_string=password('123456') where user='root' and Host = 'localhost';  -- 修改用户密码
+
+flush privileges;  -- 刷新权限
+---------------------------------------------
+-- 所有的语句都使用;结尾。
+show databases; -- 查看所有的数据库
+use school;  -- 切换数据库
+show tables;  -- 查看所有的表
+describe student;  -- 显示表结构
+create database westos;  -- 创建一个数据库
+
+exit;  -- 退出连接
+
+-- 单行注释（sql 本来的注释）
+/* 多行注释
+1
+2
+*/
+```
+
