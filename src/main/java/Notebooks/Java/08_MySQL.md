@@ -127,3 +127,52 @@ exit;  -- 退出连接
 */
 ```
 
+### 2. 操作数据库
+
+操作数据库 > 操作数据库中的表 > 操作数据库中表的数据
+
+**Mysql 关键字不区分大小写**
+
+#### 2.1 操作数据库
+
+1. 创建数据库
+
+   ```sql
+   CREATE DATABASE [IF NOT EXISTS] westos;
+   ```
+
+2. 删除数据库
+
+   ```sql
+   DROP DATABASE [IF EXISTS] hello;
+   ```
+
+3. 使用数据库
+
+   ```sql
+   USE school;  -- 如果是关键字，需要加个`，即`school`
+   ```
+
+4. 查看数据库
+
+   ```sql
+   SHOW DATABASES;  -- 查看所有数据库
+   ```
+
+#### 2.2 数据库的数据类型
+
+1. 数值
+   - tinnyint	十分小的数据（1个字节）
+   - smallint    较小的数据（2个字节）
+   - mediumint    中等大小的数据（3个字节）
+   - **int    标准的整数（4个字节）** 
+   - bigint    较大的数据（8个字节）
+
+2. 字符串
+
+3. 时间日期
+
+4. null
+
+
+
