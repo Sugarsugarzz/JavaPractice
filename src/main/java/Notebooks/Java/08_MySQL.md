@@ -299,7 +299,7 @@ MYISAM  早些年使用的
 >
 > 本质还是文件的存储！
 
-**MySQL引起咋物理文件上的区别：**
+**MySQL在物理文件上的区别：**
 
 - InnoDB 在数据库表中只有一个 *.frm 文件，以及上级目录下的 ibdata1 文件。
 - MYISAM 对应文件
@@ -319,4 +319,235 @@ MYISAM  早些年使用的
   character-set-server=utf8
   ```
 
-  
+#### 2.6 修改删除表
+
+- 修改
+
+  ```sql
+  -- 修改表名  ALTER TABLE 旧表名 RENAME AS 新表名
+  ALTER TABLE teacher RENAME AS teacher1
+  -- 增加表的字段  ALTER TABLE 表名 ADD 字段名 列属性
+  ALTER TABLE teacher1 ADD age INT(11)
+  -- 修改表的字段（重命名，修改约束）
+  -- ALTER TABLE 表名 MODIFY 字段名 列属性[可选]
+  ALTER TABLE teacher1 MODIFY age VARCHAR(11)  -- 修改约束
+  -- ALTER TABLE 表名 CHANGE 旧字段名 新字段名 列属性[可选]
+  ALTER TABLE teacher1 CHANGE age age1 INT(11)  -- 字段重命名
+  -- 删除表的字段
+  -- ALTER TABLE 表名 DROP 字段名
+  ALTER TABLE teacher1 DROP age1
+  ```
+
+- 删除
+
+  ```sql
+  -- 删除表
+  DROP TABLE IF EXISTS teacher
+  ```
+
+  **所有的创建和删除操作尽量加上判断，以免报错**
+
+注意点：
+
+- ``  字段名使用这个包裹！
+- 注释  /* */
+- SQL 关键字大小写不敏感，建议写小写。
+- 所有符号全部用英文！
+
+### 3. MySQL数据管理
+
+#### 3.1 外键（了解）
+
+- 方式一：在创建表的时候，增加约束（比较复杂）
+
+```sql
+-- 年级表
+CREATE TABLE `grade` (
+	`gradeid` INT(10) NOT NULL AUTO INCREMENT COMMENT '年级id',
+  `gradename` VARCHAR(50) NOT NULL COMMENT '年级名称',
+  PRIMARY KEY (`gradeid`)
+)ENGINE=INNODB DEFAULT CHARSET=utf8
+```
+
+```sql
+-- 学生表
+-- 学生表的 gradeid 字段去引用年级表的 gradeid
+-- 1、定义外键 key
+-- 2、给这个外键添加约束（执行引用）
+CREATE TABLE IF NOT EXISTS `student` (
+	`id` INT(4) NOT NULL AUTO_INCREMENT COMMENT '学号',
+  `name` VARCHAR(30) NOT NULL DEFAULT '匿名' COMMENT '姓名',
+  `pwd` VAHCHAR(20) NOT NULL DEFAULT '123456' COMMENT '密码',
+  `gender` VARCHAR(2) NOT NULL DEFAULT '女' COMMENT '性别',
+  `birthday` DATETIME DEFAULT NULL COMMENT '出生日期',
+  `gradeid` INT(10) NOT NULL COMMENT '年级id',
+  `address` VARCHAR(100) DEFAULT NULL COMMENT '家庭住址',
+  `email` VARCHAR(50) DEFAULT NULL COMMENT '邮箱',
+	PRIMARY KEY(`id`),
+  KEY `FK_gradeid` (`gradeid`),
+  CCONSTRAINT `FK_gradeid` FOREIGN KEY (`gradeid`) REFERENCES `grade`
+) ENGINE INNODB DEFAULT CHARSET=utf8
+```
+
+删除有外键关系的表的时候，必须要先删除被引用的表，即外键在的表（从表），再删除引用的表（主表）。
+
+- 方式二：创建表成功后，添加外键约束
+
+```sql
+-- 创建表的时候没有外键关系
+-- ALTER TABLE 表 ADD CONSTRAINT 约束名 FOREIGN KEY(作为外键的列) REFERENCES 被引用的表（被引用的字段）;
+ALTER TABLE `student` 
+ADD CONSTRAINT `FK_gradeid` FOREIGN KEY (`gradeid`) REFERENCES `grade`(`gradeid`);
+```
+
+以上的操作都是物理外键，数据库级别的外键，**不建议使用**。（避免数据库过多造成困扰，了解即可）
+
+##### **最佳实践：**
+
+- 数据库就是单纯的表，只用来存数据，只有行（数据）和列（字段）。
+- 想使用多张表的数据，想使用外键，使用程序来实现。
+
+#### 3.2 DML语言（重要）
+
+**数据库的意义**：数据存储，管理。
+
+DML 语言：数据操作语言
+
+- INSERT
+- UPDATE
+- DELETE
+
+#### 3.3 添加 INSERT
+
+```sql
+-- 插入语句（添加）
+-- INSERT INTO 表名 [(字段名1，字段名2，...)] VALUES ('值1'，'值2'，...), ('值1'，'值2'，...), ('值1'，'值2'，...)
+INSERT INTO `grade` (`gradename`) VALUES (`大四`)
+
+-- 由于主键自增，所以可以省略（如果不写表的字段，就会按序一一匹配！）
+INSERT INTO `grade` VALUES (`大四`)
+
+-- 一般写插入语句，一定要数据和字段一一对应！
+
+-- 插入多个字段
+INSERT INTO `grade` (`gradename`) VALUES ('大二'), ('大三')
+
+INSERT INTO `student` (`name`) VALUES ('张三')
+INSERT INTO `student` (`name`, `pwd`, `gender`) VALUES ('张三', 'aaaaa', '男'), ('老五', 'abbbb', '女')
+```
+
+语法：`INSERT INTO 表名 [(字段名1，字段名2，...)] VALUES ('值1'，'值2'，...), ('值1'，'值2'，...), ('值1'，'值2'，...)`
+
+注意事项：
+
+1. 字段和字段之间使用 **英文逗号** 隔开。
+2. 字段是可以省略的，但是后面的值必须一一对应，不能少。
+3. 可以同时插入多条数据，VALUES 后面的值，需要使用 , 隔开即可。 `VALUES()， （）...`
+
+#### 3.4 修改 UPDATE
+
+> UPDATE  修改谁 （条件）  SET  原来的值  =  新值
+
+```sql
+-- 语法
+-- UPDATE 表名 SET 字段名1 = 值1,[字段名2 = 值2, 字段名3 = 值3, ...] [WHERE 条件]
+
+-- 修改学生名字，带了条件
+UPDATE `student` SET `name`= 'Sugar' WHERE id = 1;
+
+-- 不指定条件的情况下，会改动表的所有数据。
+UPDATE `student` SET `name` = '长江七号';
+
+-- 修改多个属性，逗号隔开
+UPDATE `student` SET `name` = 'Sugar', `email` = '406857586@qq.com' WHERE id = 1;
+
+-- 通过多个条件定位数据，条件无上限
+UPDATE `student` SET `birthday` = CURRENT_TIME WHERE `name` = 'Sugar' and `gender` = '男';
+```
+
+语法：`UPDATE 表名 SET 字段名1 = 值1 [字段名2 = 值2, 字段名3 = 值3, ...] [WHERE 条件]`
+
+条件：WHERE 子句 运算符  id 等于某个值，大于某个值，在某个区间内修改...
+
+操作符会返回布尔值。
+
+| 操作符              | 含义         | 范围        | 结果  |
+| ------------------- | ------------ | ----------- | ----- |
+| =                   | 等于         | 5=6         | false |
+| <> 或 !=            | 不等于       | 5<>6        | true  |
+| >                   | 大于         | 5>6         | false |
+| <                   | 小于         | 5<6         | true  |
+| >=                  | 大于等于     | 5>=6        | false |
+| <=                  | 小于等于     | 5<=6        | true  |
+| BETWEEN ... AND ... | 在某个范围内 | [2,5]       |       |
+| AND                 | &&           | 5>1 and 1>2 | false |
+| OR                  | \|\|         | 5>1 or 1>2  | true  |
+
+语法：`UPDATE 表名 SET 字段名1 = 值1,[字段名2 = 值2, 字段名3 = 值3, ...] [WHERE 条件]`
+
+注意：
+
+- colnum_name：是数据库的列，尽量带上 ``
+
+- 条件，筛选的条件，如果没有指定，则会修改所有的行。
+
+- value，是一个具体的值，也可以是一个变量。
+
+  ```sql
+  UPDATE `student` SET `birthday` = CURRENT_TIME WHERE `name` = 'Sugar' and `gender` = '男';
+  ```
+
+- 多个设置的属性之间，使用英文逗号隔开。
+
+#### 3.5 删除 DELETE and TRUNCATE
+
+> DELETE 命令
+
+```sql
+-- 删除数据（避免这样写，会全部删除）
+DELETE FROM `student`;
+
+-- 删除指定数据
+DELETE FROM `student` WHERE id = 1;
+```
+
+语法：`DELETE FROM 表名 [WHERE 条件]`
+
+> TRUNCATE 命令
+
+作用：完全清空一个数据库表，表的结构和索引约束不会变！
+
+```sql
+-- 清空 student 表
+TRUNCATE `student`;
+```
+
+> DELETE 和 TRUNCATE 的区别
+
+- 相同点：都能删除数据，都不会删除表结构。
+- 不同点：
+  - TRUNCATE 重新设置自增列，计数器会归零。
+  - TRUNCATE 不会影响事务。
+
+```sql
+-- 测试 DELETE 和 TRUNCATE 的区别
+CREATE TABLE `test` (
+	`id` INT(4) NOT NULL AOTU_INCREMENT,
+  `col` VARCHAR(20) NOT NULL,
+  PRIMARY KEY(`id`)
+)ENGINE=INNODB DEFAULT CHARSET=utf8
+
+INSERT INTO `test`(`col`) VALUES ('1'), ('2'), ('3');
+
+DELETE FROM `test`;  -- 不会影响自增
+
+TRUNCATE TABLE `test`;  -- 自增归零
+```
+
+了解即可：`DELETE删除的问题`,重启数据库，现象
+
+- INNODB  自增列会从 1 开始（存在内存中，断电即失）
+- MyISAM  继续从上一个自增量开始（存在文件中，不会丢失）
+
+#### 4. DQL 查询数据（重点）
+
