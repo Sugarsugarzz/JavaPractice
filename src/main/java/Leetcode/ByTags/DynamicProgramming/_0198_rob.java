@@ -10,7 +10,7 @@ import java.util.Collections;
  * Easy
  */
 
-public class __0198_rob {
+public class _0198_rob {
 
     public static void main(String[] args) {
 
