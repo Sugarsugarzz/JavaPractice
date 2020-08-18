@@ -551,3 +551,243 @@ TRUNCATE TABLE `test`;  -- 自增归零
 
 #### 4. DQL 查询数据（重点）
 
+#### 4.1 DQL
+
+DQL（Data Query Language）：数据查询语言
+
+- 所有的查询操作都用它 `Select`
+- 简单、复杂的查询都用它
+- **数据库中最核心的语言，最重要的语言**
+- 使用频率最高的语句
+
+测试用SQL：
+
+```sql
+create database if not exists `school`;
+-- 创建一个school数据库
+use `school`;
+
+-- 创建学生表
+drop table if exists `student`;
+create table `student`(
+`studentno` int(4) not null comment '学号',
+`loginpwd` varchar(20) default null,
+`studentname` varchar(20) default null comment '学生姓名',
+`sex` tinyint(1) default null comment '性别，0或1',
+`gradeid` int(11) default null comment '年级编号',
+`phone` varchar(50) not null comment '联系电话，允许为空',
+`address` varchar(255) not null comment '地址，允许为空',
+`borndate` datetime default null comment '出生时间',
+`email` varchar (50) not null comment '邮箱账号允许为空',
+`identitycard` varchar(18) default null comment '身份证号',
+primary key (`studentno`),
+unique key `identitycard`(`identitycard`),
+key `email` (`email`)
+)engine=myisam default charset=utf8;
+
+-- 创建年级表
+drop table if exists `grade`;
+create table `grade`(
+	`gradeid` int(11) not null auto_increment comment '年级编号',
+  `gradename` varchar(50) not null comment '年级名称',
+    primary key (`gradeid`)
+) engine=innodb auto_increment = 6 default charset = utf8;
+
+-- 创建科目表
+drop table if exists `subject`;
+create table `subject`(
+	`subjectno`int(11) not null auto_increment comment '课程编号',
+    `subjectname` varchar(50) default null comment '课程名称',
+    `classhour` int(4) default null comment '学时',
+    `gradeid` int(4) default null comment '年级编号',
+    primary key (`subjectno`)
+)engine = innodb auto_increment = 19 default charset = utf8;
+
+-- 创建成绩表
+drop table if exists `result`;
+create table `result`(
+	`studentno` int(4) not null comment '学号',
+    `subjectno` int(4) not null comment '课程编号',
+    `examdate` datetime not null comment '考试日期',
+    `studentresult` int (4) not null comment '考试成绩',
+    key `subjectno` (`subjectno`)
+)engine = innodb default charset = utf8;
+
+-- 插入学生数据 其余自行添加 这里只添加了2行
+insert into `student` (`studentno`,`loginpwd`,`studentname`,`sex`,`gradeid`,`phone`,`address`,`borndate`,`email`,`identitycard`)
+values
+(1000,'123456','张伟',0,2,'13800001234','北京朝阳','1980-1-1','text123@qq.com','123456198001011234'),
+(1001,'123456','赵强',1,3,'13800002222','广东深圳','1990-1-1','text111@qq.com','123456199001011233');
+
+-- 插入成绩数据  这里仅插入了一组，其余自行添加
+insert into `result`(`studentno`,`subjectno`,`examdate`,`studentresult`)
+values
+(1000,1,'2013-11-11 16:00:00',85),
+(1000,2,'2013-11-12 16:00:00',70),
+(1000,3,'2013-11-11 09:00:00',68),
+(1000,4,'2013-11-13 16:00:00',98),
+(1000,5,'2013-11-14 16:00:00',58);
+
+-- 插入年级数据
+insert into `grade` (`gradeid`,`gradename`) values(1,'大一'),(2,'大二'),(3,'大三'),(4,'大四'),(5,'预科班');
+
+FullHouse回复 @白条asd  :4
+“
+
+-- 插入科目数据
+insert into `subject`(`subjectno`,`subjectname`,`classhour`,`gradeid`)values
+(1,'高等数学-1',110,1),
+(2,'高等数学-2',110,2),
+(3,'高等数学-3',100,3),
+(4,'高等数学-4',130,4),
+(5,'C语言-1',110,1),
+(6,'C语言-2',110,2),
+(7,'C语言-3',100,3),
+(8,'C语言-4',130,4),
+(9,'Java程序设计-1',110,1),
+(10,'Java程序设计-2',110,2),
+(11,'Java程序设计-3',100,3),
+(12,'Java程序设计-4',130,4),
+(13,'数据库结构-1',110,1),
+(14,'数据库结构-2',110,2),
+(15,'数据库结构-3',100,3),
+(16,'数据库结构-4',130,4),
+(17,'C#基础',130,1);
+```
+
+
+
+#### 4.2 查询所有的字段
+
+```mysql
+-- 查询全部的学生  SELECT 字段 FROM 表;
+SELECT * FROM student;
+
+-- 查询指定字段
+SELECT `StudentNo`, `StudentName` FROM student;
+
+-- 别名，给结果起一个名字  AS，可以给字段，也可以给表起别名
+SELECT `StudentNo` AS 学号, `StudentName` AS 学生姓名 FROM student AS s;
+
+-- 函数，拼接字符串 Concat(a,b)
+SELECT CONCAT('姓名：', StudentName) AS 新名字 FROM student
+```
+
+语法：`SELECT 字段... FROM 表`
+
+> 有的时候，列名不是那么见名知意，可以起别名 AS
+
+- 去重 distinct
+
+  作用：去除Select 查询出来的结果中重复的数据，重复的数据只显示一条。
+
+  ```sql
+  -- 查询一下那些同学参加了考试，成绩
+  -- 查询全部的考试成绩
+  SELECT * FROM result;  
+  -- 查询那些同学参加了考试
+  SELECT `StudentNo` FROM result;
+  -- 发现重复数据，去重
+  SELECT DISTINCT `StudentNo` FROM result;
+  ```
+
+- 数据库的列（表达式）
+
+  ```sql
+  SELECT VERSION();  -- 查看系统版本
+  SELECT 100 * 3 - 1 AS 计算结果  -- 计算
+  SELECT @@auto_increment_increment  -- 查询自增的步长（变量）
+  
+  -- 学员考试成绩 + 1分 查看
+  SELECT `StudentNo`, `StudentResult`+1 AS '提分后' FROM result;
+  ```
+
+**总结：**
+
+数据库中的表达式：文本值，列，null，函数，计算表达式，系统变量...
+
+#### 4.3 where条件子句
+
+作用：检索数据中**符合条件**的值
+
+搜索的条件由一个或多个表达式组成！结果都是一个布尔值。
+
+- 逻辑运算符
+
+  | 运算符   | 语法             | 描述                           |
+  | -------- | ---------------- | ------------------------------ |
+  | and  &&  | a and b  a && b  | 逻辑与，两个为真，结果为真     |
+  | or  \|\| | a or b  a \|\| b | 逻辑或，其中一个为真，结果为真 |
+  | Not  !   | not a   ! a      | 逻辑非，真为假，假为真         |
+
+  **尽量使用英文字母**
+
+```sql
+-- 查询所有成绩
+SELECT `StudentNo`, `StudentResult` FROM result;
+
+-- 查询考试成绩在 95 - 100分之间
+SELECT `StudentNo`, `StudentResult` FROM result 
+WHERE `StudentResult` >= 95 and `StudentResult` <= 100;
+
+-- 模糊查询（区间）
+SELECT `StudentNo`, `StudentResult` FROM result 
+WHERE `StudentResult` BETWEEN 95 AND 100;
+
+-- 除了1000号学生之外的同学的成绩
+SELECT `StudentNo`, `StudentResult` FROM result 
+WHERE `StudentNo` != 1000;
+```
+
+- 模糊查询：比较运算符
+
+  | 运算符      | 语法                 | 描述                                     |
+  | ----------- | -------------------- | ---------------------------------------- |
+  | is null     | a is null            | 操作符为NULL，结果为真                   |
+  | is not null | a is not null        | 操作符部位NULL，结果为真                 |
+  | BETWEEN     | a between b and c    | 若a在b和c之间，结果为真                  |
+  | like        | a like b             | SQL匹配，如果a匹配b，结果为真            |
+  | in          | a in (a1, a2, a3...) | 假设a在a1或a2...其中某一个值中，结果为真 |
+
+```sql
+-- 模糊查询
+
+-- ========== like ==========
+-- 查询姓刘的同学
+-- like 结合 %（代表0到任意一个字符）  _（一个字符）
+SELECT `StudentNo`, `StudentName` FROM student
+WHERE `StudentName` like '刘%';
+
+-- 查询姓刘的同学，姓后面只有一个字的
+SELECT `StudentNo`, `StudentName` FROM student
+WHERE `StudentName` like '刘_';
+
+-- 查询姓刘的同学，姓后面只有两个字的
+SELECT `StudentNo`, `StudentName` FROM student
+WHERE `StudentName` like '刘__';
+
+-- 查询名字中间有嘉字的同学
+SELECT `StudentNo`, `StudentName` FROM student
+WHERE `StudentName` like '%嘉%';
+
+-- ========== in（具体的一个或多个值） ==========
+-- 查询 1001，1002，1003号学员
+SELECT `StudentNo`, `StudentName` FROM student
+WHERE StudentNo IN (1001, 1002, 1003);
+
+-- 查询再北京的学生
+SELECT `StudentNo`, `StudentName` FROM student
+WHERE `Address` IN ('北京', '安徽');
+
+-- ========== null 和 not null ==========
+-- 查询地址为空的学生  null ''
+SELECT `StudentNo`, `StudentName` FROM student
+WHERE `Address`='' OR `Address` IS NULL
+
+-- 查询有出生日期的同学  不为空
+SELECT `StudentNo`, `StudentName` FROM student
+WHERE `BornDate` IS NOT NULL 
+```
+
+
+
