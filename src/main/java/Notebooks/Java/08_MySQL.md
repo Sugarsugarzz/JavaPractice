@@ -560,6 +560,10 @@ DQL（Data Query Language）：数据查询语言
 - **数据库中最核心的语言，最重要的语言**
 - 使用频率最高的语句
 
+SELECT 完整语法：
+
+![image-20200819103341415](/Users/sugar/Library/Application Support/typora-user-images/image-20200819103341415.png)
+
 测试用SQL：
 
 ```sql
@@ -630,9 +634,6 @@ values
 
 -- 插入年级数据
 insert into `grade` (`gradeid`,`gradename`) values(1,'大一'),(2,'大二'),(3,'大三'),(4,'大四'),(5,'预科班');
-
-FullHouse回复 @白条asd  :4
-“
 
 -- 插入科目数据
 insert into `subject`(`subjectno`,`subjectname`,`classhour`,`gradeid`)values
@@ -789,5 +790,145 @@ SELECT `StudentNo`, `StudentName` FROM student
 WHERE `BornDate` IS NOT NULL 
 ```
 
+#### 4.4 联表查询
 
+> JOIN 对比
+
+SQL 七种 JOINS：
+
+<img src="https://img-blog.csdnimg.cn/20190726112038591.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3ODcxMDMz,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" style="zoom:80%;" />
+
+**如果不用 JOIN 进行联表查询的话，默认是 INNER JOIN！**
+
+- join（连接的表） on（判断的条件） 连接查询
+- where 等值查询
+
+```sql
+-- ======================  联表查询 join  ======================
+
+-- 查询参加了考试的同学（学号，姓名，科目编号，分数）
+/*
+思路：
+1. 分析需求，分析查询的字段来自哪些表。（连接查询）
+2. 确定使用哪种连接查询？  七种
+确定交叉点：两个表中哪个数据是相同的
+判断的条件：学生表中的 studentNo = 成绩表 studentNo
+*/
+SELECT s.studentNo, studentName, subjectNo, studentResult
+FROM student AS s
+INNER JOIN result AS r
+WHERE r.studentNo = r.studentNo
+
+-- Right Join
+SELECT s.studentNo, studentName, subjectNo, studentResult
+FROM student AS s
+RIGHT JOIN result AS r
+ON r.studentNo = r.studentNo
+
+-- Left Join
+SELECT s.studentNo, studentName, subjectNo, studentResult
+FROM student AS s
+LEFT JOIN result AS r
+ON r.studentNo = r.studentNo
+```
+
+| 操作       | 描述                                         |
+| ---------- | -------------------------------------------- |
+| inner join | 如果表中至少有一个匹配，就返回行             |
+| left join  | 即使右表中没有匹配，也会从左表中返回所有的值 |
+| right join | 即使左表中没有匹配，也会从右表中返回所有的值 |
+
+```sql
+-- 查询缺考的同学
+-- Left Join
+SELECT s.studentNo, studentName, subjectNo, studentResult
+FROM student AS s
+LEFT JOIN result AS r
+ON r.studentNo = r.studentNo
+WHERE studentResult IS NULL
+```
+
+```sql
+-- 思考题（查询所有参加考试的同学信息、学号、姓名、科目名、分数）
+/*
+思路：
+1. 分析需求，分析查询的字段来自哪些表。student、result、subject（连接查询）
+2. 确定使用哪种连接查询？  七种
+确定交叉点：两个表中哪个数据是相同的
+判断的条件：学生表中的 studentNo = 成绩表 studentNo
+*/
+SELECT s.studentNo, studentName, subjectName, StudentResult
+FROM student s
+RIGHT JOIN result r
+ON r.sutndetNo = s.studentNo
+INNER JOIN subject sub
+ON r.subjectNo = sub.subjectNo
+
+-- 要查询哪些数据 select ...
+-- 从哪几个表中查 FROM 表  XXX JOIN 连接的表 ON 交叉条件
+-- 假设存在一种多张表查询，先查询两张表，然后再慢慢增加
+
+-- FROM a LEFT JOIN b
+```
+
+> 自连接（了解）
+
+自己的表和自己的表连接，核心：**一张表折为两张一样的表即可**。
+
+```sql
+-- 创建数据库
+CREATE TABLE `school`.`category`( 
+	`categoryid` INT(3) NOT NULL COMMENT 'id', 
+  `pid` INT(3) NOT NULL COMMENT '父id 没有父则为1', 
+  `categoryname` VARCHAR(10) NOT NULL COMMENT '种类名字', 
+  PRIMARY KEY (`categoryid`) 
+) ENGINE=INNODB CHARSET=utf8 COLLATE=utf8_general_ci;
+
+INSERT INTO `school`.`category` (`categoryid`, `pid`, `categoryname`) VALUES ('2', '1', '信息技术');
+insert into `school`.`CATEGOrY` (`categoryid`, `pid`, `categoryname`) values ('3', '1', '软件开发');
+insert into `school`.`category` (`categoryid`, `PId`, `categoryname`) values ('5', '1', '美术设计');
+insert iNTO `school`.`category` (`categoryid`, `pid`, `categorynamE`) VAlUES ('4', '3', '数据库');
+insert into `school`.`category` (`CATEgoryid`, `pid`, `categoryname`) values ('8', '2', '办公信息');
+insert into `school`.`category` (`categoryid`, `pid`, `CAtegoryname`) values ('6', '3', 'web开发');
+inserT INTO `school`.`category` (`categoryid`, `pid`, `categoryname`) valueS ('7', '5', 'ps技术');
+```
+
+**父类：**
+
+| categoryid | categoryName |
+| ---------- | ------------ |
+| 2          | 信息技术     |
+| 3          | 软件开发     |
+| 5          | 美术设计     |
+
+**子类：**
+
+| pid  | categoryid | categoryName |
+| ---- | ---------- | ------------ |
+| 3    | 4          | 数据库       |
+| 2    | 8          | 办公信息     |
+| 3    | 6          | web开发      |
+| 5    | 7          | ps设计       |
+
+**操作：查询父类对应的子类关系**
+
+| 父类     | 子类     |
+| -------- | -------- |
+| 信息技术 | 办公信息 |
+| 软件开发 | 数据库   |
+| 软件开发 | web开发  |
+| 美术设计 | ps设计   |
+
+```sql
+-- 查询父子信息：把一张表看做两张一模一样的表
+SELECT a.categoryName AS parent, b.categoryName AS child
+FROM category AS a, category AS b
+WHERE a.categoryid = b.pid
+
+-- 查询学生所属的年级（学号，姓名，年级名称）
+SELECT studentNo, studentName, gradeName
+FROM student s
+INNER JOIN grade g
+ON s.gradeid = g.gradeid
+```
 
