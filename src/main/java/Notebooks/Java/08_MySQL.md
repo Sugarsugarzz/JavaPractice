@@ -549,7 +549,7 @@ TRUNCATE TABLE `test`;  -- 自增归零
 - INNODB  自增列会从 1 开始（存在内存中，断电即失）
 - MyISAM  继续从上一个自增量开始（存在文件中，不会丢失）
 
-#### 4. DQL 查询数据（重点）
+### 4. DQL 查询数据（重点）
 
 #### 4.1 DQL
 
@@ -932,3 +932,139 @@ INNER JOIN grade g
 ON s.gradeid = g.gradeid
 ```
 
+#### 4.5 分页和排序
+
+```sql
+-- ================  分页 limit 和 排序 order by ================
+-- 排序： 升序 ASC 和 降序 DESC
+-- ORDER BY 通过哪个字段排序，怎么排
+ORDER BY StudentResult DESC
+
+-- 分页
+-- 缓解数据库压力，瀑布流
+-- 每页只显示五条数据
+-- limit 起始值，页面的大小
+-- LIMIT 0,5  1 ~ 5
+-- LIMIT 1,5  2 ~ 6
+-- LIMIT 6,5  7 ~ 12
+LIMIT 0,5
+
+-- 第一页 limit 0,5
+-- 第二页 limit 5,5
+-- 第三页 limit 10,5
+-- 第N页 limit (N-1) * pageSize, pageSize
+-- pageSize：代表页面大小
+-- (N-1) * pageSize：起始值
+-- N：当前页
+-- 数据总数/页面大小 = 总页数
+```
+
+#### 4.6 子查询
+
+WHERE（值是计算出来的）
+
+本质：在Where语句中，嵌套一个子查询语句。
+
+WHERE （SELECT * FROM xxx）
+
+```sql
+-- ============  WHERE ============
+-- 1、查询 数据库结构-1 的所有考试结果（学号，科目编号，成绩），降序排列
+-- 方式一：使用连接查询
+SELECT StudentNo, r.SubjectNo, StudentResult
+FROM result r
+INNER JOIN subject sub
+ON r.SubjectNo = sub.SubjectNo
+WHERE SubjectName = '数据库结构-1'
+ORDER BY StudentResult DESC
+
+-- 方式二：使用子查询（由里及外）
+SELECT StudentNo, SubjectNo, StudentResult
+FROM result 
+WHERE SubjectNo = (
+	SELECT SubjectNo FROM subject
+  WHERE SubjectName = '数据库结构-1'
+)
+
+-- 2、查询 分数不小于80分的学生和姓名
+SELECT DISTINCT s.StudentNo, StudentName
+FROM student s
+INNER JOIN result r
+ON r.StudentNo = s.StudentNo
+WHERE StudentResult >= 80
+
+-- 查询 高等数学-2 且分数不小于80的学号和姓名 
+-- 查询 高等数学-2 的编号
+-- 联表查询
+SELECT s.StudentNo, StudentName
+FROM student s
+INNER JOIN result r
+ON s.StudentNo = r.StudentNo
+INNER JOIN subject sub
+ON r.SubjectNo = sub.SubjectNo
+WHERE SubjectName = '高等数学-2' and StudentResult >= 80
+
+-- 子查询
+SELECT DISTINCT s.StudentNo, StudentName
+FROM student s
+INNER JOIN result r
+ON r.StudentNo = s.StudentNo
+WHERE StudentResult >= 80 AND SubjectNo = (
+	SELECT SubjectNo FROM subject WHERE SubjectName = '高等数学-2'
+)
+
+-- 子查询2
+SELECT StudentNo, StudentName FROM student WHERE StudentNo IN (
+	SELECT StudentNo FROM result WHERE StudentReuslt > 80 AND SubjectNO = (
+  	SELECT SubjectNo FROM subject WHERE SubjectName = '高等数学-2'
+  )
+)
+
+```
+
+### 5. MySQL 函数
+
+官网：https://dev.mysql.com/doc/refman/5.7/en/func-op-summary-ref.html
+
+#### 5.1 常用函数
+
+```sql 
+-- ============== 常用函数 ==============
+-- 数学运算
+SELECT ABS(-8)  -- 绝对值
+SELECT CEILING(9.4)  -- 向上取整
+SELECT FLOOR(9.4)  -- 向下取整
+SELECT RAND()  -- 返回0~10之间的随机数
+SELECT SIGN()  -- 判断一个数的负号  0-0 负数--1 正数-1
+
+-- 字符串函数
+SELECT CHAR_LENGTH('哈哈哈')  -- 字符串长度
+SELECT CONCAT('我', '爱', '国家')  -- 拼接字符串
+SELECT INSERT('helloworld', 1, 2, '超级')  -- 从某个位置开始替换某个长度
+SELECT LOWER('Sugar')  -- 转小写
+SELECT UPPER('sugar')  -- 转大写
+SELECT INSTR('sugar', 's')  -- 返回第一次出现的子串索引
+SELECT REPLACE('sugar', 'su', 'hh')  -- 替换出现的指定字符串
+SELECT SUBSTR('sugar', 4, 5)  -- 返回指定的子字符串，（起始位置，长度）
+SELECT REVERSE('Sugar')  -- 反转字符串
+
+-- 查询姓周的同学，将姓改为 轴
+SELECT REPLACE(studentName, '周', '轴') FROM student WHERE studentname like '周%'
+
+-- 时间和日期函数（重要）
+SELECT CURRENT_DATE()  -- 获取当前日期
+SELECT CURDATE()  -- 获取当前日期
+SELECT NOW()  -- 获取当前时间
+SELECT LOCALTIME()  -- 本地时间
+SELECT SYSDATE()  -- 系统时间
+SELECT YEAR(NOW())  -- 年
+
+-- 系统
+SELECT SYSTEM_USER()
+SELECT USER()
+SELECT VERSION()
+```
+
+#### 5.2 聚合函数（常用）
+
+|-|-|
