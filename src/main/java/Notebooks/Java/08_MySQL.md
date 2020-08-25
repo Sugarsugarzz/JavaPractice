@@ -562,7 +562,7 @@ DQL（Data Query Language）：数据查询语言
 
 SELECT 完整语法：
 
-![image-20200819103341415](/Users/sugar/Library/Application Support/typora-user-images/image-20200819103341415.png)
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200825092318508.png" alt="image-20200825092318508" style="zoom:50%;" />
 
 测试用SQL：
 
@@ -1022,6 +1022,25 @@ SELECT StudentNo, StudentName FROM student WHERE StudentNo IN (
 
 ```
 
+#### 4.7 分组和过滤
+
+**HAVING**：GROUP BY分组后满足的次要条件。  
+
+```sql
+-- 查询不同课程的平均分，最高分和最低分
+-- 核心：根据不同的课程分组
+SELECT SubjectName AVG(StudentResult) AS 平均分, MAX(StudentResult),MIN(StudentResult)
+FROM result r
+INNER JOIN subject sub
+ON r.SubjectNo = SubjectNo 
+GROUP BY r.SubjectNo  -- 通过什么字段来分组
+HAVING 平均分 > 80  -- 分组后满足的次要条件
+```
+
+#### 4.8 Select小结
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200825092635488.png" alt="image-20200825092635488" style="zoom:50%;" />
+
 ### 5. MySQL 函数
 
 官网：https://dev.mysql.com/doc/refman/5.7/en/func-op-summary-ref.html
@@ -1067,4 +1086,161 @@ SELECT VERSION()
 
 #### 5.2 聚合函数（常用）
 
-|-|-|
+| 函数名称       | 描述   |
+| -------------- | ------ |
+| COUNT()        | 计数   |
+| SUM()          | 求和   |
+| AVG()          | 平均值 |
+| MAX()          | 最大值 |
+| MIN()          | 最小值 |
+| ......（官网） |        |
+
+```sql
+-- ================ 聚合函数 ================
+-- 都能够统计表中的数据
+SELECT COUNT(StudentName) FROM student;  -- COUNT(指定列），会忽略所有的null值
+SELECT COUNT(*) FROM student;  -- COUNT(*），不会忽略null值，本质计算行数
+SELECT COUNT(1) FROM student;  -- COUNT(1），不会忽略null值，本质计算行数
+
+SELECT SUM(StudentResult) AS 总和 FROM result
+SELECT AVG(StudentResult) AS 平均分 FROM result
+SELECT MAX(StudentResult) AS 最高分 FROM result
+SELECT MAX(StudentResult) AS 最低分 FROM result
+```
+
+#### 5.3 数据库级别的MD5加密（扩展）
+
+**MD5**：增加算法复杂度和不可逆。
+
+MD5破解网站的原理，背后有一个字典，MD5加密后的值，加密前的值，遍历得到。
+
+```sql
+CREATE TABLE `testmd5` (
+	`id` INT(4) NOT NULL,
+  `name` VARCHAR(20) NOT NULL,
+  `pwd` VARCHAR(50)	NOT NULL,
+  PRIMARY KEY(`id)
+)ENGINE=INNODB DEFAULT CHARSET=utf8
+
+-- 明文密码
+INSERT INTO testmd5 VALUES(1, `zhangsan`, `123456`), (2, `zhangsan`, `123456`), (3, `zhangsan`, `123456`)
+
+-- 加密
+UPDATE testmd5 SET pwd=MD%(pwd) WHERE id = 1  -- 条件加密
+
+UPDATE testmd5 SET pwd=MD%(pwd)  -- 全部加密
+
+-- 插入的时候加密
+INSERT INTO testmd5 VALUES(1, `zhangsan`, MD5(`123456`))
+
+-- 如何校验：将用户传递进来的密码，进行加密，然后比对加密后的值
+SELECT * FROM testmd5 WHERE `name`='xiaoming' AND pwd=MD5('123456')
+```
+
+### 6. 事务
+
+#### 6.1 什么是事务
+
+要么都成功，要么都失败
+
+1、SQL执行   A 给 B 转账  A  1000 --> 200   B 200
+
+2、SQL执行   B 收到 A 的钱  A 800 --> B 400
+
+将一组 SQL 放在一个批次中去执行
+
+InnoDB支持事务。
+
+> 事务原则：ACID原则（原子性，一致性，隔离性，持久性） （脏读、幻读...）
+
+参考博客链接：https://blog.csdn.net/dengjili/article/details/82468576
+
+**原子性（Atomicity）**
+
+要么都成功，要么都失败
+
+**一致性（Consistency）**
+
+事务前后的数据完整性要保持一致。（两人总共1200块，不能多不能少）
+
+**隔离性（Isolation）**
+
+事务的隔离性是多个用户并发访问数据库时，数据库为每一个用户开启的事务，不能被其他事务的操作数据所干涉，事务之间要相互隔离。
+
+**持久性（Durability）**
+
+事务一旦提交则不可逆，被持久化到数据库中！
+
+> 隔离所导致的一些问题
+
+**脏读：**
+
+指一个事务读取了另一个事务未提交的数据。
+
+**不可重复读：**
+
+在一个事务内读取表中的某一行数据，多次读取结果不同（这个不一定是错误，只是在某些场合不对）
+
+**虚读（幻读）：**
+
+是指在一个事务内读取到了别的事务新插入的数据，导致前后读取不一致。
+
+#### 6.2 执行事务
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200825095224650.png" alt="image-20200825095224650" style="zoom:50%;" />
+
+```mysql
+-- ==================== 事务 ====================
+-- mysql 是默认开启事务自动提交的
+SET autocommit = 0  /* 关闭 */
+SET autocommit = 1  /* 开启（默认） */
+-- ============================================= 
+-- 手动处理事务
+SET autocommit = 0  -- 关闭自动提交
+-- 事务开启
+START TRANSACTION  -- 标记一个事务的开始，从这个之后的sql都在同一个事务内
+INSERT xx
+INSERT xx
+
+-- 提交：持久化（成功！）
+COMMIT
+-- 回滚：回到原来的样子（失败！）
+ROLLBACK
+-- 事务结束
+SET autocommit = 1  -- 开启自动提交
+
+-- 了解
+SAVEPOINT 保存点名 -- 设置一个事务的保存点，如果事务比较长
+ROLLBACK TO SAVEPOINT 保存点名  -- 回滚到保存点，比如游戏存档
+RELEASE SAVEPOINT 保存点名  -- 撤掉保存点
+```
+
+#### 6.3 模拟转账事务场景
+
+```mysql
+-- 转账
+CREATE DATABASE shop CHARACTER utf8 COLLATE utf_8_general_ci;
+USE shop;
+
+CREATE TABLE `account` (
+	`id` INT(3) NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(30) NOT NULL,
+  `money` DECIMAL(9, 2) NOT NULL,
+  PRIMARY KEY (`id`)
+)ENGINE=INNODB DEFAULT CHARSET=utf8
+
+INSERT INTO account(`name`, `money`)
+VALUES('A', 2000.00), ('B', 10000.00)
+
+-- 模拟转账：事务
+SET autocommit = 0;  -- 关闭自动提交
+START TRANSACTION  -- 开启一个事务（一组事务）
+UPDATE account SET money=money-500 WHERE `name` = 'A'  -- A减去500
+UPDATE account SET money=money+500 WHERE `name` = 'B'  -- B加上500
+
+COMMIT;  -- 提交事务，就被持久化了
+ROLLBACK;  -- 回滚
+
+SET autocommit = 1;  -- 恢复默认开启自动提交
+```
+
