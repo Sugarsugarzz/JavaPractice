@@ -1199,6 +1199,8 @@ SET autocommit = 1  /* 开启（默认） */
 SET autocommit = 0  -- 关闭自动提交
 -- 事务开启
 START TRANSACTION  -- 标记一个事务的开始，从这个之后的sql都在同一个事务内
+-- 或者用 BEGIN;
+BEGIN;
 INSERT xx
 INSERT xx
 
@@ -1232,7 +1234,7 @@ CREATE TABLE `account` (
 INSERT INTO account(`name`, `money`)
 VALUES('A', 2000.00), ('B', 10000.00)
 
--- 模拟转账：事务
+-- 模拟转账：事务  TRANSACTION
 SET autocommit = 0;  -- 关闭自动提交
 START TRANSACTION  -- 开启一个事务（一组事务）
 UPDATE account SET money=money-500 WHERE `name` = 'A'  -- A减去500
@@ -1242,5 +1244,119 @@ COMMIT;  -- 提交事务，就被持久化了
 ROLLBACK;  -- 回滚
 
 SET autocommit = 1;  -- 恢复默认开启自动提交
+
+-- 模拟转账：事务  BEGIN
+BEGIN;  -- 开启一个事务（一组事务）
+UPDATE account SET money=money-500 WHERE `name` = 'A'  -- A减去500
+UPDATE account SET money=money+500 WHERE `name` = 'B'  -- B加上500
+
+COMMIT;  -- 提交事务，就被持久化了
+ROLLBACK;  -- 回滚
 ```
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200826142801256.png" alt="image-20200826142801256" style="zoom:50%;" />
+
+### 7. 索引
+
+> MySQL官方对索引的定义为：**索引（Index）是帮助MySQL高效获取数据的数据结构。**提取句子主干，就可以得到索引的本质：索引就是数据结构。
+
+#### 7.1 索引的分类
+
+> 在一个表中，主键索引只能有一个，唯一索引可以有多个。
+
+- 主键索引（PRIMARY KEY）
+  - 唯一的标注，主键不可重复，只能有一个列作为主键。
+- 唯一索引（UNIQUE KEY）
+  - 避免重复的列出现，唯一索引可以重复，多个列都可以标识为唯一索引。
+- 常规索引（KEY / INDEX）
+  - 默认的，可以用 INDEX 或 KEY 关键字来设置。
+- 全文索引（FullText）
+  - 在特定的数据库引擎下才有，MyISAM
+  - 快速定位数据
+
+```mysql
+-- ================ 索引的使用 ================
+-- 1、在创建表的时候给字段增加索引
+-- 2、创建完毕后，增加索引
+
+-- 显示所有的索引信息
+SHOW INDEX FROM student;
+-- 增加一个全文索引  索引名（列名）
+ALTER TABLE `student` ADD FULLTEXT INDEX `studentName`(`studentName`);
+CREATE INDEX id_app_user_name ON app_user(`name`);
+
+-- EXPLAIN 分析 SQL 执行的状况
+EXPLAIN SELECT * FROM student;  -- 非全文索引
+EXPLAIN SELECT * FROM student WHERE MATCH(studentName) AGAINST('刘')
+
+```
+
+#### 7.2 测试索引
+
+```mysql
+CREATE TABLE `app_user` (
+`id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+`name` varchar(50) DEFAULT '',
+`email` varchar(50) NOT NULL,
+`phone` varchar(20) DEFAULT '',
+`gender` tinyint(4) unsigned DEFAULT '0',
+`password` varchar(100) NOT NULL DEFAULT '',
+`age` tinyint(4) DEFAULT NULL,
+`create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+`update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+
+-- 插入100万数据
+-- MySQL 编程
+DELIMITER $$  -- 写函数之前必须要写，标志
+CREATE FUNCTION mock_data()
+RETURN INT
+BEGIN 
+	DECLARE num INT DEFAULT 1000000;
+	DECLARE i INT DEFAULT 0;
+	WHILE i < num DO
+		-- 插入语句
+		INSERT INTO app_user(`name`, `email`, `phone`, `gender`, `password`, `age`) VALUES (CONCAT('用户', i), '406857586@qq.com', CONCAT('18', FLOOR(RAND() * (99999999 - 10000000) + 10000000)), FLOOR(RAND() * 2), UUID(), FLOOR(RAND() * 100))
+		SET i = i + 1;
+  END WHILE;
+END;
+
+-- 创建索引  id_表名_字段名
+-- CREATE INDEX 索引名 on 表 （列名）
+CREATE INDEX id_app_user_name ON app_user(`name`);
+
+-- 查看
+SELECT * FROM app_user WHERE `name` = '用户9999';  -- 0.993 sec
+SELECT * FROM app_user WHERE `name` = '用户9999';  -- 索引后 0.001 sec
+
+```
+
+**索引在小数据量时候，用处不大，但是在大数据的时候，区别十分明显。**
+
+#### 7.3 索引原则
+
+- 索引不是越多越好。
+- 不要对经常变动的数据加索引。
+- 小数据量的表不需要加索引。
+- 索引一般加在常用来查询的字段上。
+
+> **索引的数据结构**
+>
+> 阅读：http://blog.codinglabs.org/articles/theory-of-mysql-index.html
+
+Hash 类型的索引
+
+**BTREE**：InnoDB 的默认数据结构
+
+### 8. 权限管理和备份
+
+#### 8.1 
+
+
+
+### 9. 规范数据库设计
+
+
+
+### 10. JDBC（重点）
