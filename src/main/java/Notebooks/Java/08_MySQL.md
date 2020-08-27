@@ -1663,3 +1663,344 @@ statement.close();
 connection.close();  // 耗用资源，用完关掉
 ```
 
+#### 10.4 Statement 对象
+
+**JDBC中的 Statement 对象用于向数据库发送 SQL 语句，想完成对数据库的增删改查，只需要通过这个对象向数据库发送增删改查语句即可。**
+
+Statment 对象的executeUpdate方法，用于向数据库发送增、删、改的SQL语句，executeUpdate执行完后，将会返回一个整数（影响行数）。
+
+Statement.executeQuery方法用于向数据库发送查询语句，返回代表查询结果的 ResultSet 对象。
+
+> CRUD操作-create
+
+使用 executeUpdate(String sql) 方法完成数据添加操作，示例：
+
+```java
+Statement st = conn.createStatement();
+String sql = "INSERT INTO user (...) VALUES (...)";
+int num = st.executeUpdate(sql);
+if (num > 0) {
+  System.out.println("插入成功！")
+}
+```
+
+> CRUD操作-delete
+
+使用 executeUpdate(String sql) 方法完成数据删除操作，示例：
+
+```java
+Statement st = conn.createStatement();
+String sql = "DELETE FROM user WHERE id = 1";
+int num = st.executeUpdate(sql);
+if (num > 0) {
+  System.out.println("删除成功！")
+}
+```
+
+> CRUD操作-update
+
+使用 executeUpdate(String sql) 方法完成数据修改操作，示例：
+
+```java
+Statement st = conn.createStatement();
+String sql = "UPDATE user SET name = '' WHERE id = 1";
+int num = st.executeUpdate(sql);
+if (num > 0) {
+  System.out.println("修改成功！")
+}
+```
+
+> CRUD操作-query
+
+使用 executeQuery(String sql) 方法完成数据查询操作，示例：
+
+```java
+Statement st = conn.createStatement();
+String sql = "SELECT * FROM user WHERE id = 1";
+ResutlSet rs = st.executeQuery(sql);
+while (rs.next()) {
+  //根据获取列的数据类型，分别调用rs相应的映射方法到Java对象中
+}
+```
+
+> 代码实现
+
+1. 提取工具类
+
+   ```java
+   package Learn_MySQL.lesson02.utils;
+   
+   import com.mysql.cj.protocol.Resultset;
+   import sun.jvm.hotspot.runtime.ResultTypeFinder;
+   
+   import java.io.IOException;
+   import java.io.InputStream;
+   import java.sql.*;
+   import java.util.Properties;
+   
+   public class JdbcUtils {
+   
+       private static String driver = null;
+       private static String url = null;
+       private static String username = null;
+       private static String password = null;
+   
+   
+       static {
+   
+           try {
+               InputStream in = JdbcUtils.class.getClassLoader().getResourceAsStream("db.properties");
+               Properties properties = new Properties();
+               properties.load(in);
+   
+               driver = properties.getProperty("driver");
+               url = properties.getProperty("url");
+               username = properties.getProperty("username");
+               password = properties.getProperty("password");
+   
+               // 1、驱动只用加载一次
+               Class.forName(driver);
+           } catch (Exception e) {
+               e.printStackTrace();
+           }
+       }
+   
+       // 获取连接
+       public static Connection getConnection() throws SQLException {
+           return DriverManager.getConnection(url, username, password);
+       }
+   
+       // 释放连接资源
+       public static void release(Connection conn, Statement st, ResultSet rs) {
+           try {
+               if (rs != null)
+                   rs.close();
+               if (st != null)
+                   st.close();
+               if (conn != null)
+                   conn.close();
+           } catch (Exception e) {
+               e.printStackTrace();
+           }
+   
+       }
+   }
+   ```
+
+   
+
+2. 编写增删改的方法 `executeUpdate`
+
+   ```java
+   package Learn_MySQL.lesson02;
+   
+   import Learn_MySQL.lesson02.utils.JdbcUtils;
+   
+   import java.sql.Connection;
+   import java.sql.ResultSet;
+   import java.sql.SQLException;
+   import java.sql.Statement;
+   
+   public class TestInsert {
+       public static void main(String[] args) {
+   
+           Connection conn = null;
+           Statement st = null;
+           ResultSet rs = null;
+           
+           try {
+               conn = JdbcUtils.getConnection();  // 获取数据库连接
+               st = conn.createStatement();  // 获取SQL的执行对象
+               String sql = "INSERT INTO users(id, `name`, `password`, `email`, `birthday`)" +
+                       "VALUES (4, 'sugar', '123456', '406857586@qq.com', '2020-01-01')";
+               int i = st.executeUpdate(sql);
+               if (i > 0) {
+                   System.out.println("插入成功！");
+               }
+           } catch (SQLException e) {
+               e.printStackTrace();
+           } finally {
+               JdbcUtils.release(conn, st, rs);
+           }
+       }
+   }
+   ```
+
+#### 10.5 SQL注入的问题
+
+SQL存在漏洞，会被攻击导致数据泄露。**SQL会被恶意拼接**
+
+```java
+package Learn_MySQL.lesson02;
+
+import Learn_MySQL.lesson02.utils.JdbcUtils;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+// SQL注入问题
+public class SqlInjection {
+    public static void main(String[] args) {
+
+        login("zhangsan", "123456");
+        login(" ' or '1=1", " ' or '1=1");  // 查询出所有用户信息
+    }
+    
+    // 登录业务
+    public static void login(String username, String password) {
+
+        Connection conn = null;
+        Statement st = null;
+        ResultSet rs = null;
+
+        try {
+            conn = JdbcUtils.getConnection();  // 获取数据库连接
+            st = conn.createStatement();  // 获取SQL的执行对象
+            // SELECT * FROM users WHERE name='username' AND password='password'
+            // SELECT * FROM users WHERE name='' or 1=1' AND password='' or 1=1'
+            String sql = "SELECT * FROM users WHERE name='" + username + "' AND password='" + password + "'";
+            rs = st.executeQuery(sql);
+            while (rs.next()) {
+                System.out.println(rs.getString("name"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            JdbcUtils.release(conn, st, rs);
+        }
+    }
+}
+```
+
+#### 10.6 PreparedStatement 对象
+
+可以防止SQL注入，并且效率更高！
+
+1. 新增
+2. 删除
+3. 更新
+4. 查询
+
+```java
+package Learn_MySQL.lesson03;
+
+import Learn_MySQL.lesson02.utils.JdbcUtils;
+
+import java.sql.*;
+
+public class TestInsert {
+    public static void main(String[] args) {
+
+        Connection conn = null;
+        PreparedStatement st = null;
+
+        try {
+            conn = JdbcUtils.getConnection();
+
+            // 区别
+            // 使用 ? 占位符代替参数
+            String sql = "INSERT INTO users(id, name, password, email, birthday) " +
+                    "VALUES (?, ?, ?, ?, ?)";
+            st = conn.prepareStatement(sql);  // 预编译sql，先写sql，然后不执行
+
+            // 手动给参数赋值
+            st.setInt(1, 4);
+            st.setString(2, "sugar");
+            st.setString(3, "123123");
+            st.setString(4, "406857586@qq.com");
+            st.setString(5, "2020-02-02");
+            // 注意 sql.Date 和 util.Date 的区别，getTime()获得时间戳
+
+            // 执行
+            int i = st.executeUpdate();
+            if (i > 0)
+                System.out.println("插入成功");
+            
+            // 如果是查询，则 executeQuery();
+            // 返回的依然是 ResultSet
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            JdbcUtils.release(conn, st, null);
+        }
+
+    }
+}
+```
+
+#### 10.7 PreparedStatement 防止SQL注入
+
+```java
+package Learn_MySQL.lesson03;
+
+import Learn_MySQL.lesson02.utils.JdbcUtils;
+
+import java.sql.*;
+
+// 使用PreparedStatment防止SQL注入
+public class SqlInjection {
+    public static void main(String[] args) {
+
+        login("zhangsan", "123456");
+        login(" ' or '1=1", " ' or '1=1");
+    }
+
+    // 登录业务
+    public static void login(String username, String password) {
+
+        Connection conn = null;
+        PreparedStatement st = null;
+        ResultSet rs = null;
+
+        try {
+            conn = JdbcUtils.getConnection();
+            // PreparedStatement 防止 SQL 注入的本质，把传递进来的参数当做字符
+            // 假设其中存在转义字符没救直接忽略， 比如 ' 会被直接转义
+            String sql = "SELECT * FROM users WHERE name= ? AND password= ?";  // Mybatis
+            st = conn.prepareStatement(sql);
+
+            st.setString(1, "sugar");
+            st.setString(2, "123123");
+
+            rs = st.executeQuery();
+            while (rs.next()) {
+                System.out.println(rs.getString("name"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            JdbcUtils.release(conn, st, rs);
+        }
+    }
+}
+```
+
+#### 10.8 使用IDEA连接数据库
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200827130422442.png" alt="image-20200827130422442" style="zoom:50%;" />
+
+连接成功后，选择数据库。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200827130511525.png" alt="image-20200827130511525" style="zoom:50%;" />
+
+双击数据库，查看内容。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200827130625875.png" alt="image-20200827130625875" style="zoom:50%;" />
+
+更新数据，必须点这个按钮才会更新。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200827130737958.png" alt="image-20200827130737958" style="zoom:50%;" />
+
+写SQL的地方。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200827131030441.png" alt="image-20200827131030441" style="zoom:50%;" />
+
+**坑点：**
+
+连接失败，查看原因
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200827131238306.png" alt="image-20200827131238306" style="zoom:50%;" />
+
