@@ -67,7 +67,7 @@ MySQL是一个**关系型数据库管理系统**。
 ​	**安装建议：**
 
 	- 不要使用exe，影响注册表		
-
+	
 	- 尽可能使用压缩包安装
 
 #### 1.5 安装MySQL
@@ -1351,12 +1351,315 @@ Hash 类型的索引
 
 ### 8. 权限管理和备份
 
-#### 8.1 
+#### 8.1 用户管理
 
+一般可以可视化操作，在Linux服务器上需要命令行操作。
 
+- SQL命令操作
+
+**用户表**：mysql.user
+
+**本质**：对这张表进行增删改查
+
+```mysql
+-- 创建用户  CREATE USER 用户名 IDENTIFIED BY '密码'
+CREATE USER sugar IDENTIFIED BY '123456'
+
+-- 修改密码（修改当前用户密码）
+SET PASSWORD = PASSWORD('111111')
+
+-- 修改密码（修改指定用户密码）
+SET PASSWORD FROM sugar = PASSWORD('123456')
+
+-- 重命名  RENAME USER 原命名 TO 新名字
+RENAME USER sugar TO sugar2
+
+-- 用户授权  ALL PRIVILEGES（全部的权限）ON 库.表 TO 用户名
+-- ALL PRIVILEGES 除了给别人授权，其他都能干（只有ROOT能授权）
+GRANT ALL PRIVILEGES ON *.* TO sugar
+
+-- 查看权限
+SHOW GRANTS FOR sugar  -- 查看指定用户的权限
+SHOW GRANTS FOR root@localhost  
+-- ROOT用户的权限：GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION
+
+-- 撤销权限  REVOKE 哪些权限，在哪个库撤销，给谁撤销
+REVOKE ALL PRIVILEGES ON *.* FROM sugar
+
+-- 删除用户
+DROP USER sugar 
+```
+
+#### 8.2 MySQL备份
+
+为什么要备份：
+
+- 保证重要的数据不丢失
+- 数据转移 A --> B
+
+MySQL数据库备份的方式：
+
+- 直接拷贝物理文件。（mysql目录下的data文件夹）
+
+- 在数据库可视化工具（Navicat）中手动导出。
+
+- 使用命令行导出 mysqldump
+
+  ```bash
+  # mysqldump -h 主机 -u 用户名 -p 密码 数据库 表名 > 物理磁盘位置/../文件名		
+  mysqldump -hlocalhost -uroot -p123456 school student > D:/a.sql
+
+  # mysqldump -h 主机 -u 用户名 -p 密码 数据库 表1 表2 表3 > 物理磁盘位置/../文件名		
+  mysqldump -hlocalhost -uroot -p123456 school student teacher parents > D:/a.sql
+  
+  # mysqldump -h 主机 -u 用户名 -p 密码 数据库 > 物理磁盘位置/../文件名		
+  mysqldump -hlocalhost -uroot -p123456 school > D:/a.sql
+  
+  # --------------------------------------------
+  # 导入
+  # 登录的情况下，切换到指定的数据库
+  mysql -uroot -p123456
+  use school;
+  # source 备份文件
+  source D:/a.sql
+  ```
+
+假设要备份数据库，防止数据丢失，把数据库sql文件给别人即可。
 
 ### 9. 规范数据库设计
 
+#### 9.1 为什么需要设计
 
+**当数据库比较复杂的时候，需要设计**
+
+**糟糕的数据库设计：**
+
+- 数据冗余，浪费空间。
+- 设置物理外键多，导致数据库插入和删除都会麻烦，产生异常【屏蔽使用物理外键】。
+- 程序的性能差
+
+**良好的数据库设计：**
+
+- 节省内存空间。
+- 保证数据库的完整性。
+- 方便系统开发。
+
+**软件开发中，关于数据库的设计：**
+
+- 分析需求：分析业务和需要处理的数据库需求。
+- 概要设计：设计关系图 E-R 图。
+
+**设计数据库的步骤：（个人博客为例）**
+
+- 收集信息，分析需求
+  - 用户表（用户登录注销，个人信息，写博客，创建分类）
+  - 分类表（文章分类，谁创建的）
+  - 文章表（文章的信息）
+  - 评论表（文章下的评论信息）
+  - 友链表（友链信息）
+  - 自定义表（系统信息，某个关键的字，或者一些主字段）key：value
+- 标识实体（把需求落地到每个字段）**（数据库不区分大小写，用下划线命名字段！）**
+  - **user** - id, username, password, gender, age, sign
+  - **category** - id, category_name, create_user_id
+  - **blog** - id, title, content, author_id, category_id, content, create_time, update_time, love(点赞)
+  - **comment** - id, blog_id, user_id, content, create_time, user_id_parent(回复的人的id)
+  - **links** - id, links_name, href, sort
+- 标识实体之间的关系
+  - user -> blog  写博客
+  - user -> category  创建分类
+  - user -> user  关注
+  - user -> user  -> blog  评论
+
+#### 9.2 三大范式
+
+**为什么需要数据规范化？**
+
+- 信息重复
+- 更新导致异常
+- 插入异常
+  - 无法正常显示信息
+- 删除异常
+  - 丢失有效的信息
+
+> 三大范式（了解）
+>
+> 阅读：https://www.cnblogs.com/wsg25/p/9615100.html
+
+**第一范式（1NF）**
+
+原子性：保证每一列都不可再分。
+
+**第二范式（2NF）**
+
+前提：满足第一范式。
+
+每张表只描述一件事情。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200827094731373.png" alt="image-20200827094731373" style="zoom:50%;" />
+
+**第三范式（3NF）**
+
+前提：满足第一范式和第二范式。
+
+需要确保数据表中的每一列数据都喝主键直接相关，而不能间接相关。
+
+**规范性 和 性能的问题**
+
+关联查询的表不得超过三张表（阿里要求）
+
+- 考虑商业化的需求和目标。（成本，用户体验）数据库的性能更加重要
+
+- 在规范性能的问题时，需要适当的考虑下规范性
+
+- 故意给某些表增加一些冗余的字段（从夺标查询中变为单表查询）
+
+  订单-商品id-商品信息
+
+- 故意增加一些计算列（从大数据量降低为小数据量的查询：索引）
 
 ### 10. JDBC（重点）
+
+#### 10.1 数据库驱动
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200827101315982.png" alt="image-20200827101315982" style="zoom:50%;" />
+
+程序会通过数据库驱动，和数据库打交道。
+
+#### 10.2 JDBC
+
+SUN 公司为了简化开发人员（对数据库的统一）操作，提供了一个（Java操作数据库的）规范 JDBC。
+
+这些规范的实现由具体的厂商去做，对于开发人员，只需要掌握 JDBC 接口即可。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200827101556366.png" alt="image-20200827101556366" style="zoom:50%;" />
+
+java.sql
+
+javax.sql
+
+还需要导入一个数据库驱动包 mysql-connector-java.jar。
+
+#### 10.3 第一个 JDBC 程序
+
+1. 创建一个普通项目。
+2. 导入数据库驱动。
+3. 编写测试代码。
+
+```java
+package Learn_MySQL.lesson01;
+
+import java.sql.*;
+
+public class JDBCFirstDemo {
+
+    public static void main(String[] args) throws ClassNotFoundException, SQLException {
+        // 1、加载驱动
+        Class.forName("com.mysql.jdbc.Driver");  // 固定写法，加载驱动
+
+        // 2、用户信息和URL
+        // MySQL版本高于JDBC时，useSSL=true会报错，改成false即可。
+        String url = "jdbc:mysql://localhost:3306/jdbcstudy?useUnicode=true&characterEncoding=utf8&useSSL=false";
+        String username = "root";
+        String password = "123456";
+
+        // 3、连接成功，数据库对象  Connection 代表数据库
+        Connection connection = DriverManager.getConnection(url, username, password);
+
+        // 4、执行SQL的对象  Statement  执行sql的对象
+        Statement statement = connection.createStatement();
+
+        // 5、执行SQL的对象 去 执行SQL，可能存在结果，查看返回结果
+        String sql = "SELECT * FROM users";
+        ResultSet resultSet = statement.executeQuery(sql);  // 返回的结果集，封装了全部的查询出来的结果
+
+        while (resultSet.next()) {
+            System.out.println("id=" + resultSet.getObject("id"));
+            System.out.println("name=" + resultSet.getObject("name"));
+            System.out.println("password=" + resultSet.getObject("password"));
+        }
+
+        // 6、释放连接
+        resultSet.close();
+        statement.close();
+        connection.close();
+    }
+}
+```
+
+**步骤总结：**
+
+1. 加载驱动
+2. 连接数据库  DriverManager
+3. 获取执行sql的对象  Statement
+4. 获得返回的结果集
+5. 释放连接
+
+> DriverManager
+
+```java
+//        DriverManager.registerDriver(new com.mysql.jdbc.Driver());
+Class.forName("com.mysql.jdbc.Driver");  // 固定写法，加载驱动
+Connection connection = DriverManager.getConnection(url, username, password);
+
+// connection 代表数据库
+// 数据库设置自动提交
+// 事务提交
+// 事务回滚
+connection.rollback();
+connection.commit();
+connection.setAutoCommit();
+```
+
+> URL
+
+```java
+String url = "jdbc:mysql://localhost:3306/jdbcstudy?useUnicode=true&characterEncoding=utf8&useSSL=false";
+
+// mysql -- 3306
+// jdbc:mysql://主机地址:端口号/数据库名?参数1&参数2&参数3
+
+// oracle  -- 1521
+// jdbc:oracle:thin:@localhost:1521:sid
+```
+
+> Statement  执行SQL的对象   /   PrepareStatement  执行SQL的对象
+
+```java
+String sql = "SELECT * FROM users";  // 编写sql
+
+statement.executeQuery();  // 查询操作，返回 ResultSet
+statement.execute();  // 执行任何SQL
+statement.executeUpdate();  // 更新、插入、删除，都用这个，返回一个受影响的行数
+statement.executeBatch();  // 执行多个SQL
+```
+
+> ResultSet  查询的结果集，封装了所有的查询结果
+
+获得指定的数据类型
+
+```java
+resultSet.getObject();  // 不知道列类型的情况下使用 
+resultSet.getString();  // 如果知道列的类型，就使用指定类型
+resultSet.getInt();
+resultSet.getFloat();
+resultSet.getDate();
+```
+
+遍历，指针
+
+```java
+resultSet.beforeFirst();  // 移动到最前面
+resultSet.afterLast();  // 移动到最后面
+resultSet.next();	 // 移动到下一个数据
+resultSet.previous();  // 移动到前一行
+resultSet.absolute(ro);  // 移动到指定行
+```
+
+> 释放资源
+
+```java
+resultSet.close();
+statement.close();
+connection.close();  // 耗用资源，用完关掉
+```
+
