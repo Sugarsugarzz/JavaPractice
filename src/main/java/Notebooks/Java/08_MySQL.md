@@ -2004,3 +2004,241 @@ public class SqlInjection {
 
 <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200827131238306.png" alt="image-20200827131238306" style="zoom:50%;" />
 
+#### 10.9 JDBC事务
+
+**要么都成功，要么都失败**
+
+> ACID原则
+
+原子性：要么都完成，要么都不完成
+
+一致性：总数不变
+
+**隔离性：多个进程互不干扰**
+
+持久性：一旦提交不可逆
+
+
+
+**隔离性的问题：**
+
+脏读：一个事务读取了另一个没有提交的事务
+
+不可重复读：在同一个事务内，重复读取表中的数据，表数据发生了改变
+
+虚读（幻读）：在一个事务内，读取到了别人插入的数据，导致前后读出来结果不一致
+
+
+
+**代码实现**
+
+1. 开启事务  `conn.setAutoCommit(false);`
+2. 一组业务执行完毕，提交事务
+3. 可以在 catch 语句中显式定义回滚语句，默认失败就会回滚。
+
+```java
+package Learn_MySQL.lesson04;
+
+import Learn_MySQL.lesson02.utils.JdbcUtils;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class TestTransaction1 {
+    public static void main(String[] args) {
+
+        Connection conn = null;
+        PreparedStatement st = null;
+        ResultSet rs = null;
+
+        try {
+            conn = JdbcUtils.getConnection();
+            // 关闭数据库的自动提交，自动会开启事务
+            conn.setAutoCommit(false);  // 关闭同时自动开启事务
+
+            String sql = "UPDATE account SET money = money - 100 WHERE name = 'A'";
+            st = conn.prepareStatement(sql);
+            st.executeUpdate();
+
+            String sql2 = "UPDATE account SET money = money + 100 WHERE name = 'B'";
+            st = conn.prepareStatement(sql2);
+            st.executeUpdate();
+
+            // 业务完毕，提交事务
+            conn.commit();
+            System.out.println("事务提交成功");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try {
+                conn.rollback();  // 如果提交失败，则回滚事务
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        } finally {
+            JdbcUtils.release(conn, st, rs);
+        }
+
+    }
+}
+```
+
+#### 10.10 数据库连接池
+
+存数据连接  -- 执行完毕  -- 释放  
+
+连接  --  释放   **十分浪费系统资源**
+
+**池化技术**：准备一些预先的资源，过来就连接预先准备好的
+
+最小连接数，根据常用连接数设定。
+
+最大连接数，为业务最高承载上限。
+
+排队等待。
+
+等待超时。
+
+
+
+**编写连接池，实现一个接口 DataSource。**
+
+> 开源数据源实现（拿来即用）
+
+DBCP
+
+C3P0
+
+Druid：阿里巴巴
+
+使用这些数据库连接池之后，在项目开发中就不需要编写连接数据库代码了。
+
+> DBCP
+
+需要用到的 jar 包
+
+commons-dbcp-1.4、commons-pool-1.6
+
+```java
+package Learn_MySQL.lesson05.utils;
+
+import org.apache.commons.dbcp.BasicDataSourceFactory;
+
+import javax.sql.DataSource;
+import java.io.InputStream;
+import java.sql.*;
+import java.util.Properties;
+
+public class dbcpUtils {
+
+    private static DataSource dataSource = null;
+
+    static {
+
+        try {
+            InputStream in = dbcpUtils.class.getClassLoader().getResourceAsStream("dbcp.properties");
+            Properties properties = new Properties();
+            properties.load(in);
+
+            // 创建数据源  工厂模式 --> 创建
+            dataSource = BasicDataSourceFactory.createDataSource(properties);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 获取连接
+    public static Connection getConnection() throws SQLException {
+        return dataSource.getConnection();
+    }
+
+    // 释放连接资源
+    public static void release(Connection conn, Statement st, ResultSet rs) {
+        try {
+            if (rs != null)
+                rs.close();
+            if (st != null)
+                st.close();
+            if (conn != null)
+                conn.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+> C3P0
+
+需要用到的 jar 包
+
+c3p0-0.9.5.5、mchange-commons-java-0.2.19
+
+```java
+package Learn_MySQL.lesson05.utils;
+
+import com.mchange.v2.c3p0.ComboPooledDataSource;
+import org.apache.commons.dbcp.BasicDataSourceFactory;
+
+import javax.sql.DataSource;
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Properties;
+
+public class C3p0Utils {
+
+    private static ComboPooledDataSource dataSource = null;
+
+    static {
+
+        try {
+            // 创建数据源  工厂模式 --> 创建
+            // 配置文件写法
+            dataSource = new ComboPooledDataSource("MySQL");
+
+            // 代码版配置写法
+//            dataSource = new ComboPooledDataSource();
+//            dataSource.setDriverClass();
+//            dataSource.setUser();
+//            dataSource.setPassword();
+//            dataSource.setJdbcUrl();
+//            dataSource.setMaxPoolSize();
+//            dataSource.setMinPoolSize();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 获取连接
+    public static Connection getConnection() throws SQLException {
+        return dataSource.getConnection();
+    }
+
+    // 释放连接资源
+    public static void release(Connection conn, Statement st, ResultSet rs) {
+        try {
+            if (rs != null)
+                rs.close();
+            if (st != null)
+                st.close();
+            if (conn != null)
+                conn.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+```
+
+>结论
+
+无论使用什么数据源，本质都是一样的。 DataSource 接口不会变，方法就不会变。
+
