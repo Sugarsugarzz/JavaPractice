@@ -112,11 +112,104 @@ Tomcat实际上运行 JSP页面 和 Servlet。最新版本为 **9.0**.
 2. 了解配置文件及目录结构
 3. 作用
 
+### 3. Tomcat
+
+#### 3.1 安装Tomcat
+
+官网：https://tomcat.apache.org/
+
+#### 3.2 Tomcat 启动和配置
+
+文件夹的作用：
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200828121542251.png" alt="image-20200828121542251" style="zoom:50%;" />
 
 
 
+**启动、关闭Tomcat**
 
+```bash
+cd /Library/Tomcat9
+./startup.sh
+./shuwtodwn
+```
 
+访问测试：http://localhost:8080
+
+可能遇到的问题：
+
+1. 没有配置Java环境变量
+2. 闪退问题：需要配置兼容性
+3. 
+
+### 3.3 配置
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200828122723287.png" alt="image-20200828122723287" style="zoom:30%;" />
+
+可以配置启动的端口号，
+
+- Tomcat的默认端口号为：8080
+- mysql：3306
+- http：80
+- https：443
+
+```xml
+    <Connector port="8080" protocol="HTTP/1.1"
+               connectionTimeout="20000"
+               redirectPort="8443" />
+```
+
+可以配置主机的名称。
+
+- 默认的主机名为：localhost --> 127.0.0.1
+- 默认网站应用的存储文件夹位置：webapps
+
+```xml
+      <Host name="www.sugar.com"  appBase="webapps"
+            unpackWARs="true" autoDeploy="true">
+```
+
+配置一下环境变量（可选）
+
+**面试题：**
+
+请谈一谈网站是如何访问的？
+
+1. 输入一个域名；回车。
+
+2. 检查本机的 hosts 配置文件下有没有这个域名映射；
+
+   1. 有：直接返回对应的ip地址。这个地址中如果有需要访问的web程序，则可以直接访问。
+
+      ```bash
+      127.0.0.1      www.sugar.com
+      ```
+
+   2. 没有：去DNS服务器（DNS存放管理全世界的域名）找，找到的话就返回，找不到就返回找不到。
+      <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200828123622798.png" alt="image-20200828123622798" style="zoom:30%;" />
+
+#### 3.4 发布一个Web网站
+
+- 将自己写的网站，放到服务器（Tomcat）中指定的web应用的文件夹（webapps）下，就可以访问了。
+
+**网站应该有的结构**
+
+```java
+-- webapps ： Tomcat服务器的web目录
+  - ROOT
+  - sugarstudy ： 网站的目录名
+      - WEB-INF
+          - classes ： java程序
+          - lib ： web应用所依赖的jar包
+          - web.xml ： 网站的配置文件
+      - index.html 默认的首页
+  		- static
+	  			- css
+  						- style.css
+  				- js
+  				- img
+  		- ...
+```
 
 
 
