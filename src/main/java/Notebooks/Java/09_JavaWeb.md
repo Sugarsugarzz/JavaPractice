@@ -61,8 +61,6 @@ web应用程序编写完毕后，若想提供给外接访问，需要一个服�
 - Web页面可以动态更新，所有用户看到的都不是同一个页面
 - 可以与数据库交互（数据持久化）
 
-### 
-
 ### 2. Web 服务器
 
 #### 2.1 技术
@@ -211,19 +209,189 @@ cd /Library/Tomcat9
   		- ...
 ```
 
+### 4、 HTTP
+
+#### 4.1 什么是Http
+
+HTTP（超文本传输协议）是一个简单的请相应协议，通常运行在TCP之上。
+
+- 文本：HTML、字符串，...
+- 超文本：图片，音乐，视频，定位......
+- 端口：80
+
+HTTPS：安全的
+
+- 端口：443
+
+#### 4.2 HTTP1.0 和 HTTP2.0
+
+- http1.0
+  - HTTP/1.0：客户端可以与Web服务器连接，只能获得一个Web资源，然后断开连接。
+
+- http2.0
+  - HTTP/1.1：客户端可以与Web服务器连接，只能获得多个Web资源。
+
+#### 4.3 HTTP请求
+
+- 客户端 -- 发请求（Request） --> 服务器
+
+```Java
+Request URL: https://www.baidu.com/   // 请求地址
+Request Method: GET    // 请求方法 get post
+Status Code: 200 OK    // 状态码：200
+Remote Address: 220.181.38.150:443    // 访问的真实地址
+Referrer Policy: no-referrer-when-downgrade   // 协议
+```
+
+```java
+Accept: text/html
+Accept-Encoding: gzip, deflate, br
+Accept-Language: zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7  // 语言
+Cache-Control: max-age=0
+Connection: keep-alive
+Cookie: BIDUPSID=4A39119EDCAF33827F4F43C896DBBAC4; PSTM=1567144346; BAIDUID=B138147CB03300F29CF75727F0E25750:FG=1; sugstore=1; BD_UPN=123253; H_WISE_SIDS=146722_147410_142019_145946_141744_147028_147280_146538_146307_145837_131247_144682_144741_146574_140259_147347_127969_146550_145971_146752_142420_146734_138425_144375_131423_128698_142209_107314_145290_139909_144877_146396_144966_147301_145608_144535_132921_145398_147285_146226_139914_110085; BDUSS=FicE40ZjBYYTE2dzFGNmdFR3BJRm5hNDBGQ0RNRGR1U090MHVkVDhpZU9XeXBmRVFBQUFBJCQAAAAAAAAAAAEAAABt9i0jX7eov8uG0V8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI7OAl-OzgJfUD; BDUSS_BFESS=FicE40ZjBYYTE2dzFGNmdFR3BJRm5hNDBGQ0RNRGR1U090MHVkVDhpZU9XeXBmRVFBQUFBJCQAAAAAAAAAAAEAAABt9i0jX7eov8uG0V8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI7OAl-OzgJfUD; BDSFRCVID=4EAOJeC62wIgGyTrOTW32urz4g2BHAJTH6aoE9BuVIMGGWuQips1EG0PoM8g0Kub7-ZGogKK0mOTHv-F_2uxOjjg8UtVJeC6EG0Ptf8g0f5; H_BDCLCKID_SF=tb4foIIbtIP3fP36q4co-CCShUFsWfbJB2Q-5-3z3hoHqtO_Kxnx-UvX5q5EtpOuHG4t_fbdJJjoDh5zhluM2x70Meck-toQ3gTxoUJRBCnJhhvG-6r5X-_ebPRiJPr9QgbqslQ7tt5W8ncFbT7l5hKpbt-q0x-jLTnhVn0M5DK0MD0xj6-KejPW5ptXatcMbC6X05rJaDvsHljOy4oTj6DdDa8eJxTHBan2bKoa-tFMJl5-X-c83MvB-fnh3b5JBG5yXCJsfnnbSxnMQft20-4beMtjBbLLMCjyXn7jWhk2Dq72ybDVQlRX5q79atTMfNTJ-qcH0KQpsIJM5-DWbT8EjHCeJT-jfRAjVIv5b-0_DJ7Pq4bohjPW3G79BtQmJJrx5Jjh-hcK8UbXhj5hKRT30-FLQTLqQg-q3R7s3R6_oDbuX5oEqqFB-fvR0x-jLN7uVn0MW-5DbtOs-tnJyUnQhtnnBnKL3H8HL4nv2JcJbM5m3x6qLTKkQN3T-PKO5bRh_CF-fCIWhCL9j5RVq4t_KmTtbbQH5CnKLnD8Kb7VbIbHLfnkbfJBDlJAKMb8QTr9-U0btt5KJCbTDx51LfI7yajK2ML80jTpal6T3M3hVJTxKTQpQT8rhPFOK5OibCufsxcTab3vOIJzXpO15CuzBN5thURB2DkO-4bCWJ5TMl5jDh3Mb6ksDMDtqtJHKbDOoDK53f; delPer=0; BD_HOME=1; COOKIE_SESSION=12922_1_7_4_12_5_0_0_4_4_26_0_13061_0_141_0_1598611472_1598587240_1598611331%7C9%2391905_17_1598586863%7C9; PSINO=2; BDORZ=B490B5EBF6F3CD402E515D22BCDA1598; BD_CK_SAM=1; H_PS_PSSID=32647_32606_1432_32537_32045_32270_32116_32691_26350_32495
+DNT: 1
+Host: www.baidu.com
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.135 Safari/537.36
+```
+
+##### 1. 请求行
+
+- 请求行中的请求方式：GET
+- 请求方式：GET、POST、RESTful
+  - GET：请求能够携带的参数比较少，大小有限制，会在浏览器的URL地址栏显示数据内容，不安全，但高效。
+  - POST：请求能够携带的参数没有限制，大小没有限制，不会在浏览器的URL地址栏显示数据内容，安全，但不高效。
+
+##### 2. 消息头
+
+```java
+Accept  // 告诉浏览器，它所支持的数据类型
+Accept-Encoding  // 支持哪种编码格式 GBK UFT-8 GB2312 ISO8859-1
+Accept-Language  // 告诉浏览器，它的语言环境
+Cache-Control  // 缓存控制
+Connection  // 告诉浏览器，请求完成是断开还是保持连接
+Host  // 主机
+```
+
+#### 4.4 HTTP响应
+
+- 服务器 -- 响应（Response） --> 客户端
+
+```java
+Cache-Control: private   // 缓存控制
+Connection: keep-alive   // 连接方式
+Content-Encoding: gzip   // 编码
+Content-Type: text/html;charset=utf-8    // 类型
+```
+
+##### 1. 响应体
+
+```java
+Accept  // 告诉浏览器，它所支持的数据类型
+Accept-Encoding  // 支持哪种编码格式 GBK UFT-8 GB2312 ISO8859-1
+Accept-Language  // 告诉浏览器，它的语言环境
+Cache-Control  // 缓存控制
+Connection  // 告诉浏览器，请求完成是断开还是保持连接
+Host  // 主机
+Refrush  // 告诉客户端，多久刷新一次
+Location  // 让网页重新定位
+```
+
+##### 2. 相应状态码
+
+200：请求响应成功  200
+
+3xx：请求重定向
+
+- 重定向：重新到给的新地址去访问
+
+4xx：请求资源不存在  404
+
+- 资源不存在
+
+5xx：服务器代码错误  500  502(网关错误)
 
 
 
+**面试题：**
+
+当在浏览器中地址栏输入地址并回车的一瞬间到页面能够展示回来，经历了什么？
 
 
 
+### 5. Maven
 
+理由：
 
+1. 在JavaWeb开发中，需要使用大量的jar包，手动去导入
 
+2. 如何能够让一个东西自动导入和配置jar包
 
+   由此，Maven诞生。
 
+#### 5.1 Maven项目架构管理工具
 
+目前用Maven方便导入jar包。
 
+**核心思想**：约定大于配置
+
+- 有约束，不要去违反。
+
+Maven会规定和敖你改如何取编写java代码，必须要按照这个规范来。
+
+#### 5.2 下载配置Maven
+
+官网：https://maven.apache.org/
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200831092354865.png" alt="image-20200831092354865" style="zoom:30%;" />
+
+下载完成后，解压即可。
+
+#### 5.3 配置环境变量
+
+系统环境变量中，配置如下配置：
+
+- M2_HOME：maven目录下的bin目录
+- MAVEN_HOME：maven的目录
+- 在系统的Path中配置 %MAVEN_HOME%\bin
+
+测试Maven是否安装成功，保证配置完毕。
+
+#### 5.4 阿里云镜像
+
+- 镜像：Mirrors
+  - 作用：加速下载
+- 国内建议使用阿里云的镜像
+- 放在 conf/settings.xml 的 settings 标签下的 mirrors 标签下。
+
+```xml
+<mirror>
+  	<id>alimaven</id>
+	  <name>aliyun maven</name>
+	  <url>http://maven.aliyun.com/nexus/content/groups/public</url>
+	  <mirrorOf>central</mirrorOf>
+</mirror>
+
+<mirror>
+	  <id>alimaven</id>
+	  <name>aliyun maven</name>
+	  <url>http://maven.aliyun.com/nexus/content/groups/public</url>
+	  <mirrorOf>*,!jeecg,!jeecg-snapshots</mirrorOf>
+</mirror>
+```
+
+#### 5.5 本地仓库
+
+**建立一个本地仓库**：localRepository
+
+```xml
+  <localRepository>/Library/Enviroments/apache-maven-3.6.2/repository</localRepository>
+```
 
 
 
