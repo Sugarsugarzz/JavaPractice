@@ -393,35 +393,103 @@ Maven会规定和敖你改如何取编写java代码，必须要按照这个规�
   <localRepository>/Library/Enviroments/apache-maven-3.6.2/repository</localRepository>
 ```
 
+#### 5.6 在IDEA中使用Maven
+
+1. 启动IDEA
+
+2. 创建一个Maven Web项目
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200831205126300.png" alt="image-20200831205126300" style="zoom:30%;" />
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200831205208755.png" alt="image-20200831205208755" style="zoom:40%;" />
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200831205316684.png" alt="image-20200831205316684" style="zoom:40%;" />
+
+3. 等待项目初始化完毕。
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200831205731292.png" alt="image-20200831205731292" style="zoom:40%;" />
+
+4. 观察Maven仓库中多了的东西。
+
+5. IDEA中的Maven设置。（每次需要手动改为本地Maven库）
+
+   IDEA项目创建成功后，看一眼Maven的配置。
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200831210011401.png" alt="image-20200831210011401" style="zoom:40%;" />
+
+6. 到这里，Maven在IDEA中的配置和使用就OK了。
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200831210618572.png" alt="image-20200831210618572" style="zoom:30%;" />
+
+#### 5.7 创建一个普通的Maven项目
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200831210337821.png" alt="image-20200831210337821" style="zoom:30%;" />
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200831210518207.png" alt="image-20200831210518207" style="zoom:30%;" />
+
+#### 5.8 标记文件夹功能
+
+方式一：从项目目录直接设置。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200831210735688.png" alt="image-20200831210735688" style="zoom:50%;" />
+
+方式二：从项目结构中设置。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200901212039264.png" alt="image-20200901212039264" style="zoom:30%;" />
 
 
 
+#### 5.9 在IDAE中配置Tomcat
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200901212430740.png" alt="image-20200901212430740" style="zoom:30%;" />
+
+配置Tomcat
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200901212730643.png" alt="image-20200901212730643" style="zoom:30%;" />
+
+解决警告问题
+
+**原因：访问一个网站，需要指定一个文件夹名字**
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200901213153905.png" alt="image-20200901213153905" style="zoom:40%;" />
 
 
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200901213105861.png" alt="image-20200901213105861" style="zoom:40%;" />
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200901213837894.png" alt="image-20200901213837894" style="zoom:40%;" />
+
+#### 5.10 pom文件
+
+pom.xml 是 Maven 的核心配置文件。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200901215144331.png" alt="image-20200901215144331" style="zoom:40%;" />
 
 
 
+Maven 由于约定大于配置，之后可能遇到写的配置文件，无法被导出或者生效的问题
 
+解决方案：
 
+```xml
+    <!--    在build中配置resources，来防止资源导出失败的问题-->
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/*.xml</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+```
 
+#### 5.12 IDAE操作
 
+生成Maven依赖结构体系图
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200902091849124.png" alt="image-20200902091849124" style="zoom:50%;" />
 
 
 
