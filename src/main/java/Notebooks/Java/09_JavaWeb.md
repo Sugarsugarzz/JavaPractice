@@ -493,7 +493,27 @@ Maven 由于约定大于配置，之后可能遇到写的配置文件，无法�
 
 
 
+#### 5.13 Maven遇到的问题
 
+1. Maven 3.6.2
+
+   Unable to import maven projects See logs for details
+
+   **解决方法：**降级为3.6.1
+
+2. Tomcat闪退
+
+   **解决方法：**没有在环境变量配置 JAVA_HOME 和 JRE_HOME。
+
+3. IDEA中每次都要配置Maven
+
+   **解决方法：**我 在IDEA启动时，全局配置。
+
+4. Maven项目中Tomcat无法配置
+
+5. Maven默认web项目中的web.xml版本问题
+
+   **解决方法：**替换为tomcat中webapp下web.xml的头文件。
 
 
 
