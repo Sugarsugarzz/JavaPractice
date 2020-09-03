@@ -515,7 +515,193 @@ Maven 由于约定大于配置，之后可能遇到写的配置文件，无法�
 
    **解决方法：**替换为tomcat中webapp下web.xml的头文件。
 
+### 6. Servlet
 
+#### 6.1 Servlet简介
 
+- Servlet是sun公司开发动态web的一门技术。
+- Sun公司在API中提供一个接口：Servlet，如果要开发一个Servlet程序，只需要完成两个小步骤：
+  - 编写一个类，实现Servlet接口。
+  - 把开发好的Java类部署到Web服务器中。
 
+**把实现了 Servlet 接口的 Java 程序叫做 Servlet。**
+
+#### 6.2 HelloServlet
+
+**Servlet接口在Sun公司有两个默认的实现类：HttpServlet、GenericServlet**
+
+1. 构建一个Maven项目
+
+2. 关于Maven父子工程理解
+
+   父项目中会有
+
+   ```xml
+   <module>
+   	<module>subproject-01</module>
+   </module>
+   ```
+
+   子项目中会有
+
+   ```xml
+   <parent>
+   		<artifactId>parentprojects</artifactId>
+     	<groupId>com.sugar</groupId>
+     	<version>1.0-SNAPSHOT</version>
+   </parent>
+   ```
+
+   Java子项目可以直接使用父项目的依赖。
+
+3. Maven环境优化
+
+   1. 修改 web.xml 为最新的
+   2. 将 Maven 结构搭建完整
+
+4. 编写Servlet程序
+
+   1. 编写一个普通类
+
+   2. 实现 HttpServlet 接口
+
+      ```java
+      public class HelloServlet extends HttpServlet {
+      
+          // 由于 Get 或者 Post 只是请求实现的不同方式，可以互相调用，业务逻辑都一样
+          @Override
+          protected void doGet(HttpServletRequest req, HttpServletResponse response) throws ServletException, IOException {
+              // 响应的类型：html
+              response.setContentType("text/html");
+              // 设置响应编码
+              response.setCharacterEncoding("utf-8");
+              // 获取响应的输出流
+              PrintWriter out = response.getWriter();
+              out.println("<html>");
+              out.println("<head>");
+              out.println("<title>Hello World!</title>");
+              out.println("</head>");
+              out.println("<body>");
+              out.println("<h1>哈咯</h1>");
+              out.println("</body>");
+              out.println("</html>");
+          }
+      
+          @Override
+          protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+              super.doPost(req, resp);
+          }
+      }
+      ```
+
+5. 编写 Servlet 的映射
+
+   原因：写的是Java程序，但要通过浏览器访问，而浏览器是通过连接Web服务器的，所以需要在Web服务中注册写好的Servlet。
+
+   在 web.xml 中注册 Servlet。
+
+   ```xml
+       <!-- web.xml是配置web的核心应用 -->
+       <!-- 注册Servlet -->
+       <servlet>
+         <servlet-name>HelloServlet</servlet-name>
+         <servlet-class>Learn_JavaWeb.servlet.HelloServlet</servlet-class>
+       </servlet>
+   
+       <!-- 一个Servlet对应一个Mapping -->
+   		<!-- localhost:8080/项目名/sugar -->
+       <servlet-mapping>
+         <servlet-name>HelloServlet</servlet-name>
+         <!-- 请求路径 -->
+         <url-pattern>/sugar</url-pattern>
+       </servlet-mapping>
+   ```
+
+6. 配置 Tomcat
+
+   注意：配置项目的发布路径
+
+7. 启动测试
+
+#### 6.3 Servlet原理
+
+Servlet 是由Web服务器调用，Web服务器在收到浏览器请求之后，会：
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200903162753091.png" alt="image-20200903162753091" style="zoom:50%;" />
+
+#### 6.4 Mapping 问题
+
+1. 一个Servlet可以指定一个映射路径
+
+   ```xml
+       <servlet-mapping>
+         <servlet-name>HelloServlet</servlet-name>
+         <url-pattern>/sugar</url-pattern>
+       </servlet-mapping>
+   ```
+
+2. 一个Servlet可以指定多个映射路径
+
+   ```xml
+       <servlet-mapping>
+         <servlet-name>HelloServlet</servlet-name>
+         <url-pattern>/sugar</url-pattern>
+       </servlet-mapping>
+   
+       <servlet-mapping>
+         <servlet-name>HelloServlet</servlet-name>
+         <url-pattern>/sugar1</url-pattern>
+       </servlet-mapping>
+   
+       <servlet-mapping>
+         <servlet-name>HelloServlet</servlet-name>
+         <url-pattern>/sugar2</url-pattern>
+       </servlet-mapping>
+   ```
+
+3. 一个Servlet可以指定通用映射路径
+
+   ```xml
+       <servlet-mapping>
+           <servlet-name>HelloServlet</servlet-name>
+           <url-pattern>/sugar/*</url-pattern>
+       </servlet-mapping>    
+   ```
+
+4. 默认请求路径
+
+   ```xml
+       <servlet-mapping>
+           <servlet-name>HelloServlet</servlet-name>
+           <url-pattern>/*</url-pattern>
+       </servlet-mapping>
+   ```
+
+5. 指定一些前缀或者后缀等等....
+
+   ```xml
+       <!-- 注意点.*前面不能加绝对路径 -->
+       <servlet-mapping>
+           <servlet-name>HelloServlet</servlet-name>
+           <url-pattern>*.sugar</url-pattern>
+       </servlet-mapping>
+   ```
+
+6. 优先级问题
+
+   **指定了固有的映射路径优先级最高，如果找不到就会走默认的处理请求。**
+
+   ```xml
+       <!-- 访问 /sugar 还是会走上面的Servlet -->
+       <servlet>
+           <servlet-name>error</servlet-name>
+           <servlet-class>Learn_JavaWeb.servlet.ErrorServlet</servlet-class>
+       </servlet>
+       <servlet-mapping>
+           <servlet-name>error</servlet-name>
+           <url-pattern>/*</url-pattern>
+       </servlet-mapping>
+   ```
+
+#### 6.5 
 
