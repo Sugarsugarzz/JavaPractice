@@ -7,6 +7,11 @@
          version="4.0"
          metadata-complete="true">
 
+    <!-- 配置一些Web应用的初始化参数 -->
+    <context-param>
+        <param-name>url</param-name>
+        <param-value>jdbc:mysql://localhost:3306/mybatis</param-value>
+    </context-param>
 
     <!-- web.xml是配置web的核心应用 -->
     <!-- 注册Servlet -->
@@ -24,14 +29,14 @@
     </servlet-mapping>
 
     <!--  一个Servlet指定多个映射路径  -->
-    <servlet-mapping>
-      <servlet-name>HelloServlet</servlet-name>
-      <url-pattern>/sugar1</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-      <servlet-name>HelloServlet</servlet-name>
-      <url-pattern>/sugar2</url-pattern>
-    </servlet-mapping>
+<!--    <servlet-mapping>-->
+<!--      <servlet-name>HelloServlet</servlet-name>-->
+<!--      <url-pattern>/sugar1</url-pattern>-->
+<!--    </servlet-mapping>-->
+<!--    <servlet-mapping>-->
+<!--      <servlet-name>HelloServlet</servlet-name>-->
+<!--      <url-pattern>/sugar2</url-pattern>-->
+<!--    </servlet-mapping>-->
 
     <!-- 一个Servlet指定通用映射路径 -->
 <!--    <servlet-mapping>-->
@@ -62,6 +67,56 @@
     <servlet-mapping>
         <servlet-name>error</servlet-name>
         <url-pattern>/*</url-pattern>
+    </servlet-mapping>
+
+    <!--  ServletContext  -->
+    <servlet>
+        <servlet-name>set</servlet-name>
+        <servlet-class>Learn_JavaWeb.servlet.SetServlet</servlet-class>
+<!--        <init-param>-->
+<!--            <param-name></param-name>-->
+<!--            <param-value></param-value>-->
+<!--        </init-param>-->
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>set</servlet-name>
+        <url-pattern>/set</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>get</servlet-name>
+        <servlet-class>Learn_JavaWeb.servlet.GetServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>get</servlet-name>
+        <url-pattern>/get</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>demo</servlet-name>
+        <servlet-class>Learn_JavaWeb.servlet.DemoServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>demo</servlet-name>
+        <url-pattern>/demo</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>demo2</servlet-name>
+        <servlet-class>Learn_JavaWeb.servlet.DemoServlet2</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>demo2</servlet-name>
+        <url-pattern>/demo2</url-pattern>
+    </servlet-mapping>
+    
+    <servlet>
+        <servlet-name>prop</servlet-name>
+        <servlet-class>Learn_JavaWeb.servlet.PropertiesServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>prop</servlet-name>
+        <url-pattern>/prop</url-pattern>
     </servlet-mapping>
 
 

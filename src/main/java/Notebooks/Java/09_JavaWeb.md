@@ -469,20 +469,28 @@ pom.xml 是 Maven 的核心配置文件。
 
 Maven 由于约定大于配置，之后可能遇到写的配置文件，无法被导出或者生效的问题
 
-解决方案：
+**解决方案：**
 
 ```xml
     <!--    在build中配置resources，来防止资源导出失败的问题-->
-    <build>
         <resources>
             <resource>
                 <directory>src/main/java</directory>
                 <includes>
+                    <include>**/*.properties</include>
                     <include>**/*.xml</include>
                 </includes>
+                <filtering>true</filtering>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.properties</include>
+                    <include>**/*.xml</include>
+                </includes>
+                <filtering>true</filtering>
             </resource>
         </resources>
-    </build>
 ```
 
 #### 5.12 IDAE操作
@@ -703,5 +711,250 @@ Servlet 是由Web服务器调用，Web服务器在收到浏览器请求之后，
        </servlet-mapping>
    ```
 
-#### 6.5 
+#### 6.5 ServletContext（Servlet通信）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200903181435317.png" alt="image-20200903181435317" style="zoom:30%;" />
+
+Web容器在启动的时候，它会为每个Web程序都创建一个对应的 ServletContext 对象，它代表了当前的 Web应用。
+
+##### 1. 共享数据
+
+在这个 Servlet 中保存的数据，可以在另一个 Servlet中拿到。
+
+- 放置全局属性的Servlet
+
+  ```java
+  public class SetServlet extends HttpServlet {
+  
+      @Override
+      protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  
+  //        this.getInitParameter()  // 初始化参数
+  //        this.getServletConfig()  // Servlet配置
+  //        this.getServletContext()  // Servlet上下文
+  //        this.getServletName()  // Servlet Name
+  
+          ServletContext context = this.getServletContext();
+  
+          String username = "Sugar";  // 数据
+          context.setAttribute("username", username);  // 将一个数据保存在 ServletContext中，名字为：username
+          
+      }
+  }
+  ```
+
+- 获取全局属性的Servlet
+
+  ```java
+  public class GetServlet extends HttpServlet {
+  
+      @Override
+      protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+          resp.setCharacterEncoding("utf-8");
+          resp.setContentType("text/html");
+  
+          ServletContext context = this.getServletContext();
+          String username = (String) context.getAttribute("username");
+  
+          resp.getWriter().println("名字：" + username);
+      }
+  }
+  ```
+
+- web.xml
+
+  ```xml
+      <!--  ServletContext  -->
+      <servlet>
+          <servlet-name>set</servlet-name>
+          <servlet-class>Learn_JavaWeb.servlet.SetServlet</servlet-class>
+      </servlet>
+      <servlet-mapping>
+          <servlet-name>set</servlet-name>
+          <url-pattern>/set</url-pattern>
+      </servlet-mapping>
+  
+      <servlet>
+          <servlet-name>get</servlet-name>
+          <servlet-class>Learn_JavaWeb.servlet.GetServlet</servlet-class>
+      </servlet>
+      <servlet-mapping>
+          <servlet-name>get</servlet-name>
+          <url-pattern>/get</url-pattern>
+      </servlet-mapping>
+  ```
+
+-  测试结果
+
+  先访问 set 页面，后访问 get 页面，将显示之前set的属性值。
+
+##### 2. 获取初始化参数
+
+- 设置初始化参数
+
+  ```xml
+      <!-- 配置一些Web应用的初始化参数 -->
+      <context-param>
+          <param-name>url</param-name>
+          <param-value>jdbc:mysql://localhost:3306/mybatis</param-value>
+      </context-param>
+  ```
+
+- 获取初始化参数
+
+  ```java
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, 				IOException {
+  
+          ServletContext context = this.getServletContext();
+          String url = context.getInitParameter("url");
+          resp.getWriter().println(url);
+      }
+  ```
+
+##### 3. 请求转发
+
+**请求转发图解：**路径不变，页面变。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200903184625078.png" alt="image-20200903184625078" style="zoom:40%;" />
+
+**重定向图解：**路径变，页面变。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200903184641182.png" alt="image-20200903184641182" style="zoom:40%;" />
+
+- 代码实现
+
+  ```java
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+          ServletContext context = this.getServletContext();
+  //        RequestDispatcher requestDispatcher = context.getRequestDispatcher("/demo");  // 转发的请求路径
+  //        requestDispatcher.forward(req, resp);  // 调用 forward，实现请求转发
+          context.getRequestDispatcher("/demo").forward(req, resp);
+      }
+  ```
+
+##### 4. 读取资源文件
+
+Properties
+
+- 在java目录下新建properties
+- 在resources目录下新建properties
+
+发现：都被打包到了 classpath 路径。
+
+思路：需要一个文件流
+
+```properties
+username=sugar
+password=123456
+```
+
+```java
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+
+        // WEB 项目，最开始的 / 是相对位置，
+        InputStream is = this.getServletContext().getResourceAsStream("/WEB-INF/classes/db.properties");
+
+        Properties prop = new Properties();
+        prop.load(is);
+        String username = prop.getProperty("username");
+        String password = prop.getProperty("password");
+
+        resp.getWriter().println(username + " : " + password);
+
+    }
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
