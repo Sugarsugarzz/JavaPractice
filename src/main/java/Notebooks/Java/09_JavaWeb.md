@@ -864,6 +864,190 @@ password=123456
     }
 ```
 
+#### 6.6 HttpServletResponse
+
+Web服务器接收到客户端的http请求，针对这个请求，分别创建一个代表请求的 HttpServletRequest 对象，一个代表响应的 HttpServletResponse 对象。
+
+- 如果要获取客户端请求过来的参数：找 HttpServletRequest
+- 如果要给客户响应一些信息：找 HttpServletResponse
+
+##### 1. 方法简单分类
+
+**负责向浏览器发送数据的方法**
+
+```java
+ServletOutputStream getOutputStream() throws IOException;
+PrintWriter getWriter() throws IOException;
+```
+
+**负责向浏览器发送响应头的方法**
+
+```java
+void setCharacterEncoding(String var1);
+void setContentLength(int var1);
+void setContentLengthLong(long var1);
+void setContentType(String var1);
+void setDateHeader(String var1, long var2);
+void addDateHeader(String var1, long var2);
+void setHeader(String var1, String var2);
+void addHeader(String var1, String var2);
+void setIntHeader(String var1, int var2);
+void addIntHeader(String var1, int var2);
+```
+
+**响应的状态码**
+
+```java
+int SC_CONTINUE = 100;
+int SC_SWITCHING_PROTOCOLS = 101;
+int SC_OK = 200;
+int SC_CREATED = 201;
+int SC_ACCEPTED = 202;
+int SC_NON_AUTHORITATIVE_INFORMATION = 203;
+int SC_NO_CONTENT = 204;
+int SC_RESET_CONTENT = 205;
+int SC_PARTIAL_CONTENT = 206;
+int SC_MULTIPLE_CHOICES = 300;
+int SC_MOVED_PERMANENTLY = 301;
+int SC_MOVED_TEMPORARILY = 302;
+int SC_FOUND = 302;
+int SC_SEE_OTHER = 303;
+int SC_NOT_MODIFIED = 304;
+int SC_USE_PROXY = 305;
+int SC_TEMPORARY_REDIRECT = 307;
+int SC_BAD_REQUEST = 400;
+int SC_UNAUTHORIZED = 401;
+int SC_PAYMENT_REQUIRED = 402;
+int SC_FORBIDDEN = 403;
+int SC_NOT_FOUND = 404;
+int SC_METHOD_NOT_ALLOWED = 405;
+int SC_NOT_ACCEPTABLE = 406;
+int SC_PROXY_AUTHENTICATION_REQUIRED = 407;
+int SC_REQUEST_TIMEOUT = 408;
+int SC_CONFLICT = 409;
+int SC_GONE = 410;
+int SC_LENGTH_REQUIRED = 411;
+int SC_PRECONDITION_FAILED = 412;
+int SC_REQUEST_ENTITY_TOO_LARGE = 413;
+int SC_REQUEST_URI_TOO_LONG = 414;
+int SC_UNSUPPORTED_MEDIA_TYPE = 415;
+int SC_REQUESTED_RANGE_NOT_SATISFIABLE = 416;
+int SC_EXPECTATION_FAILED = 417;
+int SC_INTERNAL_SERVER_ERROR = 500;
+int SC_NOT_IMPLEMENTED = 501;
+int SC_BAD_GATEWAY = 502;
+int SC_SERVICE_UNAVAILABLE = 503;
+int SC_GATEWAY_TIMEOUT = 504;
+int SC_HTTP_VERSION_NOT_SUPPORTED = 505;
+```
+
+##### 2. 下载文件
+
+1. 向浏览器输出消息
+2. 下载文件
+   1. 获取下载文件的路径
+   2. 确定下载的文件名
+   3. 设置让浏览器支持下载的东西的格式
+   4. 获取下载文件的输入流
+   5. 创建缓冲区
+   6. 获取OutputStream对象
+   7. 将FileOutputStream流写入到buffer缓冲区
+   8. 使用OutputStream将缓冲区中的数据输出到客户端
+
+```java
+public class FileServlet extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+
+        // 1. 获取下载文件的路径
+        String realPath = "/Users/sugar/Documents/GitHub/JavaPractice/src/main/resources/image.png";
+        System.out.println("下载文件的路径：" + realPath);
+        // 2. 确定下载的文件名
+        String fileName = realPath.substring(realPath.lastIndexOf("/") + 1);
+        // 3. 设置让浏览器支持（Content-Disposition）下载的东西的格式。中文文件名让URLEncoder.encode编码，否则会乱码。
+        resp.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, "UTF-8"));
+        // 4. 获取下载文件的输入流
+        FileInputStream in = new FileInputStream(realPath);
+        // 5. 创建缓冲区
+        int len = 0;
+        byte[] buffer = new byte[1024];
+        // 6. 获取OutputStream对象
+        ServletOutputStream out = resp.getOutputStream();
+        // 7. 将FileOutputStream流写入到buffer缓冲区
+        while ((len=in.read(buffer)) > 0) {
+            out.write(buffer, 0, len);
+        }
+        in.close();
+        out.close();
+
+        // 8. 使用OutputStream将缓冲区中的数据输出到客户端
+    }
+}
+```
+
+##### 3. 验证码功能
+
+验证怎么实现？
+
+- 前端实现
+- 后端实现，需要用到 Java 的图片类，生成一个图片
+
+```java
+public class ImageServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+
+        // 让浏览器5秒自动刷新一次
+        resp.setHeader("refresh", "3");
+
+        // 在内存中创建一个图片
+        BufferedImage image = new BufferedImage(80, 20, BufferedImage.TYPE_INT_RGB);
+        // 得到图片
+        Graphics2D g = (Graphics2D) image.getGraphics();  // 笔
+        // 设置图片的背景颜色
+        g.setColor(Color.white);
+        g.fillRect(0, 0, 80, 20);
+        // 给图片写数据
+        g.setColor(Color.blue);
+        g.setFont(new Font(null, Font.BOLD, 20));
+        g.drawString(makeNum(), 0, 20);
+
+        // 告诉浏览器，这个请求用图片方式打开
+        resp.setContentType("image/png");
+        // 网站存在缓存，不让浏览器缓存
+        resp.setDateHeader("expires", -1);
+        resp.setHeader("Cache-Control", "no-cache");
+        resp.setHeader("Pragma", "no-cache");
+
+        // 把图片写给浏览器
+        ImageIO.write(image, "png", resp.getOutputStream());
+
+
+    }
+
+    // 生成七位随机数
+    private String makeNum() {
+        Random random = new Random();
+        String num = random.nextInt(9999999) + "";
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < 7 - num.length(); i++) {
+            sb.append("0");
+        }
+        num = sb.toString() + num;
+        return num;
+    }
+}
+```
+
+
+
+
+
+
+
+#### 6.7 HttpServletRequest
+
 
 
 

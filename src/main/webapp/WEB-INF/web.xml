@@ -119,5 +119,22 @@
         <url-pattern>/prop</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>file_download</servlet-name>
+        <servlet-class>Learn_JavaWeb.response.FileServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>file_download</servlet-name>
+        <url-pattern>/down</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>verify</servlet-name>
+        <servlet-class>Learn_JavaWeb.response.ImageServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>verify</servlet-name>
+        <url-pattern>/verify</url-pattern>
+    </servlet-mapping>
 
 </web-app>
