@@ -1,4 +1,4 @@
-### 1. 基本概念
+1. 基本概念
 
 #### 1.1 前言
 
@@ -715,6 +715,10 @@ Servlet 是由Web服务器调用，Web服务器在收到浏览器请求之后，
 
 <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200903181435317.png" alt="image-20200903181435317" style="zoom:30%;" />
 
+**与Cookie、Session概念区分**：
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200904130338190.png" alt="image-20200904130338190" style="zoom:30%;" />
+
 Web容器在启动的时候，它会为每个Web程序都创建一个对应的 ServletContext 对象，它代表了当前的 Web应用。
 
 ##### 1. 共享数据
@@ -1186,6 +1190,8 @@ public class LoginServlet extends HttpServlet {
 
 #### 7.3 Cookie
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200904125947441.png" alt="image-20200904125947441" style="zoom:30%;" />
+
 1. 从请求中拿到Cookie信息
 2. 服务器响应给客户端Cookie
 
@@ -1219,35 +1225,301 @@ URLEncoder.encode("哈哈", "utf-8")
 URLDecoder.decode(cookie.getValue(), "utf-8")
 ```
 
+#### 7.4 Session（重点）
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200904130124451.png" alt="image-20200904130124451" style="zoom:30%;" />
 
+**Session**：
 
+- 服务器会给每一个用户（浏览器）创建一个Session对象；
+- 一个Session独占一个浏览器，只要浏览器没有关闭，这个Session就存在；
+- 可以手动注销删除Session，也可以直接在 web.xml 中进行配置。
+- 场景：用户登录之后，整个网站都可以访问。  --> 保存用户、购物车的信息
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200904121644926.png" alt="image-20200904121644926" style="zoom:30%;" />
 
+**Session和Cookie的区别**：
 
+- Cookie是把用户的数据写给用户的浏览器，浏览器保存。（可以保存多个）
+- Session把用户的数据写到用户独占的Session中，服务器端保存。（保存重要的信息，减少服务器资源的浪费）
+- Session对象由服务器创建
 
+**使用场景**：
 
+- 保存一个登陆用户的信息
+- 购物车信息
+- 在整个网站中经常会使用的数据，将它保存在Session中。
 
+**代码实现**：
 
+- 设置Session
 
+  ```java
+      protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+          // 解决中文乱码
+          req.setCharacterEncoding("utf-8");
+          resp.setCharacterEncoding("utf-8");
+          resp.setContentType("text/html;charset=utf-8");
+  
+          // 得到Session
+          HttpSession session = req.getSession();
+  
+          // 给Session中存东西
+          // Session不仅可以存字符串，还可以存对象
+  //        session.setAttribute("name", "哈哈");
+          session.setAttribute("name", new Person("哈哈", 3));
+  
+          // 获取Session的ID
+          String id = session.getId();
+  
+          // 判断Session是不是新创建的
+          if (session.isNew()) {
+              resp.getWriter().write("Session创建成功，ID：" + id);
+          } else {
+              resp.getWriter().write("Session已经在服务中存在，ID：" + id);
+          }
+  
+          /*
+          发现 name 存在Cookie中，Session对应的ID 为 JSESSIONID的 value
+           */
+          // Session创建的时候做了什么事情
+  //        Cookie cookie = new Cookie("JSESSIONID", id);
+  //        resp.addCookie(cookie);
+      }
+  ```
 
+- 获取Session
 
+  ```java
+      protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+          // 解决中文乱码
+          req.setCharacterEncoding("utf-8");
+          resp.setCharacterEncoding("utf-8");
+          resp.setContentType("text/html;charset=utf-8");
+  
+          // 得到Session
+          HttpSession session = req.getSession();
+  
+          Person person = (Person) session.getAttribute("name");
+          resp.getWriter().write(person.toString());
+      }
+  ```
 
+- 注销Session
 
+  ```java
+      protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+          // 解决中文乱码
+          req.setCharacterEncoding("utf-8");
+          resp.setCharacterEncoding("utf-8");
+          resp.setContentType("text/html;charset=utf-8");
+  
+          // 得到Session
+          HttpSession session = req.getSession();
+  
+          // 取消并注销Session
+          session.removeAttribute("name");
+  
+          // 手动注销Session
+          // 比较好的方法，是在 web.xml 中设置Session默认失效时间
+          session.invalidate();
+      }
+  ```
 
+- Session自动过期：web.xml配置
 
+  ```xml
+      <!--  设置Session默认的失效时间  -->
+      <session-config>
+          <!--  15分钟后Session自动失效，以分钟为单位  -->
+          <session-timeout>15</session-timeout>
+      </session-config>
+  ```
 
+### 8. JSP
 
+#### 8.1 JSP介绍
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200904151147762.png" alt="image-20200904151147762" style="zoom:25%;" />
 
+Java Server Pages：Java服务器端页面，也和Servlet一样，用于动态Web技术。
 
+最大的特点：
 
+- 写JSP就像在写HTML
+- 区别：
+  - HTML只给用户提供静态的数据
+  - JSP页面中可以嵌入Java带啊，为用户提供动态数据
 
+#### 8.2 JSP原理
 
+思路：看JSP的执行过程
 
+- 代码层面没有任何问题
 
+- 服务器内部工作
 
+  tomcat中有一个work目录；IDEA中使用 tomcat 会在IDEA中生成一个work目录。
 
+  发现JSP页面转变成了Java程序
+
+  ```java
+  index_jsp.java
+  index_jsp.class
+  ```
+
+**浏览器向服务器发送请求，不管访问什么资源，其实都是在访问 Servlet。**
+
+JSP在被访问的时候，会被转换为一个Java类，到tomcat的work目录下。
+
+**JSP本质上就是一个Servlet**，其转换得到的Java类继承了HttpJspBase，而HttpJspBase则继承了HttpServlet。
+
+```java
+// 初始化
+public void _jspInit() {
+    }
+// 销毁
+public void jspDestroy() {
+    }
+// JSPService
+protected void _jspDestroy() {
+    }
+```
+
+1. 判断请求
+
+2. 内置一些对象在 index_jsp.java 中。（九个）
+
+   ```java
+   // 页面上下文
+   // session
+   // applicationContext
+   // config
+   // out
+   // page：当前页
+   // request 请求
+   // response 响应
+   ```
+
+3. 输出页面前增加的代码
+
+   ```java
+   // 先设置响应的页面类型
+   ```
+
+4. 获得的对象，都可以在 JSP 页面中直接使用。
+
+在 JSP 页面中，只要是 Java 代码就会原封不动的输出，如果是HTML代码，就会被转换为：
+
+```java
+out.write("<html>\r\n")
+```
+
+这样的格式，输出到前端。
+
+#### 8.3 JSP基础语法
+
+JSP 作为 Java 技术的一种应用，拥有一些自己的扩充语法（了解），Java的所有语法都支持！
+
+**JSP表达式**
+
+```jsp
+<%--JSP表达式
+作用：用来将程序的输出，输出到客户端
+<%= 变量或者表达式 %>
+--%>
+<%= new Date() %>
+```
+
+**JSP脚本片段**
+
+```jsp
+<%--JSP脚本片段--%>
+<%
+    int sum = 0;
+    for (int i = 0; i <= 100; i++) {
+        sum += i;
+    }
+    out.println("<h1>Sum=" + sum + "</h1>");
+%>
+```
+
+**脚本片段的再实现**
+
+```jsp
+<%
+    int x = 10;
+    out.println(x);
+%>
+<p>这是一个JSP文档</p>
+<%
+    int y = 2;
+    out.println(y);
+%>
+<hr>
+
+<%--在代码中嵌入HTMl元素--%>
+<%
+    for (int i = 0; i < 5; i++) {
+%>
+<h1>Hello, World  <%=i%></h1>
+<%
+    }
+%>
+```
+
+**JSP声明**
+
+```jsp
+<%--JSP声明--%>
+<%!
+    static {
+        System.out.println("Loading Service!");
+    }
+
+    private int globalVar = 0;
+
+    public void sugar() {
+        System.out.println("进入了方法sugar！");
+    }
+%>
+```
+
+JSP声明：会被编译到JSP生成的Java类中！其他的就会被生成的_jspService方法中！
+
+在JSP中，嵌入Java代码即可。
+
+```jsp
+<% %>  JSP片段
+<%= %>  JSP表达式或值
+<%! %>  JSP全局声明
+<%-- --%>  注释
+```
+
+JSP的注释，不会在客户端显示，HTML的就会！
+
+#### 8.4 JSP指令
+
+```jsp
+<%--定制错误页面--%>
+<%@page errorPage="error/500.jsp" %>
+
+<%--显式的声明这是一个错误页面--%>
+<%@page isErrorPage="true" %>
+<%@page pageEncoding="UTF-8" %>
+
+<%--<%@include 会将两页页面合二为一--%>
+<%@include file="../common/header.jsp"%>
+<h1>网页主体</h1>
+<%@include file="../common/footer.jsp"%>
+
+<%--JSP标签
+	<jsp:include 会拼接页面，本质还是三个。建议用这种（虽然JSP已经不用了）
+--%>
+<jsp:include page="/common/header.jsp" />
+<h1>网页主体</h1>
+<jsp:include page="/common/footer.jsp" />
+```
 
 
 
