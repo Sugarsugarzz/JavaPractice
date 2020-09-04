@@ -1040,19 +1040,124 @@ public class ImageServlet extends HttpServlet {
 }
 ```
 
+##### 4. 重定向
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200903184641182.png" alt="image-20200903184641182" style="zoom:30%;" />
 
+一个Web资源收到客户端请求后，它会通知客户端去访问另外一个Web资源，这个过程叫重定向。
 
+```java
+    void sendRedirect(String var1) throws IOException;
+```
 
+```java
+public class RedirectServlet extends HttpServlet {
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
+        /*
+        等价操作：
+        resp.setHeader("Location", "/web/verify");
+        resp.setStatus(302);        
+         */
+
+        resp.sendRedirect("/web/verify");  // 重定向
+    }
+}
+```
+
+**用户登录场景**
+
+```java
+public class RequestTest extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+
+        // 处理请求
+        String username = req.getParameter("username");
+        String password = req.getParameter("password");
+        System.out.println(username + " - " + password);
+
+        // 重定向的时候一定要注意路径问题，否则404
+        resp.sendRedirect("/web/success.jsp");
+    }
+}
+```
+
+**面试题**：聊聊重定向和转发的区别？
+
+相同点：
+
+- 页面都会实现跳转
+
+不同点
+
+- 请求转发的时候，URL不会产生变化
+- 重定向时候，URL地址栏会发生变化
+- 描述原理图
+- 请求转发代码中不需要加项目名，重定向需要加项目名
+- 状态码：请求转发 307，重定向 302
 
 #### 6.7 HttpServletRequest
 
+HttpServletRequest 代表客户端的请求，用户通过Http协议访问服务器，HTTP请求中的所有信息被封装到HttpServletRequest，通过这个HttpServletRequest的方法，获得客户端的所有信息。
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200904092459230.png" alt="image-20200904092459230" style="zoom:30%;" />
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200904092506797.png" alt="image-20200904092506797" style="zoom:30%;" />
 
+##### 1. 获取前端传递的参数，请求转发
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200904092642345.png" alt="image-20200904092642345" style="zoom:30%;" />
 
+单参数用 **getParameter**，多参数用 **getPrameterValues**。
+
+```java
+public class LoginServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+
+        // 处理前后台编码问题
+        req.setCharacterEncoding("utf-8");
+        resp.setCharacterEncoding("utf-8");
+
+        String username = req.getParameter("username");
+        String password = req.getParameter("password");
+        String[] hobbies = req.getParameterValues("hobbies");
+
+        System.out.println(username + " - " + password + " - " + Arrays.toString(hobbies));
+
+        // 通过请求转发
+        /*
+        转发：路径不需要加项目名
+        重定向：需要加
+         */
+        req.getRequestDispatcher("/success.jsp").forward(req, resp);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        doGet(req, resp);
+    }
+}
+```
+
+```jsp
+<div style="text-align: center">
+    <%--  以POST方式提交表单  --%>
+    <form action="${pageContext.request.contextPath}/login" method="post">
+        用户名：<input type="text" name="username"> <br>
+        密码：<input type="password" name="password"> <br>
+        爱好：
+        <input type="checkbox" name="hobbies" value="代码">代码
+        <input type="checkbox" name="hobbies" value="电影">电影
+        <br>
+        <input type="submit">
+    </form>
+</div>
+```
 
 
 
