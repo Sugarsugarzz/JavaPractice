@@ -1159,17 +1159,65 @@ public class LoginServlet extends HttpServlet {
 </div>
 ```
 
+### 7. Cookie、Session
 
+#### 7.1 会话
 
+**会话**：用户打开一个浏览器，点击了很多超链接，访问了多个Web资源，关闭浏览器，这个过程可以称之为会话。
 
+**有状态会话**：客户浏览过某网站，下次客户再次访问，网站就会知道这个客户曾经来过，称之为有状态回话。
 
+客户端             服务端
 
+1. 服务端给客户端一个信件，客户端下次访问服务端带上信件即可； Cookie
+2. 服务器登录客户来过了，下次来时匹配客户。  Session
 
+#### 7.2 保存会话的两种技术
 
+**Cookie**
 
+- 客户端技术（响应、请求）
 
+**Session**
 
+- 服务器技术，利用这个技术，可以保存用户的会话信息，可以把信息或者数据放在Session中。
 
+**常见场景**：网站登录之后，下次不用登录，直接就可以访问。
+
+#### 7.3 Cookie
+
+1. 从请求中拿到Cookie信息
+2. 服务器响应给客户端Cookie
+
+```java
+Cookie[] cookies = req.getCookies();  // 获得Cookie
+cookie.getName();  // 获得Cookie中的key
+cookie.getValue();  // 获得Cookie中的value
+Cookie cookie = new Cookie("lastLoginTime", System.currentTimeMillis() + "");  // 新建一个Cookie
+cookie.setMaxAge(24*60*60);  // 给Cookie设置有效期
+resp.addCookie(cookie);  // 响应给客户端
+```
+
+**Cookie 一般会保存在本地的用户目录下的APPDATA。**
+
+一个网站的 Cookie 是否存在上限？
+
+- 一个Cookie只能保存一个信息；
+- 一个Web站点可以给浏览器发送多个Cookie，最多存放20个Cookie；
+- Cookie大小有限制  4KB；
+- 300个Cookie浏览器上限。
+
+**删除Cookie**：
+
+- 不设置有效期，关闭浏览器，自动失效；
+- 设置有效期时间为 0 
+
+**编码解码**：
+
+```java
+URLEncoder.encode("哈哈", "utf-8")
+URLDecoder.decode(cookie.getValue(), "utf-8")
+```
 
 
 

@@ -164,4 +164,31 @@
         <url-pattern>/login</url-pattern>
     </servlet-mapping>
 
+    <servlet>
+        <servlet-name>CookieDemo01</servlet-name>
+        <servlet-class>Learn_JavaWeb.cookies.CookieDemo01</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>CookieDemo01</servlet-name>
+        <url-pattern>/c1</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>CookieDemo02</servlet-name>
+        <servlet-class>Learn_JavaWeb.cookies.CookieDemo02</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>CookieDemo02</servlet-name>
+        <url-pattern>/c2</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>CookieDemo03</servlet-name>
+        <servlet-class>Learn_JavaWeb.cookies.CookieDemo03</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>CookieDemo03</servlet-name>
+        <url-pattern>/c3</url-pattern>
+    </servlet-mapping>
+
 </web-app>
