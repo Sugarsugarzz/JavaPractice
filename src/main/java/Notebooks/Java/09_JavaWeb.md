@@ -1,4 +1,4 @@
-1. 基本概念
+### 1. 基本概念
 
 #### 1.1 前言
 
@@ -1390,16 +1390,7 @@ protected void _jspDestroy() {
 
 2. 内置一些对象在 index_jsp.java 中。（九个）
 
-   ```java
-   // 页面上下文
-   // session
-   // applicationContext
-   // config
-   // out
-   // page：当前页
-   // request 请求
-   // response 响应
-   ```
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200906110618634.png" alt="image-20200906110618634" style="zoom:40%;" />
 
 3. 输出页面前增加的代码
 
@@ -1521,43 +1512,507 @@ JSP的注释，不会在客户端显示，HTML的就会！
 <jsp:include page="/common/footer.jsp" />
 ```
 
+#### 8.5 9大内置对象
+
+- PageContext  存东西
+- Request  存东西
+- Response
+- Session  存东西
+- Application【ServletContext】存东西
+- config【ServletConfig】
+- out
+- page 基本不用
+- exception
+
+```java
+pageContext.setAttribute("name1", "Sugar1");  // 保存的数据只在一个页面中有效
+request.setAttribute("name2", "Sugar2");  // 保存的数据只在一次请求中有效，请求转发会携带这个数据
+session.setAttribute("name3", "Sugar3");  // 保存的数据只在一次会话中有效，从打开到关闭浏览器
+application.setAttribute("name4", "Sugar4");  // 保存的数据只在服务器中有效，从打开到关闭服务器
+```
+
+request：客户端向服务端发生的请求，产生的数据，用户看完就没用了，比如：新闻，用户看完没用的。
+
+session：客户端向服务端发生的请求，产生的数据，用户用完一会儿还有用，比如：购物车；
+
+application：客户端向服务端发生的请求，产生的数据，一个用户用完了，其他用户还可能会用，比如：聊天数据
+
+#### 8.6 JSP标签、JSTL标签、EL表达式
+
+Maven依赖：
+
+```xml
+<!-- https://mvnrepository.com/artifact/javax.servlet/jstl -->
+<dependency>
+    <groupId>javax.servlet</groupId>
+    <artifactId>jstl</artifactId>
+    <version>1.2</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/taglibs/standard -->
+<dependency>
+	  <groupId>taglibs</groupId>
+  	<artifactId>standard</artifactId>
+	  <version>1.1.2</version>
+</dependency>
+```
+
+EL表达式：${}
+
+- **获取数据**
+- **执行运算**
+- **获取Web开发的常用对象**
+
+**JSP标签**
+
+```jsp
+<%--<jsp:include--%>
+
+<%--
+http://localhost:8080/jsptag.jsp?name=sugar&age=3
+--%>
+<jsp:forward page="jsptag2.jsp">
+    <jsp:param name="name" value="sugar"/>
+    <jsp:param name="age" value="3"/>
+</jsp:forward>
+
+<%--取出参数--%>
+名字：<%=request.getParameter("name")%>
+年龄：<%=request.getParameter("age")%>
+```
+
+**JSTL表达式**
+
+JSTL标签库的使用时为了弥补HTML标签的不足。它自定义了许多标签可以使用，标签的功能和Java代码一样！
+
+**核心标签**（部分掌握即可）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200906153623387.png" alt="image-20200906153623387" style="zoom:30%;" />
 
 
 
+**格式化标签**
+
+**SQL标签**
+
+**XML标签**
 
 
 
+**JSTL标签库使用步骤**
 
+- 引入对应的taglib
+- 使用其中的方法
+- **在Tomcat中需要引入 JSTL 的包，否则会报错：JSTL解析错误**
 
+if、when、forEach
 
+```jsp
+<%--引入JSTL核心标签库，才能使用JSTL标签--%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<html>
+<head>
+    <title>Title</title>
+</head>
+<body>
 
+<h4>if测试</h4>
+<hr>
+<%--ERROR！
+无法在web.xml或使用此应用程序部署的jar文件中解析绝对uri：[http://java.sun.com/jsp/jstl/core]
+--%>
 
+<form action="coreif.jsp" method="get">
+    <%--
+    EL表达式获取表单中的数据
+    ${param.参数名}
+    --%>
+    <input type="text" name="username" value="${param.username}">
+    <input type="submit" value="登录">
+</form>
 
+<%--如果提交用户名是管理员，则登录成功--%>
+<%--<%--%>
+<%--    if (request.getParameter("username").equals("admin")) {--%>
+<%--        out.print("登良成功");--%>
+<%--    }--%>
+<%--%>--%>
+<c:if test="${param.username == 'admin'}" var="isAdamin">
+    <c:out value="登录成功"/>
+</c:if>
 
+<c:out value="${isAdamin}"/>
+</body>
+</html>
+```
 
+```jsp
+<%--定义一个变量交score，值为85--%>
+<c:set var="score" value="85" />
 
+<c:choose>
+    <c:when test="${score >= 90}">
+        成绩优秀
+    </c:when>
+    <c:when test="${score >= 80}">
+        成绩一般
+    </c:when>
+    <c:when test="${score >= 70}">
+        成绩良好
+    </c:when>
+    <c:when test="${score >= 60}">
+        成绩及格
+    </c:when>
+</c:choose>
+```
 
+```jsp
+<%
+    ArrayList<String> people = new ArrayList<>();
+    people.add(0, "张1");
+    people.add(1, "张2");
+    people.add(2, "张3");
+    people.add(3, "张4");
+    request.setAttribute("list", people);
+%>
+<%--
+var，每一次遍历出来的变量
+items，要遍历的对象
+begin，起始
+end，结束
+step，步长
+--%>
+<c:forEach var="people" items="${list}">
+    <c:out value="${people}"/> <br>
+</c:forEach>
 
+<hr>
 
+<c:forEach begin="1" end="3" step="2" var="people" items="${list}">
+    <c:out value="${people}" /> <br>
+</c:forEach>
+```
 
+### 9. JavaBean
 
+实体类
 
+JavaBean有特定的写法：
 
+- 必须有一个无参构造
+- 属性必须私有化
+- 必须有对应的Get/Set方法
 
+一般用来和数据库的字段做映射。 ORM
 
+ORM：对象关系映射
 
+- 表 --> 类
+- 字段 --> 属性
+- 行记录 --> 对象
 
+**People表**
 
+| id   | name   | age  | address |
+| ---- | ------ | ---- | ------- |
+| 1    | Sugar  | 3    | 北京    |
+| 2    | Sugar2 | 5    | 北京    |
+| 3    | Sugar3 | 10   | 北京    |
 
+```java
+public class People {
 
+    private int id;
+    private String name;
+    private int age;
+    private String address;
 
+    public People() {
+    }
 
+    public People(int id, String name, int age, String address) {
+        this.id = id;
+        this.name = name;
+        this.age = age;
+        this.address = address;
+    }
 
+    public int getId() {
+        return id;
+    }
 
+    public void setId(int id) {
+        this.id = id;
+    }
 
+    public String getName() {
+        return name;
+    }
 
+    public void setName(String name) {
+        this.name = name;
+    }
 
+    public int getAge() {
+        return age;
+    }
 
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    @Override
+    public String toString() {
+        return "People{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", age=" + age +
+                ", address='" + address + '\'' +
+                '}';
+    }
+}
+
+```
+
+### 10. MVC三层架构
+
+MVC：Model   View  Controller  模型、视图、控制器
+
+#### 10.1 早期架构
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200906181110293.png" alt="image-20200906181110293" style="zoom:30%;" />
+
+用户直接访问控制层，控制层就可以直接操作数据库。
+
+```java
+servlet -- CRUD --> 数据库
+```
+
+**弊端**：程序十分臃肿，不利于维护    
+
+servlet的代码中：处理请求、响应、视图跳转、处理JDBC、处理业务代码
+
+**架构**：没有什么是加一层解决不了的！
+
+#### 10.2 MVC三层架构
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200906182105269.png" alt="image-20200906182105269" style="zoom:50%;" />
+
+**Model**
+
+- 业务处理：业务逻辑（Service）
+- 数据持久层：CRUD（Dao）
+
+**View**
+
+- 展示数据
+- 提供链接发起Servlet请求（a、form、img...）
+
+**Controller** （Servlet）
+
+- 接收用户的请求（req：请求参数、Session信息...）
+
+- 交给业务层处理对应的代码
+
+- 控制视图的跳转
+
+  ```java
+  登录  
+  -->  接收用户的登录请求  
+  -->  处理用户的请求（获取用户登录的参数，username，password）  
+  -->  交给业务层处理登录业务（判断用户密码是否正确：事务）  
+  -->  Dao层查询用户名和密码是否正确
+  -->  数据库
+  ```
+
+### 11. Filter 过滤器（重点）
+
+Filter：过滤器，用来过滤网站的数据。
+
+- 处理中文乱码
+- 登录验证
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200906184708001.png" alt="image-20200906184708001" style="zoom:40%;" />
+
+**Filter开发步骤**：
+
+1. 导包
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200906185008638.png" alt="image-20200906185008638" style="zoom:30%;" />
+
+2. 编写过滤器
+
+   实现Filter接口，重写三个方法
+
+   ```3ava
+   package Learn_JavaWeb.filter;
+   
+   import javax.servlet.*;
+   import java.io.IOException;
+   
+   // 处理中文乱码
+   // 需在 web.xml 中配置，和servlet一样
+   public class CharacterEncodingFilter implements Filter {
+   
+   
+       // 初始化，Web服务器启动，就已经初始化了，随时等待过滤对象的出现。
+       @Override
+       public void init(FilterConfig filterConfig) throws ServletException {
+           System.out.println("CharacterEncodingFilter初始化成功");
+       }
+   
+       // Chain：链
+       /*
+       1. 过滤中的所有代码，在过滤特定请求的时候都会执行
+       2. 必须要让过滤器继续通行
+           chain.doFilter(request, response);
+       3.
+        */
+       @Override
+       public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+           request.setCharacterEncoding("utf-8");
+           response.setCharacterEncoding("utf-8");
+           response.setContentType("text/html; charset=UTF-8");
+   
+           System.out.println("CharacterEncodingFilter执行前...");
+           chain.doFilter(request, response);  // 让请求继续走，如果不写，程序就被到此拦截停止了
+           System.out.println("CharacterEncodingFilter执行后...");
+       }
+   
+       // 销毁，Web服务器关闭后才会销毁
+       @Override
+       public void destroy() {
+           System.out.println("CharacterEncodingFilter销毁成功");
+       }
+   }
+   
+   ```
+
+3. 在 web.xml 中配置 Filter
+
+   ```xml
+       <filter>
+           <filter-name>CharacterEncodingFilter</filter-name>
+           <filter-class>Learn_JavaWeb.filter.CharacterEncodingFilter</filter-class>
+       </filter>
+       <filter-mapping>
+           <filter-name>CharacterEncodingFilter</filter-name>
+           <!--只要是 /* 下的任何请求，都会经过这个过滤器-->
+           <url-pattern>/*</url-pattern>
+       </filter-mapping>
+   ```
+
+### 12. Listener 监听器
+
+实现一个监听器的接口
+
+1. 编写一个监听器
+
+   实现监听器的接口
+
+   ```java
+   package Learn_JavaWeb.listener;
+   
+   import javax.servlet.ServletContext;
+   import javax.servlet.http.HttpSessionEvent;
+   import javax.servlet.http.HttpSessionListener;
+   
+   // 统计网站在线人数：统计Session
+   public class OnlineCountListener implements HttpSessionListener {
+   
+       // 创建 Session 监听
+       // 一旦擦混构建Session就会触发一次这个事件
+       public void sessionCreated(HttpSessionEvent se) {
+           ServletContext ctx = se.getSession().getServletContext();
+           Integer onlineCount = (Integer) ctx.getAttribute("OnlineCount");
+           if (onlineCount == null) {
+               onlineCount = 1;
+           } else {
+               onlineCount = onlineCount + 1;
+           }
+   
+           ctx.setAttribute("OnlineCount", onlineCount);
+       }
+   
+       // 销毁 Session 监听
+       public void sessionDestroyed(HttpSessionEvent se) {
+           ServletContext ctx = se.getSession().getServletContext();
+           Integer onlineCount = (Integer) ctx.getAttribute("OnlineCount");
+           if (onlineCount == null) {
+               onlineCount = 0;
+           } else {
+               onlineCount = onlineCount - 1;
+           }
+   
+           ctx.setAttribute("OnlineCount", onlineCount);
+       }
+   
+       /*
+       Session销毁：
+       1. 手动销毁
+       2. 自动销毁
+        */
+   }
+   
+   ```
+
+2. web.xml 中注册监听器
+
+   ```xml
+       <listener>
+           <listener-class>Learn_JavaWeb.listener.OnlineCountListener</listener-class>
+       </listener>
+   ```
+
+3. 看情况是否使用监听器
+
+### 13. 过滤器、监听器常见应用
+
+**监听器：GUI编程中经常使用**
+
+用户权限管理
+
+1. 用户登录之后，向Session中放入用户的SESSIONID
+
+2. 进入主页时判断用户是否已经登录（在过滤器中实现）
+
+   ```java
+   public class SysFilter implements Filter {
+       @Override
+       public void init(FilterConfig filterConfig) throws ServletException {
+   
+       }
+   
+       @Override
+       public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) throws IOException, ServletException {
+   
+           //HttpServletResponse   ServletRequest
+           HttpServletRequest request = (HttpServletRequest) req;
+           HttpServletResponse response = (HttpServletResponse) resp;
+   
+           if (request.getSession().getAttribute(Constant.USER_SESSION) == null) {
+               response.sendRedirect("/web/error/error.jsp");
+           }
+   
+           chain.doFilter(request, response);
+       }
+   
+       @Override
+       public void destroy() {
+   
+       }
+   }
+   ```
+
+   
 
 
 
