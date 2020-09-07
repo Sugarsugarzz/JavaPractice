@@ -2012,7 +2012,35 @@ Filter：过滤器，用来过滤网站的数据。
    }
    ```
 
-   
+### 14. JDBC
+
+**CRUD**
+
+**事务**
+
+**JUNIT测试**
+
+依赖
+
+```xml
+<!-- https://mvnrepository.com/artifact/junit/junit -->
+<dependency>
+    <groupId>junit</groupId>
+    <artifactId>junit</artifactId>
+    <version>4.12</version>
+</dependency>
+```
+
+@Test 注解只在方法上有效，只要加了这个注解的方法，就可以直接运行。
+
+```java
+    @Test
+    public void test() {
+        System.out.println("Hello");
+    }
+```
+
+失败的时候是红色的。
 
 
 
