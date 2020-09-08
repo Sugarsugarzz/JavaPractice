@@ -2,11 +2,47 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <!--namespace绑定一个对应的Dao/Mapper接口-->
-<mapper namespace="dao.UserDao">
+<mapper namespace="dao.UserMapper">
 
     <!--查询语句-->
     <select id="getUserList" resultType="pojo.User">
         SELECT * FROM `user`
     </select>
 
+    <select id="getUserLike" resultType="pojo.User">
+        SELECT * FROM `user` WHERE `name` LIKE CONCAT("%", #{value}, "%")
+    </select>
+
+    <select id="getUserByID" parameterType="int" resultType="pojo.User">
+        SELECT * FROM `user`
+        WHERE id = #{id}
+    </select>
+
+    <select id="getUserByID2" parameterType="map" resultType="pojo.User">
+        SELECT * FROM `user`
+        WHERE id = #{id}
+    </select>
+
+    <!--对象中的属性可以直接取-->
+    <insert id="addUser" parameterType="pojo.User">
+        INSERT INTO `user` (`id`, `name`, `pwd`)
+        VALUES (#{id}, #{name}, #{pwd})
+    </insert>
+
+    <!--万能的Map-->
+    <!--传递 map 的 key-->
+    <insert id="addUser2" parameterType="map">
+        INSERT INTO `user` (`id`, `name`, `pwd`)
+        VALUES (#{userid}, #{userName}, #{passWord})
+    </insert>
+
+    <update id="updateUser" parameterType="pojo.User">
+        UPDATE `user` SET `name`=#{name}, `pwd`=#{pwd}
+        WHERE `id` = #{id}
+    </update>
+
+    <delete id="deleteUser" parameterType="int">
+        DELETE FROM `user`
+        WHERE `id` = #{id}
+    </delete>
 </mapper>

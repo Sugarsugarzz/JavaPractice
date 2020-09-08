@@ -359,3 +359,151 @@ org.apache.ibatis.exceptions.PersistenceException:
 - 返回类型不对
 - Maven 导出资源问题
 
+### 3. CRUD
+
+#### 3.1 namespace
+
+namespace 中的包名要与 Dao/Mapper 接口的包名一致。
+
+#### 3.2 select
+
+查询语句
+
+- id：对应namespace中的方法名，必须一致
+- parameterType：参数类型
+- resultType：SQL 语句执行的返回值
+
+实现步骤：
+
+1. 编写接口
+
+   ```java
+   public interface UserMapper {
+       // 根据ID查询用户
+       User getUserByID(int id);
+   }
+   ```
+
+2. 编写对应的 Mapper 中的 SQL 语句
+
+   ```xml
+       <select id="getUserByID" parameterType="int" resultType="pojo.User">
+           SELECT * FROM `user`
+           WHERE id = #{id}
+       </select>
+   ```
+
+3. 测试
+
+   ```java
+       @Test
+       public void getUserByID() {
+           SqlSession sqlSession = MybatisUtils.getSqlSession();
+           UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+   
+           User user = mapper.getUserByID(1);
+           System.out.println(user);
+   
+           sqlSession.close();
+       }
+   ```
+
+#### 3.3 insert
+
+```xml
+    <insert id="addUser" parameterType="pojo.User">
+        INSERT INTO `user` (`id`, `name`, `pwd`)
+        VALUES (#{id}, #{name}, #{pwd})
+    </insert>
+```
+
+#### 3.4 update
+
+```xml
+    <update id="updateUser" parameterType="pojo.User">
+        UPDATE `user` SET `name`=#{name}, `pwd`=#{pwd}
+        WHERE `id` = #{id}
+    </update>
+```
+
+#### 3.5 delete
+
+```xml
+    <delete id="deleteUser" parameterType="int">
+        DELETE FROM `user`
+        WHERE `id` = #{id}
+    </delete>
+```
+
+#### 3.6 注
+
+- 增删改需要提交事务！
+
+#### 3.7 错误分析
+
+- Mapper.xml 文件中，标签与语句不能匹配错
+- resources文件 绑定 mapper.xml，需要使用路径
+- 程序配置文件必须符合规范
+- 输出的 xml 文件中存在中文乱码问题
+- Maven 资源没有导出，配置 pom.xml 即可
+
+#### 3.8 万能的Map
+
+假设，实体类，或者数据库中的表，字段或者参数过多，应当考虑使用 Map。
+
+Map 传递参数，直接在 SQL 中取出 key 即可。【parameterType="map"】
+
+对比来说，对象传递参数，直接在 SQL 中取对象的属性即可。【parameterType="pojo.User"】
+
+调用时，只有一个基本类型参数的情况下，可以直接在 SQL 中取到。
+
+多个参数用 Map。**或者注解**！
+
+```java
+    // 万能的Map
+    int addUser2(Map<String, Object> map);
+```
+
+```xml
+    <!--万能的Map-->
+    <!--传递 map 的 key-->
+    <insert id="addUser2" parameterType="map">
+        INSERT INTO `user` (`id`, `name`, `pwd`)
+        VALUES (#{userid}, #{userName}, #{passWord})
+    </insert>
+```
+
+```java
+    @Test
+    public void addUser2() {
+        SqlSession sqlSession = MybatisUtils.getSqlSession();
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("userid", 5);
+        map.put("userName", "heihei");
+        map.put("passWord", "222222");
+        mapper.addUser2(map);
+        sqlSession.commit();
+        
+        sqlSession.close();
+    }
+```
+
+#### 3.9 模糊查询
+
+1. Java代码执行的时候，传递通配符 % %
+
+   ```java
+   List<User> users = mapper.getUserLike("%Sugar%");
+   ```
+
+2. 在 SQL 拼接中使用通配符。
+
+   ```xml
+       <select id="getUserLike" resultType="pojo.User">
+           SELECT * FROM `user` WHERE `name` LIKE CONCAT("%", #{value}, "%")
+       </select>
+   ```
+
+   
