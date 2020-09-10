@@ -5,7 +5,12 @@
 <mapper namespace="dao.UserMapper">
 
     <!--结果集映射-->
-    <resultMap id="UserMap" type=""
+    <resultMap id="UserMap" type="User">
+        <!--column：数据库中的字段，property：实体类中的属性-->
+        <result column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="pwd" property="password" />
+    </resultMap>
 
     <select id="getUserByID" resultMap="UserMap">
         SELECT `id`, `name`, `pwd`

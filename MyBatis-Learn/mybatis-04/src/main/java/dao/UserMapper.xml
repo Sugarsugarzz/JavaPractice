@@ -17,4 +17,15 @@
         FROM `user`
         WHERE id = #{id}
     </select>
+
+    <!--分页查询-->
+    <select id="getUserByLimit" parameterType="map" resultMap="UserMap">
+        SELECT * FROM `user` LIMIT #{startIndex}, #{pageSize}
+    </select>
+
+    <!--RowBounds查询-->
+    <select id="getUserByRowBounds" resultMap="UserMap">
+        SELECT * FROM `user`
+    </select>
+
 </mapper>

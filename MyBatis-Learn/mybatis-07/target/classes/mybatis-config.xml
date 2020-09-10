@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<!--configuration 核心配置文件-->
+<configuration>
+
+    <!--引入外部配置文件 properties-->
+    <properties resource="db.properties" />
+    
+    <typeAliases>
+        <package name="pojo"/>
+    </typeAliases>
+
+    <!--default 决定默认使用哪套环境-->
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC"></transactionManager>
+            <dataSource type="POOLED">
+                <property name="driver" value="${driver}"></property>
+                <property name="url" value="${url}"></property>
+                <property name="username" value="${username}"></property>
+                <property name="password" value="${password}"></property>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <mappers>
+        <mapper class="dao.TeacherMapper" />
+        <mapper class="dao.StudentMapper" />
+    </mappers>
+</configuration>
