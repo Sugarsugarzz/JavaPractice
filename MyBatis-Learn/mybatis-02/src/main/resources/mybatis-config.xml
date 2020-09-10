@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<!--configuration 核心配置文件-->
+<configuration>
+
+    <!--引入外部配置文件 properties-->
+    <properties resource="db.properties">
+        <property name="username" value="root"/>
+        <property name="password" value="111111"/>
+    </properties>
+            
+    <!--类型别名：给实体类起别名-->
+    <typeAliases>
+<!--        <typeAlias type="pojo.User" alias="User"/>-->
+        <!--以实体类类名作为别名，不区分大小写-->
+        <package name="pojo"/>
+    </typeAliases>
+
+    <!--default 决定默认使用哪套环境-->
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC"></transactionManager>
+            <dataSource type="POOLED">
+                <property name="driver" value="${driver}"></property>
+                <property name="url" value="${url}"></property>
+                <property name="username" value="${username}"></property>
+                <property name="password" value="${password}"></property>
+            </dataSource>
+        </environment>
+
+        <environment id="test">
+            <transactionManager type="JDBC"></transactionManager>
+            <dataSource type="POOLED">
+                <property name="driver" value="com.mysql.cj.jdbc.Driver"></property>
+                <property name="url" value="jdbc:mysql://localhost:3306/learn_mybatis?useUnicode=true&amp;characterEncoding=UTF-8&amp;useSSL=false"></property>
+                <property name="username" value="root"></property>
+                <property name="password" value="123456"></property>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <mappers>
+<!--        <mapper resource="dao/UserMapper.xml" />-->
+<!--        <mapper class="dao.UserDao"/>-->
+        <package name="dao"/>
+    </mappers>
+
+</configuration>

@@ -506,4 +506,219 @@ Map 传递参数，直接在 SQL 中取出 key 即可。【parameterType="map"�
        </select>
    ```
 
-   
+### 4. 配置解析
+
+#### 4.1 核心配置文件
+
+- mybatis-config.xml
+
+- MyBatis 的配置文件包含会影响 MyBatis 行为的设置和属性信息。
+
+  ```xml
+  - configuration（配置）
+  	- properties（属性）
+  	- settings（设置）
+  	- typeAliases（类型别名）
+  	- typeHandlers（类型处理器）
+  	- objectFactory（对象工厂）
+  	- plugins（插件）
+  	- environments（环境配置）
+  		- environment（环境变量）
+  			- transactionManager（事务管理器）
+  			- dataSource（数据源）
+  	- databaseIdProvider（数据库厂商标识）
+  	- mappers（映射器）
+  ```
+
+#### 4.2 环境配置（enviroments）
+
+MyBatis 可以配置成适应多种环境
+
+**记住：尽管可以配置多个环境，但每个 SqlSessionFactory 实例只能选择一种环境。**
+
+学会使用配置多套运行环境。
+
+MyBatis 默认的事务管理器是 **JDBC**，连接池 **POOLED**。
+
+- default：决定默认使用哪套环境
+- 事务管理器（transactionManager）
+  - **JDBC**
+  - MANAGED
+- 数据源（dataSource）
+  - UNPOOLED：无池
+  - **POOLED**：有池，响应更快
+  - JNDI：正常连接
+
+#### 4.3 属性（properties）
+
+可以通过 properties 属性来实现引用配置文件。
+
+可以属性都是可外部配置且可动态替换的，既可以在典型的 Java 属性文件中配置，也可以通过 properties 元素的子元素来传递（为了解耦）。【db.properties】
+
+编写一个配置文件 db.properties
+
+```xml
+driver=com.mysql.cj.jdbc.Driver
+url=jdbc:mysql://localhost:3306/learn_mybatis?useUnicode=true&characterEncoding=UTF-8&amp;useSSL=false
+username=root
+password=123456
+```
+
+在核心配置文件中引入
+
+```xml
+    <!--引入外部配置文件 properties-->
+    <properties resource="db.properties">
+        <property name="username" value="root"/>
+        <property name="password" value="111111"/>
+    </properties>
+```
+
+- 可以直接引入外部文件
+- 可以在其中增加一些属性配置
+- 如果两个文件有同一个字段，**优先使用外部配置文件的**！
+
+#### 4.4 类型别名（typeAliases）
+
+- 类型别名是为 Java 类型设置一个短的名字。
+- 它只和 XML 配置有关，存在的意义仅在于用来接减少类完全限定名的冗余。
+
+**typeAlias**：直接指定实体类名，并设置一个别名。
+
+```xml
+    <!--类型别名：给实体类起别名-->
+    <typeAliases>
+        <typeAlias type="pojo.User" alias="User"/>
+    </typeAliases>
+```
+
+**package**：指定一个包名，MyBatis 会在包名下搜索需要的 Java Bean，以实体类的类名作为别名，不区分大小写。
+
+```xml
+    <!--类型别名：给实体类起别名-->
+    <typeAliases>
+        <!--以实体类类名作为别名，不区分大小写-->
+        <package name="pojo"/>
+    </typeAliases>
+```
+
+在实体类比较少的时候，使用第一种方式；如果实体类多，使用第二种。
+
+区别：
+
+- 第一种可以DIY别名，第二种不行（**也行的，在实体类上添加 @Alias("xx") 的注解**）。
+- 基本类型的别名前面加_，对象类型的别名是小写。（ int -> _int，Integer -> int）
+
+#### 4.5 设置（settings）
+
+MyBatis 中极为重要的调整设置，会改变 MyBatis 的运行时行为。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200909192902102.png" alt="image-20200909192902102" style="zoom:50%;" />
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200909192852180.png" alt="image-20200909192852180" style="zoom:50%;" />
+
+#### 4.6 其他配置
+
+- typeHandlers（类型处理器）
+- objectFactory（对象工厂）
+- plugins插件
+  - mybatis-generator-core
+  - mybatis-plus
+  - 通用mapper
+
+#### 4.7 映射器（mappers）
+
+MapperRegistry：注册绑定 Mapper.xml 文件
+
+方式一：指定 Mapper.xml 文件相对路径
+
+```xml
+    <mappers>
+        <mapper resource="dao/UserMapper.xml" />
+    </mappers>
+```
+
+方式二：使用 class 文件绑定注册
+
+- 接口和它的 Mapper.xml 配置文件必须同名
+- 接口和它的 Mapper.xml 配置文件必须在同一个包下
+
+```xml
+    <mappers>
+        <mapper class="dao.UserDao"/>
+    </mappers>
+```
+
+方式三：使用扫描包进行注入绑定
+
+- 接口和它的 Mapper.xml 配置文件必须同名
+- 接口和它的 Mapper.xml 配置文件必须在同一个包下
+
+```xml
+    <mappers>
+        <package name="dao"/>
+    </mappers>
+```
+
+#### 5.8 生命周期和作用域
+
+生命周期是至关重要的，因为错误的使用会导致非常严重的**并发问题**。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200909194635681.png" alt="image-20200909194635681" style="zoom:30%;" />
+
+
+
+**SqlSessionFactoryBuilder**：
+
+- 一旦创建了 SqlSessionFactory，就不再需要它了。
+- 局部变量
+
+**SqlSessionFactory**：
+
+- 其实就是：数据库连接池
+- SqlSessionFactory 一旦被创建就应该在应用的运行期间一直存在，**没有任何理由丢弃或重新创建另一个实例**
+- 最佳作用域是应用作用域。
+- 最简单的就是**单例模式**或者静态单例模式。
+
+**SqlSession**：
+
+- 连接到连接池的一个请求
+- SqlSession 的实例不是线程安全的，因此不能被共享
+- 最佳作用域就是请求或方法应用域
+- 用完需要关闭，否则资源被占用
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200909195347071.png" alt="image-20200909195347071" style="zoom:30%;" />
+
+每一个 Mapper，代表一个具体的业务。
+
+### 5. ResultMap（解决属性名和字段名不一致的问题）
+
+```java
+数据库：
+  id  name  pwd
+Java：
+  id  name  password
+```
+
+**测试出现问题**：
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200909200442263.png" alt="image-20200909200442263" style="zoom:50%;" />
+
+**原因**：
+
+MyBatis 使用 selecet id, name, pwd from user where id = #{id}，而 User 类中字段为 password，映射不上。
+
+**解决方法**：
+
+- 起别名
+
+  ```sql
+  SELECT `id`, `name`, `pwd` as `password`  
+  FROM `user`
+  WHERE id = #{id}
+  ```
+
+- resultMap
+
+结果集映射
+
