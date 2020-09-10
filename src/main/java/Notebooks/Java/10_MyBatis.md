@@ -1270,26 +1270,195 @@ INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('5', '小王', '1');
 
 比如：一个老师拥有多个学生，对于老师而言，就是一对多的关系！
 
-1. 搭建环境，同10
+搭建环境，同10
+
+```java
+@Data
+public class Teacher {
+
+    private int id;
+    private String name;
+    // 一个老师拥有多个学生
+    private List<Student> students;
+}
+
+@Data
+public class Student {
+
+    private int id;
+    private String name;
+    private int tid;
+}
+```
+
+#### 按照结果嵌套处理
+
+```xml
+    <!--按结果嵌套查询-->
+    <select id="getTeacher" resultMap="TeacherStudent">
+        SELECT s.id sid, s.name sname, t.name tname, t.id tid
+        FROM student s, teacher t
+        WHERE s.tid = t.id and t.id =#{tid}
+    </select>
+
+    <resultMap id="TeacherStudent" type="Teacher">
+        <result property="id" column="tid"/>
+        <result property="name" column="tname"/>
+        <!--复杂属性需要单独处理，对象：association 集合：collection
+        javaType="" 指定属性的类型
+        集合中的泛型信息，使用 ofType 获取
+        -->
+        <collection property="students" ofType="Student">
+            <result property="id" column="sid"/>
+            <result property="name" column="sname"/>
+            <result property="tid" column="tid"/>
+        </collection>
+    </resultMap>
+```
+
+#### 按照查询嵌套处理
+
+```xml
+    <!--按查询嵌套查询-->
+    <select id="getTeacher2" resultMap="TeacherStudent2">
+        SELECT * FROM teacher WHERE id = #{tid}
+    </select>
+
+    <resultMap id="TeacherStudent2" type="Teacher">
+        <collection property="students" javaType="ArrayList" ofType="Student" select="getStudentByTeacherId" column="id"/>
+    </resultMap>
+
+    <select id="getStudentByTeacherId" resultType="Student">
+        SELECT * FROM student WHERE tid = #{tid}
+    </select>
+```
+
+#### 小结
+
+1. 关联 - association 【多对一】
+2. 集合 - collection 【一对多】
+3. javaType  & ofType
+   - javaType 用来指定实体类中属性的类型
+   - ofType 用来指定映射到List或者集合中的 pojo 类型，泛型中的约束类型！
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200910235757923.png" alt="image-20200910235757923" style="zoom:40%;" />
+
+**注意点**
+
+- 保证 SQL 的可读性，尽量通俗易懂
+- 注意一对多和多对一中，属性名和字段的问题
+- 如果问题不好排查，使用日志（Log4j）
+
+**面试高频**
+
+- MySQL 引擎
+- innoDB底层原理
+- 索引
+- 索引优化
+
+### 12. 动态 SQL
+
+**动态SQL：根据不同条件，生成不同的 SQL语句。**
+
+> 动态 SQL 元素和 JSTL 或基于类似 XML 的文本处理器相似。在 MyBatis 之前的版本中，有很多元素需要花时间了解。
+>
+> 在 MyBatis3 大大精简了元素种类，只需要学习原来一半的元素即可。
+>
+> MyBatis 采用功能强大基于 OGNL 的表达式来淘汰其他大部分元素。
+>
+> - if
+> - choose（when、otherwise）
+> - trim（where、set）
+> - foreach
+
+#### 搭建环境
+
+```sql
+CREATE TABLE `blog`(
+`id` VARCHAR(50) NOT NULL COMMENT '博客id',
+`title` VARCHAR(100) NOT NULL COMMENT '博客标题',
+`author` VARCHAR(30) NOT NULL COMMENT '博客作者',
+`create_time` DATETIME NOT NULL COMMENT '创建时间',
+`views` INT(30) NOT NULL COMMENT '浏览量'
+)ENGINE=INNODB DEFAULT CHARSET=utf8
+```
+
+创建基础工程
+
+1. 导包
+
+2. 编写配置文件
+
+3. 编写实体类
 
    ```java
    @Data
-   public class Teacher {
-   
+   public class Blog {
        private int id;
-       private String name;
-       // 一个老师拥有多个学生
-       private List<Student> students;
-   }
-   
-   @Data
-   public class Student {
-   
-       private int id;
-       private String name;
-       private int tid;
+       private String title;
+       private String author;
+       private Date createTime;
+       private int views;
    }
    ```
 
-2. 
+4. 编写实体类对应Mapper接口和Mapper.xml文件
+
+#### IF
+
+```xml
+    <select id="queryBlogIF" parameterType="map" resultType="Blog">
+        SELECT * FROM blog 
+        <where>
+            <if test="title != null">
+                and title = #{title}
+            </if>
+            <if test="author != null">
+                and author = #{author}
+            </if>            
+        </where>
+    </select>
+```
+
+#### choose（when、otherwise）
+
+```xml
+    <select id="queryBlogChoose" parameterType="map" resultType="Blog">
+        SELECT * FROM blog
+        <where>
+            <choose>
+                <when test="title != null">
+                    title = #{title}
+                </when>
+                <when test="author != null">
+                    author = #{author}
+                </when>
+                <otherwise>
+                    views = #{views}
+                </otherwise>
+            </choose>
+        </where>
+    </select>
+```
+
+#### trime（where、set）
+
+```xml
+    <update id="updateBlog" parameterType="map">
+        UPDATE blog
+        <set>
+            <if test="title != null">
+                title = #{title}
+            </if>
+            <if test="author != null">
+                author = #{author}
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+```
+
+#### 小结
+
+**所谓的动态 SQL，本质还是 SQL 语句，只是可以在 SQL 层面执行一些逻辑代码**
 

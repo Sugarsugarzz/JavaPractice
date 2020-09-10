@@ -7,6 +7,10 @@
     <!--引入外部配置文件 properties-->
     <properties resource="db.properties" />
     
+    <settings>
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+    </settings>
+    
     <typeAliases>
         <package name="pojo"/>
     </typeAliases>
@@ -25,7 +29,6 @@
     </environments>
 
     <mappers>
-        <mapper class="dao.TeacherMapper" />
         <mapper class="dao.BlogMapper" />
     </mappers>
 </configuration>
