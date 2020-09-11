@@ -3,6 +3,15 @@
 
 <mapper namespace="dao.BlogMapper">
 
+    <sql id="if-title-author">
+        <if test="title != null">
+            and title = #{title}
+        </if>
+        <if test="author != null">
+            and author = #{author}
+        </if>
+    </sql>
+
     <insert id="addBlog" parameterType="Blog">
         INSERT INTO `blog` (`id`, `title`, `author`, `create_time`, `views`)
         VALUES (#{id}, #{title}, #{author}, #{createTime}, #{views})
@@ -11,12 +20,7 @@
     <select id="queryBlogIF" parameterType="map" resultType="Blog">
         SELECT * FROM blog
         <where>
-            <if test="title != null">
-                and title = #{title}
-            </if>
-            <if test="author != null">
-                and author = #{author}
-            </if>
+            <include refid="if-title-author" />
         </where>
     </select>
 
@@ -49,5 +53,17 @@
         </set>
         WHERE id = #{id}
     </update>
+
+    <!--  SELECT * FROM blog WHERE 1=1 and (id = 1 or id = 2 or id = 3)
+      现在传递一个Map，这个Mao中可以存在一个集合
+      -->
+    <select id="queryBlogForeach" parameterType="map" resultType="Blog">
+        SELECT * FROM blog
+        <where>
+            <foreach collection="ids" item="id" open="(" close=")" separator="or">
+                id = #{id}
+            </foreach>
+        </where>
+    </select>
 
 </mapper>

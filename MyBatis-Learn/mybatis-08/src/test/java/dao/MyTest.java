@@ -6,6 +6,8 @@ import pojo.Blog;
 import utils.IDutils;
 import utils.MybatisUtils;
 
+import java.lang.reflect.MalformedParameterizedTypeException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -53,6 +55,24 @@ public class MyTest {
         map.put("id", "17b89e7e12994db6ad5806c1d470c34a");
         mapper.updateBlog(map);
 
+        sqlSession.close();
+    }
+
+    @Test
+    public void queryBlogForeach() {
+        SqlSession sqlSession = MybatisUtils.getSqlSession();
+        BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+
+        HashMap map = new HashMap<>();
+        List<Integer> ids = new ArrayList<>();
+        ids.add(1);
+        ids.add(2);
+        map.put("ids", ids);
+        List<Blog> blogs = mapper.queryBlogForeach(map);
+
+        for (Blog blog : blogs) {
+            System.out.println(blog);
+        }
 
         sqlSession.close();
     }
