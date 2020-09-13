@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                        https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!--property：通过 set 方法设置属性值-->
+    <!--默认走无参构造，如果走有参构造，需要用 constructor-arg -->
+
+    <!--第一种：下标赋值-->
+    <!--    <bean id="user" class="pojo.User">-->
+    <!--        <constructor-arg index="0" value="Sugar"/>-->
+    <!--    </bean>-->
+
+    <!--第二种：根据参数类型创建（多个相同的类型的难搞，不建议使用！）-->
+    <!--    <bean id="user" class="pojo.User">-->
+    <!--        <constructor-arg type="java.lang.String" value="Sugar" />-->
+    <!--    </bean>-->
+
+    <!--第三种：直接通过参数名（最直观）-->
+    <bean id="user" class="pojo.User">
+        <constructor-arg name="name" value="Sugar"/>
+    </bean>
+
+
+    <!-- ================  Spring 配置相关  ================-->
+
+    <!--别名：添加了别名，也可以使用别名获取到对象-->
+    <alias name="user" alias="userAlias"/>
+
+    <!--
+    id：bean 的唯一标识符，相当于对象名
+    class：bean 对象所对应的全限定名
+    userT：别名，同 alias，但name属性可以取多个别名，以 , 或空格或分号分开
+    -->
+    <bean id="user2" class="pojo.User2" name="userT,ut">
+        <property name="name" value="Sugar"/>
+    </bean>
+
+</beans>
