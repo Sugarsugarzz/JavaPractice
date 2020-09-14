@@ -533,7 +533,7 @@ Maven 由于约定大于配置，之后可能遇到写的配置文件，无法�
 
 **把实现了 Servlet 接口的 Java 程序叫做 Servlet。**
 
-#### 6.2 HelloServlet
+#### 6.2 servlet.HelloServlet
 
 **Servlet接口在Sun公司有两个默认的实现类：HttpServlet、GenericServlet**
 
@@ -573,7 +573,7 @@ Maven 由于约定大于配置，之后可能遇到写的配置文件，无法�
    2. 实现 HttpServlet 接口
 
       ```java
-      public class HelloServlet extends HttpServlet {
+      public class servlet.HelloServlet extends HttpServlet {
       
           // 由于 Get 或者 Post 只是请求实现的不同方式，可以互相调用，业务逻辑都一样
           @Override
@@ -611,14 +611,14 @@ Maven 由于约定大于配置，之后可能遇到写的配置文件，无法�
        <!-- web.xml是配置web的核心应用 -->
        <!-- 注册Servlet -->
        <servlet>
-         <servlet-name>HelloServlet</servlet-name>
-         <servlet-class>Learn_JavaWeb.servlet.HelloServlet</servlet-class>
+         <servlet-name>servlet.HelloServlet</servlet-name>
+         <servlet-class>Learn_JavaWeb.servlet.servlet.HelloServlet</servlet-class>
        </servlet>
    
        <!-- 一个Servlet对应一个Mapping -->
    		<!-- localhost:8080/项目名/sugar -->
        <servlet-mapping>
-         <servlet-name>HelloServlet</servlet-name>
+         <servlet-name>servlet.HelloServlet</servlet-name>
          <!-- 请求路径 -->
          <url-pattern>/sugar</url-pattern>
        </servlet-mapping>
@@ -642,7 +642,7 @@ Servlet 是由Web服务器调用，Web服务器在收到浏览器请求之后，
 
    ```xml
        <servlet-mapping>
-         <servlet-name>HelloServlet</servlet-name>
+         <servlet-name>servlet.HelloServlet</servlet-name>
          <url-pattern>/sugar</url-pattern>
        </servlet-mapping>
    ```
@@ -651,17 +651,17 @@ Servlet 是由Web服务器调用，Web服务器在收到浏览器请求之后，
 
    ```xml
        <servlet-mapping>
-         <servlet-name>HelloServlet</servlet-name>
+         <servlet-name>servlet.HelloServlet</servlet-name>
          <url-pattern>/sugar</url-pattern>
        </servlet-mapping>
    
        <servlet-mapping>
-         <servlet-name>HelloServlet</servlet-name>
+         <servlet-name>servlet.HelloServlet</servlet-name>
          <url-pattern>/sugar1</url-pattern>
        </servlet-mapping>
    
        <servlet-mapping>
-         <servlet-name>HelloServlet</servlet-name>
+         <servlet-name>servlet.HelloServlet</servlet-name>
          <url-pattern>/sugar2</url-pattern>
        </servlet-mapping>
    ```
@@ -670,7 +670,7 @@ Servlet 是由Web服务器调用，Web服务器在收到浏览器请求之后，
 
    ```xml
        <servlet-mapping>
-           <servlet-name>HelloServlet</servlet-name>
+           <servlet-name>servlet.HelloServlet</servlet-name>
            <url-pattern>/sugar/*</url-pattern>
        </servlet-mapping>    
    ```
@@ -679,7 +679,7 @@ Servlet 是由Web服务器调用，Web服务器在收到浏览器请求之后，
 
    ```xml
        <servlet-mapping>
-           <servlet-name>HelloServlet</servlet-name>
+           <servlet-name>servlet.HelloServlet</servlet-name>
            <url-pattern>/*</url-pattern>
        </servlet-mapping>
    ```
@@ -689,7 +689,7 @@ Servlet 是由Web服务器调用，Web服务器在收到浏览器请求之后，
    ```xml
        <!-- 注意点.*前面不能加绝对路径 -->
        <servlet-mapping>
-           <servlet-name>HelloServlet</servlet-name>
+           <servlet-name>servlet.HelloServlet</servlet-name>
            <url-pattern>*.sugar</url-pattern>
        </servlet-mapping>
    ```

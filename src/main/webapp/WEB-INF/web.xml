@@ -16,44 +16,44 @@
     <!-- web.xml是配置web的核心应用 -->
     <!-- 注册Servlet -->
     <servlet>
-      <servlet-name>HelloServlet</servlet-name>
-      <servlet-class>Learn_JavaWeb.servlet.HelloServlet</servlet-class>
+      <servlet-name>servlet.HelloServlet</servlet-name>
+      <servlet-class>Learn_JavaWeb.servlet.servlet.HelloServlet</servlet-class>
     </servlet>
 
     <!-- 一个Servlet对应一个Mapping -->
     <!-- localhost:8080/项目名/sugar -->
     <servlet-mapping>
-      <servlet-name>HelloServlet</servlet-name>
+      <servlet-name>servlet.HelloServlet</servlet-name>
       <!-- 请求路径 -->
       <url-pattern>/sugar</url-pattern>
     </servlet-mapping>
 
     <!--  一个Servlet指定多个映射路径  -->
 <!--    <servlet-mapping>-->
-<!--      <servlet-name>HelloServlet</servlet-name>-->
+<!--      <servlet-name>servlet.HelloServlet</servlet-name>-->
 <!--      <url-pattern>/sugar1</url-pattern>-->
 <!--    </servlet-mapping>-->
 <!--    <servlet-mapping>-->
-<!--      <servlet-name>HelloServlet</servlet-name>-->
+<!--      <servlet-name>servlet.HelloServlet</servlet-name>-->
 <!--      <url-pattern>/sugar2</url-pattern>-->
 <!--    </servlet-mapping>-->
 
     <!-- 一个Servlet指定通用映射路径 -->
 <!--    <servlet-mapping>-->
-<!--        <servlet-name>HelloServlet</servlet-name>-->
+<!--        <servlet-name>servlet.HelloServlet</servlet-name>-->
 <!--        <url-pattern>/sugar/*</url-pattern>-->
 <!--    </servlet-mapping>-->
 
     <!-- 默认请求路径 -->
 <!--    <servlet-mapping>-->
-<!--        <servlet-name>HelloServlet</servlet-name>-->
+<!--        <servlet-name>servlet.HelloServlet</servlet-name>-->
 <!--        <url-pattern>/*</url-pattern>-->
 <!--    </servlet-mapping>-->
 
     <!-- 可以自定义后缀实现请求映射 -->
     <!-- 注意点.*前面不能加绝对路径 -->
 <!--    <servlet-mapping>-->
-<!--        <servlet-name>HelloServlet</servlet-name>-->
+<!--        <servlet-name>servlet.HelloServlet</servlet-name>-->
 <!--        <url-pattern>*.sugar</url-pattern>-->
 <!--    </servlet-mapping>-->
 
