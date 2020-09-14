@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                        https://www.springframework.org/schema/beans/spring-beans.xsd
+                        http://www.springframework.org/schema/context
+                        https://www.springframework.org/schema/context/spring-context.xsd
+                        http://www.springframework.org/schema/aop
+                        https://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <!--applicationContext.xml 专注 bean的注册-->
+    <!--spring-dao.xml 专注 数据库-->
+    <import resource="spring-dao.xml"/>
+
+    <!--注册bean-->
+    <bean id="userMapper" class="dao.UserMapperImpl">
+        <property name="sqlSession" ref="sqlSession"/>
+    </bean>
+
+    <!--第二种：SqlSessionDaoSupport实现-->
+    <!--spring-dao.xml 中的sqlSession也不需要配置了，Impl类中也不需要sqlSession属性了，继承SqlSessionDaoSupport抽象类即可-->
+    <bean id="userMapper2" class="dao.UserMapperImpl">
+        <property name="sqlSessionFactory" ref="sqlSessionFactory"/>
+    </bean>
+</beans>
