@@ -4,10 +4,19 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
                         https://www.springframework.org/schema/beans/spring-beans.xsd">
 
+    <!--处理器映射器-->
     <bean class="org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping"/>
+
+    <!--处理器适配器-->
     <bean class="org.springframework.web.servlet.mvc.SimpleControllerHandlerAdapter"/>
 
-    <!--视图解析器：DispatcherServlet 给它的 ModelAndView-->
+    <!--视图解析器：模板引擎 Thymeleaf  Freemarker...-->
+    <!--视图解析器：DispatcherServlet 给它的 ModelAndView
+    1. 获取了 ModelAndView 的数据
+    2. 解析 ModelAndView 的视图
+    3. 拼接视图名字，找到对应的视图  /WEB-INF/jsp/hello.jsp
+    4. 将数据渲染到这个视图上
+    -->
     <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver" id="internalResourceViewResolver">
         <!--前缀-->
         <property name="prefix" value="/WEB-INF/jsp/"/>
@@ -16,10 +25,8 @@
     </bean>
 
 
-    <!--Handler-->
+    <!--BeanNameUrlHandlerMapping：bean   Handler-->
     <bean id="/hello" class="controller.HelloController"/>
 
-
-
-
 </beans>
+
