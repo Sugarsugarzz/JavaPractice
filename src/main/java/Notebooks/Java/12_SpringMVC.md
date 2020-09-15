@@ -10,7 +10,7 @@ MVC：模型（dao、service）  视图（jsp）  控制器（Servlet）
 
 <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200914151652586.png" alt="image-20200914151652586" style="zoom:40%;" />
 
-**执行流程**
+### 1. SpringMVC执行流程
 
 <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200914202319955.png" alt="image-20200914202319955" style="zoom:40%;" />
 
@@ -43,6 +43,8 @@ java.lang.ClassNotFoundException: org.springframework.web.servlet.DispatcherServ
 **解决方法**：
 
 在 Project Structure > Artifacts 中点击项目，在 Output Layout > WEB-INF 目录下，新建 lib 包，然后点击加号 > Library Files，添加依赖。
+
+### 2. SpringMVC 实现方法
 
 ### 实现方式一：配置文件实现
 
@@ -146,6 +148,173 @@ public class HelloController implements Controller {
 }
 ```
 
-
-
 ### 实现方式二：注解版
+
+**步骤小结**：
+
+1. 新建一个web项目
+2. 导入相关jar包
+3. 编写web.xml，注册DispatcherServlet
+4. 编写springmvc配置文件
+5. 创建对应的控制类Controller，添加注解
+6. 完善前端视图与Controller之间的对应
+7. 测试调试
+
+使用 SpringMVC 必须配置的三大件：
+
+**处理器映射器、处理器适配器、视图解析器**
+
+通过，只需要**手动配置视图解析器**，而**处理器映射器**和**处理器适配器**只需要**开启注解驱动**即可，省去大段的xml配置。
+
+**web.xml**
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+
+    <!--1. 配置 DispatcherServlet：SpringMVC的核心，请求分发器（前端控制器）-->
+    <servlet>
+        <servlet-name>springmvc</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>classpath:springmvc-servlet.xml</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>springmvc</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+
+</web-app>
+```
+
+**springmvc-servlet.xml**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                        https://www.springframework.org/schema/beans/spring-beans.xsd
+                        http://www.springframework.org/schema/context
+                        https://www.springframework.org/schema/context/spring-context.xsd
+                        http://www.springframework.org/schema/mvc
+                        https://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <!--自动扫描包，让指定包下的注解生效，由IOC容器统一管理-->
+    <context:component-scan base-package="controller"/>
+    <!--让 SpringMVC 不处理静态资源，如 .css .js .html .mp3 .mp4（视图拼接会有误）-->
+    <mvc:default-servlet-handler/>
+    <!--
+    支持mvc注解驱动
+        在Spring中一般采用 @RequestMapping 注解来完成映射关系
+        要想使 @RequestMapping 注解生效
+        必须向上下文注册 DefaultAnnotationHandlerMapping
+        和一个 AnnotationMethodHandlerAdapter 实例
+        这两个实例分别在类级别和方法级别处理
+        而 annotation-driven 配置帮助我们自动完成上述两个实例的注入
+    -->
+    <mvc:annotation-driven/>
+
+
+    <!--视图解析器-->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver" id="internalResourceViewResolver">
+        <!--前缀-->
+        <property name="prefix" value="/WEB-INF/jsp/"/>
+        <!--后缀-->
+        <property name="suffix" value=".jsp"/>
+    </bean>
+
+</beans>
+```
+
+**HelloController.java**
+
+```java
+package controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+@Controller
+@RequestMapping("/hello")
+public class HelloController {
+
+    // 真实访问地址：项目名/hello/h1
+    @RequestMapping("/h1")
+    public String hello(Model model) {
+        // 向模型中封装数据，添加属性msg与值，可以在JSP页面中直接取出并渲染
+        model.addAttribute("msg", "Hello,SpringMVC Annotation!");
+        return "hello";  // 会被视图解析器处理  /WEB-INF/jsp/hello.jsp
+    }
+}
+```
+
+### 3. Controller
+
+#### 实现方式一：实现 Controller接口
+
+```java
+// 只要实现了 Controller 接口的类，说明这就是一个控制器了
+public class ControllerTest1 implements Controller {
+
+    @Override
+    public ModelAndView handleRequest(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) throws Exception {
+
+        ModelAndView mv = new ModelAndView();
+			
+        mv.addObject("msg", "ControllerTest1");
+        mv.setViewName("test");
+
+        return mv;
+    }
+}
+```
+
+#### 实现方式二：注解 @Controller
+
+```java
+// 代表这个类被Spring接管，被这个注解的类，中的所有方法，如果返回值是String，并且有具体的页面可以跳转，就会被视图解析器解析
+@Controller  
+public class ControllerTest2 {
+
+    @RequestMapping("/t2")
+    public String test2(Model model) {
+        model.addAttribute("msg", "ControllerTest2");
+        return "test";
+    }
+
+    @RequestMapping("/t3")
+    public String test3(Model model) {
+        model.addAttribute("msg", "ControllerTest3");
+        return "test";
+    }
+}
+```
+
+#### @RequestMapping
+
+@RequestMapping注解用于映射 url 到控制器类或一个特定的处理程序方法。可用于类或方法上，用于类上，表示类中的所有响应请求的方法都是以该地址作为父路径。
+
+```java
+@Controller
+public class ControllerTest3 {
+
+    // 不建议在类上加 @RequestMapping，直接在这里写好就行
+    @RequestMapping("/c3/t1")
+    public String test1(Model model) {
+        model.addAttribute("msg", "ControllerTest3");
+        return "test";
+    }
+}
+```
+
