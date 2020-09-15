@@ -1,4 +1,4 @@
-# SpringMVC
+## SpringMVC
 
 重点：**SpringMVC的执行流程**
 
@@ -32,7 +32,7 @@ MVC：模型（dao、service）  视图（jsp）  控制器（Servlet）
 11. DIspatcherServlet 根据视图解析器的视图结果，调用具体的视图。
 12. 最终视图呈现给用户。
 
-##### 遇到的问题
+#### 遇到的问题
 
 SpringMVC项目配置好以后，访问路径，报如下错误：
 
@@ -46,7 +46,7 @@ java.lang.ClassNotFoundException: org.springframework.web.servlet.DispatcherServ
 
 ### 2. SpringMVC 实现方法
 
-### 实现方式一：配置文件实现
+#### 实现方式一：配置文件实现
 
 **web.xml**
 
@@ -148,7 +148,7 @@ public class HelloController implements Controller {
 }
 ```
 
-### 实现方式二：注解版
+#### 实现方式二：注解版
 
 **步骤小结**：
 
@@ -314,6 +314,128 @@ public class ControllerTest3 {
     public String test1(Model model) {
         model.addAttribute("msg", "ControllerTest3");
         return "test";
+    }
+}
+```
+
+### 4. RestFul
+
+RestFul 是一种资源定位及资源操作的风格。不是标准也不是协议，只是一种风格。基于这个风格设计的软件可以更简介、更有层次、更易于实现缓存等机制。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200915200548348.png" alt="image-20200915200548348" style="zoom:40%;" />
+
+在 SpringMVC 中可以使用 **@PathVariable** 注解，让方法参数的值对应绑定到一个 URI 模板变量上。
+
+```java
+package controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+@Controller
+public class RestFulController {
+
+    // 原来的风格： http://localhost:8080/add?a=1&b=3
+    // RestFul：http://localhost:8080/add/a/b
+
+//    @RequestMapping(value="/add/{a}/{b}", method= RequestMethod.GET)
+    @GetMapping("/add/{a}/{b}")
+    public String test1(@PathVariable int a, @PathVariable int b, Model model) {
+
+        int res = a + b;
+        model.addAttribute("msg", "结果" + res);
+
+        return "test";
+    }
+
+    @PostMapping("/add/{a}/{b}")
+    public String test2(@PathVariable int a, @PathVariable int b, Model model) {
+
+        int res = a + b;
+        model.addAttribute("msg", "结果2  " + res);
+
+        return "test";
+    }
+}
+```
+
+SpringMVC 的 @RequestMapping 注解能够处理 HTTP 请求的方法，比如 GET、PUT、POST、DELETE 以及 PATCH。
+
+**所有地址栏请求默认都会是 HTTP GET 类型的。**
+
+方法界别的注解变体有如下几个：组合注解
+
+```java
+@GetMapping
+@PostMapping
+@PutMapping
+@DeleteMapping
+@PatchMapping
+```
+
+@GetMapping 组合注解，是 @RequestMapping(method= RequestMethod.GET) 的简写，会使用较多。
+
+**优点：**
+
+- 使路径更加简洁、可复用、高效安全
+- 获得参数更加方便，框架会自动进行类型转换
+- 通过路径变量的类型可以约束访问参数，如果类型不一样，则访问不到对应的请求方法。
+
+### 5. 转发和重定向
+
+#### ModelAndView
+
+设置 ModelAndView 对象，根据 view 的名称，由视图解析器跳转到指定的页面。
+
+**页面：【视图解析器前缀】+ viewName + 【视图解析器后缀】**
+
+
+
+#### ServletAPI
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200915203758788.png" alt="image-20200915203758788" style="zoom:30%;" />
+
+#### SpringMVC
+
+有视图解析器的情况下，默认是转发，重定向加个 redirect: 即可。
+
+```java
+package controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+@Controller
+public class ModelTest1 {
+
+//    @RequestMapping("/m1/t1")
+//    public String test1(HttpServletRequest request, HttpServletResponse response) {
+//
+//        HttpSession session = request.getSession();
+//        System.out.println(session.getId());
+//
+//        return "test";
+//    }
+
+    @RequestMapping("/m1/t1")
+    public String test1(Model model) {
+
+        model.addAttribute("msg", "ModelTest1");
+        // 转发
+        return "test";
+    }
+
+    @RequestMapping("/m1/t2")
+    public String test2(Model model) {
+        // 重定向
+        model.addAttribute("msg", "ModelTest1");
+        return "redirect:/index.jsp";
     }
 }
 ```
