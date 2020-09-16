@@ -440,3 +440,185 @@ public class ModelTest1 {
 }
 ```
 
+### 6. 数据处理
+
+#### 6.1 处理提交的数据
+
+##### 1. 提交的域名称和处理方法的参数名一致
+
+提交数据：http://localhost:8080/hello?name=sugar
+
+处理方法：
+
+```java
+@RequestMapping("/hello")
+public String hello(String name) {
+  	System.out.println(name);
+	  return "hello";
+}
+```
+
+##### 2. 提交的域名称和处理方法的参数名不一致
+
+提交数据：http://localhost:8080/hello?username=sugar
+
+处理方法：
+
+```java
+@RequestMapping("/hello")
+public String hello(@RequestParam("username") String name) {
+  	System.out.println(name);
+	  return "hello";
+}
+```
+
+##### 3. 提交的是一个对象
+
+要求提交的表单域和对象的书明星一致，参数使用对象即可。
+
+#### 6.2 数据显示到前端
+
+**继承关系：LinkedHashmap -> ModelMap（继承了LinkedHashMap，拥有LinkedHashMap的全部功能） -> Model（精简版，大部分情况下都只使用Model）**
+
+##### 1. 通过ModelAndView
+
+```java
+public ModelAndView handleRequest(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) throws Exception {
+	  ModelAndView mv = new ModelAndView();
+  	mv.addObject("msg", "ControllerTest1");
+	  mv.setViewName("test");
+  	return mv;
+}
+```
+
+##### 2. 通过ModelMap
+
+```java
+@GetMapping("/t3")
+public String test3(ModelMap modelMap) {
+	  modelMap.addAttribute("msg", "hello");
+  	return "test";
+}
+```
+
+##### 3. 通过Model
+
+```java
+@GetMapping("/t1")
+public String test1(@RequestParam("username") String name, Model model) {
+  System.out.println("接收到前端参数 " + name);
+  model.addAttribute("msg", name);
+  return "test";
+}
+```
+
+#### 6.3 乱码问题
+
+Get方法不乱码，Post乱码。
+
+**复现测试步骤**：
+
+1. 在首页编写一个提交表单
+
+   ```html
+   <form action="/e/t1" method="post">
+       <input type="text" name="name">
+       <input type="submit">
+   </form>
+   ```
+
+2. 后台编写对应的数理类
+
+   ```java
+   @Controller
+   public class EncodingController {
+   
+       @PostMapping("/e/t1")
+       public String test1(String name, Model model) {
+           model.addAttribute("msg", name);
+           return "test";
+       }
+   }
+   ```
+
+3. 输入中文测试，发现乱码
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200916103429279.png" alt="image-20200916103429279" style="zoom:30%;" />
+
+**Servlet级解决方法（并不能解决当前乱码，复习一下）：**
+
+1. 编写过滤器类
+
+   ```java
+   package filter;
+   
+   
+   import javax.servlet.*;
+   import java.io.IOException;
+   
+   public class EncodingFilter implements Filter {
+       public void init(FilterConfig filterConfig) throws ServletException {
+   
+       }
+   
+       public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+           request.setCharacterEncoding("utf-8");
+           response.setCharacterEncoding("utf-8");
+       }
+   
+       public void destroy() {
+   
+       }
+   }
+   ```
+
+2. 在web.xml注册过滤器
+
+   ```xml
+   <!--2. 过滤器（处理中文乱码）-->
+   <filter>
+    	  <filter-name>encoding</filter-name>
+   	  <filter-class>filter.EncodingFilter</filter-class>
+   </filter>
+   <filter-mapping>
+   	  <filter-name>encoding</filter-name>
+   	  <url-pattern>/</url-pattern>
+   </filter-mapping>
+   ```
+
+##### SpringMVC提供的乱码过滤器（采用）：
+
+1. 在web.xml注册过滤器
+
+   ```xml
+   <!--2. 过滤器（处理中文乱码，SpringMVC提供的乱码过滤器）-->
+   <filter>
+   	  <filter-name>encoding</filter-name>
+     	<filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+   	  <init-param>
+     	 	 <param-name>encoding</param-name>
+     	   <param-value>utf-8</param-value>
+   	  </init-param>
+   </filter>
+   <filter-mapping>
+     	<filter-name>encoding</filter-name>
+   	  <url-pattern>/*</url-pattern>
+   </filter-mapping>
+   ```
+
+#### 6.4 JSON
+
+JSON（JavaScript Object Notation，JS对象标记）是一种轻量级的数据交换格式。
+
+- 采用完全独立于编程语言的文本格式来存储和表示数据。
+- 简洁和清晰的层次结构使得 JSON 称为理想的数据交换语言。
+- 易于阅读和编写，也易于机器解析和生成，有效提升网络传输效率。
+
+**JSON 键值对**是用来保存 JavaScript 对象的一种方式，键值对组合中的键名卸载前面并用双引号""包括，使用冒号：分隔，然后紧接着值。
+
+- 对象表示为键值对，数据用逗号分隔
+- 花括号保存对象
+- 方括号保存数组
+
+> 前端       <------>       后端
+
