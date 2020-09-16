@@ -622,3 +622,208 @@ JSON（JavaScript Object Notation，JS对象标记）是一种轻量级的数据
 
 > 前端       <------>       后端
 
+##### 1. JavaScript 对象与 JSON 互转
+
+```html
+    <script type="text/javascript">
+        // 编写一个 JavaScript 对象
+        var user = {
+            name: "Sugar",
+            age: 3,
+            sex: "男"
+        };
+        // 将JS对象转换为JSON对象
+        var json = JSON.stringify(user);
+        // 将 JSON对象转换为 JS对象
+        var obj = JSON.parse(json);
+
+        console.log(obj);
+        console.log(json);
+        console.log(user);
+    </script>
+```
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200916110854545.png" alt="image-20200916110854545" style="zoom:50%;" />
+
+##### 2. Jackson
+
+```xml
+<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.11.0</version>
+</dependency>
+```
+
+```java
+@Controller
+//@RestController  // 让该类下所有方法都不走视图解析器，相当于给每个方法注解 @ResponseBody
+public class UserController {
+
+//    @RequestMapping(value = "/j1", produces = "application/json;charset=utf-8")  // 原生处理JSON乱码
+    @RequestMapping("/j1")
+    @ResponseBody  // 它就不会走视图解析器，会直接返回一个字符串（感觉可以用作接口）
+    public String json1() throws JsonProcessingException {
+        // Jackson  ObjectMapper
+        ObjectMapper mapper = new ObjectMapper();
+
+        // 对象转JSON
+        User user = new User("Sugar", 12, "男");
+        String str = mapper.writeValueAsString(user);
+
+        return str;
+        /*
+        {"name":"Sugar","age":12,"sex":"男"}
+         */
+    }
+
+    @RequestMapping("/j2")
+    @ResponseBody
+    public String json2() throws JsonProcessingException {
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        List<User> userList = new ArrayList<User>();
+
+        // 多个对象转JSON
+        User user1 = new User("Sugar", 12, "男");
+        User user2 = new User("Sugar", 12, "男");
+        User user3 = new User("Sugar", 12, "男");
+        User user4 = new User("Sugar", 12, "男");
+
+        userList.add(user1);
+        userList.add(user2);
+        userList.add(user3);
+        userList.add(user4);
+
+        String str = mapper.writeValueAsString(userList);
+        return str;
+        /*
+        [{"name":"Sugar","age":12,"sex":"男"},{"name":"Sugar","age":12,"sex":"男"},{"name":"Sugar","age":12,"sex":"男"},{"name":"Sugar","age":12,"sex":"男"}]
+         */
+    }
+
+    @RequestMapping("/j3")
+    @ResponseBody
+    public String json3() throws JsonProcessingException {
+
+        Date date = new Date();
+
+        // ObjectMapper，时间解析后的默认格式为 Timestamp 时间戳
+//        return new ObjectMapper().writeValueAsString(date);
+        /*
+        1600232137591
+         */
+
+        // 自定义日期格式
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        return new ObjectMapper().writeValueAsString(sdf.format(date));
+        /*
+        "2020-09-16 12:58:11"
+         */
+
+        // 使用 ObjectMapper 来格式化输出
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        mapper.setDateFormat(sdf);
+//        return mapper.writeValueAsString(date);
+        /*
+        "2020-09-16 13:01:12"
+         */
+
+        // 实现JSON工具类
+        return JsonUtils.getJson(date, "yyyy-MM-dd HH:mm:ss");
+
+    }
+}
+```
+
+```java
+public class JsonUtils {
+
+    public static String getJson(Object obj, String dateFormat) {
+        ObjectMapper mapper = new ObjectMapper();
+
+        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
+        mapper.setDateFormat(sdf);
+
+        try {
+            return mapper.writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+}
+```
+
+##### 原生解决乱码问题：
+
+需要设置下编码格式为 utf-8，一级它返回的类型。
+
+通过 @RequestMapping 的 produces 属性来实现.
+
+```java
+// produces：指定响应体返回类型和编码
+@RequestMapping(value = "/j1", produces = "application/json;charset=utf-8")
+```
+
+##### SpringMVC 解决乱码问题：
+
+在 springmvc-servlet.xml 中配置
+
+```xml
+    <!--JSON乱码问题（SpringMVC统一解决）-->
+    <mvc:annotation-driven>
+        <mvc:message-converters register-defaults="true">
+            <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+                <constructor-arg value="UTF-8"/>
+            </bean>
+            <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+                <property name="objectMapper">
+                    <bean class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
+                        <property name="failOnEmptyBeans" value="false"/>
+                    </bean>
+                </property>
+            </bean>
+        </mvc:message-converters>
+    </mvc:annotation-driven>
+```
+
+##### 3. Faskjson
+
+```xml
+<!-- https://mvnrepository.com/artifact/com.alibaba/fastjson -->
+<dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>fastjson</artifactId>
+    <version>1.2.73</version>
+</dependency>
+```
+
+```java
+    @RequestMapping("/j4")
+    @ResponseBody
+    public String json4() {
+
+        List<User> userList = new ArrayList<User>();
+        User user1 = new User("Sugar", 12, "男");
+        User user2 = new User("Sugar", 12, "男");
+        User user3 = new User("Sugar", 12, "男");
+        User user4 = new User("Sugar", 12, "男");
+        userList.add(user1);
+        userList.add(user2);
+        userList.add(user3);
+        userList.add(user4);
+
+        return JSON.toJSONString(userList);
+        /*
+        [{"age":12,"name":"Sugar","sex":"男"},{"age":12,"name":"Sugar","sex":"男"},{"age":12,"name":"Sugar","sex":"男"},{"age":12,"name":"Sugar","sex":"男"}]
+         */
+    }
+```
+
+### 7. 整合 SSM
+
