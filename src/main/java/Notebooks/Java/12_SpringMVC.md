@@ -2230,4 +2230,206 @@ SpringMVC的处理器拦截器类似于Servlet开发中的过滤器 Filter，用
    }
    ```
 
-   
+### 10. 文件上传和下载
+
+#### 10.1 文件上传
+
+SpringMVC上下文中默认没有装配 MultipartResolver，**因此默认情况下不能处理文件上传工作。**
+
+如果想要使用 Spring 的文件上传功能，需要在上下文中配置 **MultipartResolver**。
+
+**前端表单要求**：为了能上传文件，必须将表单的 method 设置为 **POST**，并将 **enctype** 设置为 **multipart/form-data**。只有这种情况下，浏览器才会把用户选择的文件以二进制数据发送给服务器。
+
+**对表单中 enctype 属性的详细说明：**
+
+- **application/x-www=form-urlencoded**：默认方式，只处理表单域中的 value 属性值，采用这种编码方式的表单会将表单域中的值处理成 URL 编码方式。
+- **multipart/form-data**：这种编码方式会以二进制流的方式来处理表单数据，这种编码方式会把文件域指定文件的内容也封装到请求参数中，不会对字符编码。
+- **text/plain**：除了把空格转换为 “+”号外，其他字符都不做编码处理，这种方式适用直接通过表单发送邮件。
+
+```html
+<form action="" enctype="multipart/form-data" method="post">
+  	<input type="file" name="file"/>
+  	<input type="submit">
+</form>
+```
+
+一旦设置了 enctype为 multipart/form-data，浏览器即会采用二进制流的方式来处理表单数据，而对于文件上传的处理则涉及在服务器端解析原始HTTP响应。
+
+在2003年，Apache基金会发布开源的 **Commons FileUpload 组件**，称为Servlet/JSP 程序员上传文件的最佳选择。
+
+- Servlet3.0规范已经提供方法来处理文件上传，但这种上传需要在Servlet中完成。
+- SpringMVC提供了更简单的封装。
+- SpringMVC 为文件撒很难过船提供了直接的支持，这种支持是用即插即用的 **MultipartResolver** 实现的。
+- SpringMVC 使用 Apache Common FileUpload 技术实现了一个 MultipartResolver 实现类：**CommonMultipartResolver**。因此，**SpringMVC的文件上传还是需要依赖 Apache Common FileUpload的组件。**
+
+
+
+流程：
+
+1. 导入文件上传的jar包， commmons-fileupload
+
+   ```xml
+           <dependency>
+               <groupId>commons-fileupload</groupId>
+               <artifactId>commons-fileupload</artifactId>
+               <version>1.3.3</version>
+           </dependency>
+           <dependency>
+               <groupId>javax.servlet</groupId>
+               <artifactId>javax.servlet-api</artifactId>
+               <version>4.0.1</version>
+           </dependency>
+   ```
+
+2. 配置bean：multipartResolver
+
+   **注意：这个bean的id必须为：multipartResolver，否则上传文件会报400的错误！**
+
+   CommonsMultipartFile 的常用方法：
+
+   - String **getOriginalFilename()**：获取上传文件的原名
+   - InputStream **getInputStream()**：获取文件流
+   - void **transferTo(File dest)**：将上传文件保存到一个目录文件中
+
+   ```xml
+       <!--文件上传配置-->
+       <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+           <!--请求的编码格式，必须和JSP的pageEncoding属性一致，以便正确读取表单的内容，默认为ISO-8859-1-->
+           <property name="defaultEncoding" value="utf-8"/>
+           <!--上传文件大小上限，单位为字节(10485760=10M)-->
+           <property name="maxUploadSize" value="10485760"/>
+           <property name="maxInMemorySize" value="40960"/>
+       </bean>
+   ```
+
+3. 编写前端页面
+
+   ```jsp
+   <form action="${pageContext.request.contextPath}/upload" enctype="multipart/form-data" method="post">
+       <input type="file" name="file"/>
+       <input type="submit" value="upload">
+   </form>
+   ```
+
+4. 编写 FileController
+
+##### 文件上传方式一（手写缓冲区）：
+
+```java
+    // @RequestMapping("/upload") 将name=file控件得到的文件封装成CommonsMultipartFile 对象
+    // 批量上传CommonsMultipartFile则为数组即可
+    @RequestMapping("/upload")
+    public String upload(@RequestParam("file") CommonsMultipartFile file, HttpServletRequest request) throws IOException {
+
+        // 获取文件名：file.getOriginalFilename();
+        String filename = file.getOriginalFilename();
+
+        // 如果文件夹为空，直接回到首页！
+        if ("".equals(filename)) {
+            return "redirect:/index.jsp";
+        }
+        System.out.println("上传文件名为：" + filename);
+
+        // 上传路径保存设置
+        String path = request.getServletContext().getRealPath("/upload");
+        System.out.println(path);
+
+        // 如果路径不存在，则创建一个
+        File filepath = new File(path);
+        if (!filepath.exists()) {
+            filepath.mkdir();
+        }
+        System.out.println("上传文件保存地址：" + filepath);
+
+        InputStream is = file.getInputStream();  // 文件输入流
+        OutputStream os = new FileOutputStream(new File(filepath, filename));  // 文件输出流
+
+        // 读取写出
+        int len = 0;
+        byte[] buffer = new byte[1024];
+        while ((len = is.read(buffer)) != -1) {
+            os.write(buffer, 0, len);
+            os.flush();
+        }
+
+        os.close();
+        is.close();
+
+        return "redirect:/index.jsp";
+    }
+```
+
+##### 文件上传方式二（file.transferTo）（推荐）：
+
+```java
+    // 采用 file.transferTo 来保存上传的文件 （推荐）
+    @RequestMapping("/upload2")
+    public String upload2(@RequestParam("file") CommonsMultipartFile file, HttpServletRequest request) throws IOException {
+
+        // 上传路径保存设置
+        String path = request.getServletContext().getRealPath("/upload");
+        File filepath = new File(path);
+
+
+        // 上传文件地址
+        System.out.println("上传文件保存地址：" + filepath);
+
+        // 通过 CommonsMultipartFile 的方法直接写文件（注意）
+        file.transferTo(new File(filepath + "/" + file.getOriginalFilename()));
+
+        return "redirect:/index.jsp";
+    }
+```
+
+#### 10.2 文件下载
+
+图片下载可以采用这种方式，也可以直接在前端用 **a** 链接实现。
+
+```java
+    // 文件下载
+    @RequestMapping("/download")
+    public String download(HttpServletResponse response, HttpServletRequest request) throws IOException {
+        // 要下载的图片地址
+        String path = request.getServletContext().getRealPath("/upload");
+        String filename = "Java.pdf";
+
+         // 1. 设置 response 响应头
+        response.reset();  // 设置页面不缓存，清空buffer
+        response.setCharacterEncoding("UTF-8");  // 字符编码
+        response.setContentType("multipart/form-data");  // 二进制传输数据
+
+        // 设置响应头
+        response.setHeader("Content-Disposition", "attachment;fileName=" + URLEncoder.encode(filename, "UTF-8"));
+
+        File file = new File(path, filename);
+        // 2. 读取文件 - 输入流
+        FileInputStream input = new FileInputStream(file);
+        // 3. 写出文件 - 输出流
+        ServletOutputStream out = response.getOutputStream();
+
+        byte[] buffer = new byte[1024];
+        int len = 0;
+        // 4. 执行写出操作
+        while ((len=input.read(buffer)) != -1) {
+            out.write(buffer, 0, len);
+            out.flush();
+        }
+
+        out.close();
+        input.close();
+
+        return null;
+    }
+```
+
+### 11. SSM复习重点
+
+1. 第一个MyBatis程序
+2. ResultMap结果集映射（一对多，多对一）
+3. DI
+4. 静态代理模式
+5. JavaConfig
+6. Spring整合Mybatis：事务
+7. Springmvc执行流程
+8. RestFul
+9. 整合SSM项目
