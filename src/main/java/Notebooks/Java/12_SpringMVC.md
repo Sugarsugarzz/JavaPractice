@@ -827,7 +827,7 @@ public class JsonUtils {
     }
 ```
 
-### 7. 整合 SSM
+### 7. 整合 SSM（书籍管理系统）
 
 #### 环境要求
 
@@ -1788,7 +1788,446 @@ INSERT INTO `books`(`bookID`,`bookName`,`bookCounts`,`detail`)VALUES
    }
    ```
 
+### 8. Ajax
+
+#### 8.1 简介
+
+Ajax（Asynchronous JavaScript and XML，异步的JavaScript和XML），Ajax是一种在无需重新加载整个网页的情况下，能够更新部分网页的技术。
+
+Ajax不是一种新的编程语言，而是一种用于创建更好更快以及交互性更强的Web应用程序的技术。
+
+#### 8.2 伪造Ajax
+
+1. 新建web项目，搭建SpringMVC框架
+
+2. 编写一个 ajax-frame.html 使用 iframe
+
+   ```html
+   <!DOCTYPE html>
+   <html lang="en">
+   <head>
+       <meta charset="UTF-8">
+       <title>iframe测试体验页面无刷新</title>
    
+       <script>
+           function go() {
+               let url = document.getElementById("url").value;
+               document.getElementById("iframe1").src = url;
+           }
+       </script>
+   </head>
+   <body>
+   
+   <div>
+       <p>请输入地址：</p>
+       <p>
+           <input type="text" id="url" value="https://www.baidu.com">
+           <input type="button" value="提交" onclick="go()">
+       </p>
+   
+   </div>
+   
+   <div>
+       <iframe id="iframe1" style="width: 100%; height: 500px"></iframe>
+   </div>
+   
+   </body>
+   </html>
+   ```
 
+3. 测试
 
+#### 8.3 jQuery.ajax
 
+- 使用 jQuery 提供的 Ajax，核心是 XMLHttpRequesst 对象（XHR），XHR为向服务器发送请求和解析服务器响应提供了接口，能够以异步的方式从服务器获取新数据。
+
+- 通过 jQuery Ajax方法，能够使用 HTTP Get 和 HTTP Post 从远程服务器上请求文本、HTML、XML或JSON。同时，能够将这些外部数据直接载入网页的被选元素中。
+
+- jQuery 不是生产者，是大自然的搬运工。本质是 XMLHttpRequest，对它进行了封装，以便调用。
+
+  <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200917121913996.png" alt="image-20200917121913996" style="zoom:50%;" />
+
+1. 新建web项目，配置SpringMVC
+
+2. 编写一个 AjaxController
+
+   ```java
+   package controller;
+   import org.springframework.web.bind.annotation.RequestMapping;
+   import org.springframework.web.bind.annotation.RestController;
+   
+   @RestController
+   public class AjaxController {
+   
+       @RequestMapping("/a1")
+       public String a1(String name) {
+           if ("sugar".equals(name)) {
+               return "true";
+           } else {
+               return  "false";
+           }
+       }
+   }
+   ```
+
+3. 编写ajax测试页面（失去焦点即请求）  index.jsp
+
+   ```jsp
+   <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+   <html>
+   <head>
+     <title>$Title$</title>
+     <script src="${pageContext.request.contextPath}/static/js/jquery-3.5.1.min.js"></script>
+     <script>
+       function a() {
+         $.post({
+           url: "${pageContext.request.contextPath}/a1",
+           data: {"name": $("#username").val()},
+           success: function (data) {
+             alert(data);
+           },
+           error: function (){
+   
+           }
+         })
+       }
+     </script>
+   </head>
+   <body>
+   <%--失去焦点的时候，发起一个请求（携带信息）到后台--%>
+   用户名：<input type="text" id="username" onblur="a()">
+   </body>
+   </html>
+   ```
+
+#### 8.4 Ajax异步加载数据
+
+1. 编写 AjaxController
+
+   ```java
+   package controller;
+   
+   import org.springframework.web.bind.annotation.RequestMapping;
+   import org.springframework.web.bind.annotation.RestController;
+   import pojo.User;
+   
+   import java.util.ArrayList;
+   import java.util.List;
+   
+   @RestController
+   public class AjaxController {
+   
+       @RequestMapping("/a2")
+       public List<User> a2() {
+           List<User> users = new ArrayList<User>();
+           // 添加数据
+           users.add(new User("Sugar", 13, "男"));
+           users.add(new User("Sugar2", 1, "男"));
+           users.add(new User("Sugar3", 2, "男"));
+   
+           return users;
+       }
+   }
+   ```
+
+2. 编写 ajax 显示数据页面 test2.jsp
+
+   ```jsp
+   <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+   <html>
+   <head>
+       <title>Title</title>
+       <script src="${pageContext.request.contextPath}/static/js/jquery-3.5.1.min.js"></script>
+       <script>
+           $(function () {
+               $("#btn").click(function () {
+                   $.post("${pageContext.request.contextPath}/a2", function (data) {
+                       console.log(data);
+                       let html = "";
+   
+                       for (let i = 0; i < data.length; i++) {
+                           html += "<tr>" +
+                               "<td>" + data[i].name + "</td>" +
+                               "<td>" + data[i].age + "</td>" +
+                               "<td>" + data[i].sex + "</td>" +
+                               "</tr>"
+                       }
+   
+                       $("#content").html(html);
+                   })
+               })
+           });
+   
+       </script>
+   </head>
+   <body>
+   
+   <input type="button" value="加载数据" id="btn">
+   <table>
+       <tr>
+           <td>姓名</td>
+           <td>年龄</td>
+           <td>性别</td>
+       </tr>
+       <tbody id="content">
+           <%--数据：后台--%>
+       </tbody>
+   </table>
+   
+   </body>
+   </html>
+   ```
+
+#### 8.5 Ajax验证用户名
+
+1. 编写账号登录页面 login.jsp
+
+   ```jsp
+   <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+   <html>
+   <head>
+       <title>Title</title>
+       <script src="${pageContext.request.contextPath}/static/js/jquery-3.5.1.min.js"></script>
+   
+       <script>
+           function a1() {
+               $.post({
+                   url: "${pageContext.request.contextPath}/a3",
+                   data: {"name": $("#name").val()},
+                   success: function (data) {
+                       if (data.toString() === "ok") {
+                           $("#userInfo").css("color", "green");
+                       } else {
+                           $("#userInfo").css("color", "red");
+                       }
+                       $("#userInfo").html(data);
+                   }
+               })
+           }
+   
+           function  a2() {
+               $.post({
+                   url: "${pageContext.request.contextPath}/a3",
+                   data: {"pwd": $("#pwd").val()},
+                   success: function (data) {
+                       if (data.toString() === "ok") {
+                           $("#pwdInfo").css("color", "green");
+                       } else {
+                           $("#pwdInfo").css("color", "red");
+                       }
+                       $("#pwdInfo").html(data);
+                   }
+               })
+           }
+       </script>
+   </head>
+   <body>
+   
+   <p>
+       用户名：<input type="text" id="name" onblur="a1()">
+       <span id="userInfo"></span>
+   </p>
+   
+   <p>
+       密码：<input type="text" id="pwd" onblur="a2()">
+       <span id="pwdInfo"></span>
+   </p>
+   
+   </body>
+   </html>
+   ```
+
+2. 编写 AjaxController
+
+   ```java
+   @RestController
+   public class AjaxController {
+   
+       @RequestMapping("/a3")
+       public String a3(String name, String pwd) {
+           String msg = "";
+   
+           if (name != null) {
+               // admin 在数据库中查
+               if ("admin".equals(name)) {
+                   msg = "ok";
+               } else {
+                   msg = "用户名有误";
+               }
+           }
+           if (pwd != null) {
+               if ("123456".equals(pwd)) {
+                   msg = "ok";
+               } else {
+                   msg = "密码有误";
+               }
+           }
+           return msg;
+       }
+   }
+   ```
+
+### 9. 拦截器
+
+SpringMVC的处理器拦截器类似于Servlet开发中的过滤器 Filter，用于对处理器进行预处理和后处理。可以定义一些拦截器来实现特定的功能。
+
+**过滤器与拦截器的区别：**拦截器是 AOP思想的具体应用。
+
+**过滤器：**
+
+- Servlet规范中的一部分，任何 java web 工程都可以使用。
+- 在 url-pattern 中配置了 /* 之后，可以对所有要访问的资源进行拦截。
+
+**拦截器：**
+
+- 拦截器是 SpringMVC 框架自己的，只有使用了 SpringMVC 框架的工程才能使用。
+- 拦截器只会拦截访问的控制器方法，如果访问的是 jsp/html/css/images/js 静态资源是不会进行拦截的。
+
+### 9.1 自定义拦截器
+
+自定义拦截器，必须实现 **HandlerInterceptor** 接口。
+
+1. 新建web项目，添加web支持。
+
+2. 配置 web.xml 和 SpringMVC。
+
+3. 编写一个拦截器  MyInterceptor.java
+
+   ```java
+   package config;
+   
+   import org.springframework.web.servlet.HandlerInterceptor;
+   import org.springframework.web.servlet.ModelAndView;
+   
+   import javax.servlet.http.HttpServletRequest;
+   import javax.servlet.http.HttpServletResponse;
+   
+   public class MyInterceptor implements HandlerInterceptor {
+   
+       // return true；执行下一个拦截器，放行
+       // return false；不执行下一个拦截器
+       public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+   
+           System.out.println("============ 处理前 ============");
+   
+           return true;
+       }
+   
+       // 拦截日志
+       public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+           System.out.println("============ 处理后 ============");
+       }
+   
+       public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+           System.out.println("============ 清理后 ============");
+       }
+   }
+   ```
+
+### 9.2 登录判断验证
+
+1. 编写 LoginInterceptor.java
+
+   ```java
+   public class LoginInterceptor implements HandlerInterceptor {
+   
+       public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+   
+           HttpSession session = request.getSession();
+           // 放行判断：已登录的情况
+           if (session.getAttribute("userLoginInfo") != null) {
+               return true;
+           }
+   
+           // 直接访问登录请求也会放行
+           if (request.getRequestURL().toString().contains("login")) {
+               return true;
+           }
+   
+           // 直接访问登录页面也会放行
+           if (request.getRequestURL().toString().contains("goLogin")) {
+               return true;
+           }
+   
+           // 没有登录的情况
+           request.getRequestDispatcher("/WEB-INF/jsp/login.jsp").forward(request, response);
+           return false;
+       }
+   }
+   ```
+
+2. 在 web.xml 注册拦截器
+
+   ```xml
+       <!--拦截器配置-->
+       <mvc:interceptors>
+           <mvc:interceptor>
+               <!--/** 包括这个请求下面的所有请求-->
+               <mvc:mapping path="/**"/>
+               <bean class="config.MyInterceptor"/>
+           </mvc:interceptor>
+           <mvc:interceptor>
+               <mvc:mapping path="/**"/>
+               <bean class="config.LoginInterceptor"/>
+           </mvc:interceptor>
+       </mvc:interceptors>
+   ```
+
+3. 编写登录页  login.jsp
+
+   ```jsp
+   <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+   <html>
+   <head>
+       <title>Title</title>
+   </head>
+   <body>
+   
+   <%--在WEB-INF和下的所有页面或资源，只能通过controller或者servlet进行访问--%>
+   <h1>登录页面</h1>
+   
+   <form action="${pageContext.request.contextPath}/user/login" method="post">
+       用户名：<input type="text" name="username">
+       密码：<input type="text" name="password">
+       <input type="submit" value="提交">
+   </form>
+   
+   </body>
+   </html>
+   ```
+
+4. 编写 LoginController
+
+   ```java
+   @Controller
+   @RequestMapping("/user")
+   public class LoginController {
+   
+       @RequestMapping("/main")
+       public String main() {
+           return "main";
+       }
+   
+       @RequestMapping("/goLogin")
+       public String goLogin() {
+           return "login";
+       }
+   
+       @RequestMapping("/login")
+       public String login(HttpSession session, String username, String password, Model model) {
+           // 把用户信息存在session中
+           session.setAttribute("userLoginInfo", username);
+   
+           return "main";
+       }
+   
+       @RequestMapping("/logout")
+       public String logout(HttpSession session) {
+   
+           session.removeAttribute("userLoginInfo");
+           return "login";
+       }
+   }
+   ```
+
+   
