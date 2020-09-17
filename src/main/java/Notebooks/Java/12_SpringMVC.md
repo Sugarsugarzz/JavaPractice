@@ -1,5 +1,7 @@
 ## SpringMVC
 
+### BootStrap可视化布局：https://www.bootcss.com/p/layoutit
+
 重点：**SpringMVC的执行流程**
 
 重点实践：**SSM框架整合**
@@ -997,8 +999,8 @@ INSERT INTO `books`(`bookID`,`bookName`,`bookCounts`,`detail`)VALUES
 
    ```properties
    driver=com.mysql.cj.jdbc.Driver
-   # 使用MySQL8.0+，需要增加一个时区的配置 &serverTimezone=Asia/Beijing
-   url=jdbc:mysql://localhost:3306/ssmbuild?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Beijing
+   # 使用MySQL8.0+，需要增加一个时区的配置 &serverTimezone=Asia/Beijing（加上报错了，还是不加了）
+   url=jdbc:mysql://localhost:3306/ssmbuild?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
    username=root
    password=123456
    ```
@@ -1308,7 +1310,7 @@ INSERT INTO `books`(`bookID`,`bookName`,`bookCounts`,`detail`)VALUES
            <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
            <init-param>
                <param-name>contextConfigLocation</param-name>
-               <param-value>classpath:spring-mvc.xml</param-value>
+               <param-value>classpath:applicationContext.xml</param-value>  // 这里注意绑定Spring配置文件，保证所有bean被注册
            </init-param>
            <load-on-startup>1</load-on-startup>
        </servlet>
@@ -1367,4 +1369,426 @@ INSERT INTO `books`(`bookID`,`bookName`,`bookCounts`,`detail`)VALUES
    </beans>
    ```
 
-4. www
+#### 查询书籍功能
+
+1. 编写 BookController
+
+   ```java
+   package controller;
+   
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.beans.factory.annotation.Qualifier;
+   import org.springframework.stereotype.Controller;
+   import org.springframework.ui.Model;
+   import org.springframework.web.bind.annotation.RequestMapping;
+   import pojo.Books;
+   import service.BookService;
+   
+   import java.util.List;
+   
+   @Controller
+   @RequestMapping("/book")
+   public class BookController {
+   
+       // controller层 调 service层
+       @Autowired
+       @Qualifier("BookServiceImpl")
+       private BookService bookService;
+   
+       // 查询全部的书籍，并返回到一个书籍展示页面
+       @RequestMapping("/allBook")
+       public String list(Model model) {
+   
+           List<Books> books = bookService.queryAllBook();
+   
+           model.addAttribute("books", books);
+           return "allBook";
+       }
+   }
+   ```
+
+2. 编写书籍展示页面  allBook.jsp
+
+   ```jsp
+   <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+   <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+   <html>
+   <head>
+       <title>书籍展示</title>
+   
+       <%--BootStrap美化界面--%>
+       <script src="https://how2j.cn/study/js/jquery/2.0.0/jquery.min.js"></script>
+       <link href="https://how2j.cn/study/css/bootstrap/3.3.6/bootstrap.min.css" rel="stylesheet">
+       <script src="https://how2j.cn/study/js/bootstrap/3.3.6/bootstrap.min.js"></script>
+   </head>
+   <body>
+   
+   <div class="container">
+   
+       <div class="row clearfix">
+           <div class="col-md-12 column">
+               <div class="page-header">
+                   <h1>
+                       <small>书籍列表  --  显示所有书籍</small>
+                   </h1>
+               </div>
+           </div>
+       </div>
+   
+       <div class="row clearfix">
+           <div class="col-md-12 column">
+               <table class="table table-hover table-striped">
+                   <thead>
+                       <th>书籍编号</th>
+                       <th>书籍名称</th>
+                       <th>书籍数量</th>
+                       <th>书籍详情</th>
+                   </thead>
+                   <%--书籍从数据库中查询出来，从这个List中遍历出来：foreach--%>
+                   <tbody>
+                       <%--JSTL表达式--%>
+                       <c:forEach var="book" items="${books}">
+                           <tr>
+                               <td>${book.bookID}</td>
+                               <td>${book.bookName}</td>
+                               <td>${book.bookCounts}</td>
+                               <td>${book.detail}</td>
+                           </tr>
+                       </c:forEach>
+                   </tbody>
+               </table>
+           </div>
+       </div>
+   
+   </div>
+   
+   </body>
+   </html>
+   ```
+
+3. 修改首页  index.jsp
+
+   ```jsp
+   <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+   <html>
+   <head>
+       <title>首页</title>
+   
+       <style>
+           a {
+               text-decoration: none;
+               color: black;
+               font-size: 18px;
+           }
+           h3 {
+               width: 180px;
+               height: 30px;
+               margin: 100px auto;
+               text-align: center;
+               line-height: 38px;
+               background: deepskyblue;
+               border-radius: 5px;
+           }
+       </style>
+   </head>
+   <body>
+   
+   <h3>
+     <a href="${pageContext.request.contextPath}/book/allBook">进入书籍页面</a>
+   </h3>
+   
+   </body>
+   </html>
+   ```
+
+   
+
+##### 遇到问题：BookService bean不存在
+
+排错步骤：
+
+1. 查看bean是否注入成功  ok
+2. Junit单元测试，看代码是否能够查询出结果  ok
+3. 问题，一定不在底层，是Spring出了问题
+4. SpringMVC整合的h时候，没有调用到service层的bean：
+   - applicationContext.xml 没有注入 bean
+   - web.xml 中，也绑定过配置文件！**发现问题，配置的是spring-mvc.xml，这里没有service层的bean**
+
+解决方法：
+
+在 web.xml 中 DispatcherServlet 需要绑定整合后的 Spring 配置文件，以保证所有 bean 都被注册。
+
+```xml
+    <!--DispatcherServlet-->
+    <servlet>
+        <servlet-name>springmvc</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>classpath:applicationContext.xml</param-value>  // HERE！！！！！
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>springmvc</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+```
+
+#### 添加书籍功能
+
+1. 修稿首页，增加添加书籍入口 index.jsp
+
+2. 编写添加书籍页面  addBook.jsp
+
+   ```jsp
+   <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+   <html>
+   <head>
+       <title>添加书籍</title>
+   
+       <%--BootStrap美化界面--%>
+       <script src="https://how2j.cn/study/js/jquery/2.0.0/jquery.min.js"></script>
+       <link href="https://how2j.cn/study/css/bootstrap/3.3.6/bootstrap.min.css" rel="stylesheet">
+       <script src="https://how2j.cn/study/js/bootstrap/3.3.6/bootstrap.min.js"></script>
+   </head>
+   <body>
+   
+   <div class="container">
+   
+       <div class="row clearfix">
+           <div class="col-md-12 column">
+               <div class="page-header">
+                   <h1>
+                       <small>新增书籍</small>
+                   </h1>
+               </div>
+           </div>
+       </div>
+   
+       <form action="${pageContext.request.contextPath}/book/addBook" method="post">
+           <div class="form-group">
+               <label>书籍名称：</label>
+               <input type="text" class="form-control" name="bookName" required>
+           </div>
+           <div class="form-group">
+               <label>书籍数量：</label>
+               <input type="text" class="form-control" name="bookCounts" required>
+           </div>
+           <div class="form-group">
+               <label>书籍描述：</label>
+               <input type="text" class="form-control" name="detail" required>
+           </div>
+   
+           <div class="form-group">
+               <input type="submit" class="form-control" value="添加">
+           </div>
+       </form>
+   </div>
+   </body>
+   </html>
+   ```
+
+3. 编写  BookController
+
+   ```java
+   package controller;
+   
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.beans.factory.annotation.Qualifier;
+   import org.springframework.stereotype.Controller;
+   import org.springframework.ui.Model;
+   import org.springframework.web.bind.annotation.RequestMapping;
+   import pojo.Books;
+   import service.BookService;
+   
+   import java.util.List;
+   
+   @Controller
+   @RequestMapping("/book")
+   public class BookController {
+   
+       // controller层 调 service层
+       @Autowired
+       @Qualifier("BookServiceImpl")
+       private BookService bookService;
+   
+       // 跳转到增加书籍页面
+       @RequestMapping("/toAddBook")
+       public String toAddBook() {
+           return "addBook";
+       }
+   
+       // 添加书籍的请求
+       @RequestMapping("/addBook")
+       public String addBook(Books books) {
+           System.out.println("addBook " + books);
+           bookService.addBook(books);
+           return "redirect:/book/allBook";  // 重定向到 /allBook 请求
+       }   
+   }
+   ```
+
+#### 修改删除书籍功能
+
+1. 修改首页，添加修改删除操作  index.jsp
+
+2. 编写修改书籍页面  updateBook.jsp
+
+   ```jsp
+   <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+   <html>
+   <head>
+       <title>修改书籍</title>
+   
+       <%--BootStrap美化界面--%>
+       <script src="https://how2j.cn/study/js/jquery/2.0.0/jquery.min.js"></script>
+       <link href="https://how2j.cn/study/css/bootstrap/3.3.6/bootstrap.min.css" rel="stylesheet">
+       <script src="https://how2j.cn/study/js/bootstrap/3.3.6/bootstrap.min.js"></script>
+   </head>
+   <body>
+   
+   <div class="container">
+   
+       <div class="row clearfix">
+           <div class="col-md-12 column">
+               <div class="page-header">
+                   <h1>
+                       <small>修改书籍</small>
+                   </h1>
+               </div>
+           </div>
+       </div>
+   
+       <form action="${pageContext.request.contextPath}/book/updateBook" method="post">
+           <%--出现问题：提交了修改到SQL的请求，但是修改失败，初次考虑是事务问题，配置事务后依旧失败--%>
+           <%--然后查看SQL是否执行成功：SQL执行失败，id未传入--%>
+           <%--前端传递隐藏域id--%>
+           <input type="hidden" name="bookID" value="${books.bookID}">
+           <div class="form-group">
+               <label>书籍名称：</label>
+               <input type="text" class="form-control" name="bookName" value="${books.bookName}" required>
+           </div>
+           <div class="form-group">
+               <label>书籍数量：</label>
+               <input type="text" class="form-control" name="bookCounts" value="${books.bookCounts}" required>
+           </div>
+           <div class="form-group">
+               <label>书籍描述：</label>
+               <input type="text" class="form-control" name="detail" value="${books.detail}" required>
+           </div>
+   
+           <div class="form-group">
+               <input type="submit" class="form-control" value="修改">
+           </div>
+       </form>
+   </div>
+   </body>
+   </html>
+   ```
+
+3. 编写  BookController
+
+   ```java
+   package controller;
+   
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.beans.factory.annotation.Qualifier;
+   import org.springframework.stereotype.Controller;
+   import org.springframework.ui.Model;
+   import org.springframework.web.bind.annotation.PathVariable;
+   import org.springframework.web.bind.annotation.RequestMapping;
+   import pojo.Books;
+   import service.BookService;
+   
+   import java.util.List;
+   
+   @Controller
+   @RequestMapping("/book")
+   public class BookController {
+   
+       // controller层 调 service层
+       @Autowired
+       @Qualifier("BookServiceImpl")
+       private BookService bookService;
+   
+       // 跳转到书籍修改页面
+       @RequestMapping("/toUpdateBook")
+       public String toUpdateBook(int id, Model model) {
+           Books books = bookService.queryBookById(id);
+           model.addAttribute("books", books);
+           return "updateBook";
+       }
+   
+       // 修改书籍的请求
+       @RequestMapping("/updateBook")
+       public String updateBook(Books books) {
+           bookService.updateBook(books);
+           return "redirect:/book/allBook";  // 重定向到 /allBook 请求
+       }
+   
+       // 删除书籍的请求
+       // RestFul风格
+       @RequestMapping("/deleteBook/{bookID}")
+       public String deleteBook(@PathVariable("bookID") int id) {
+           bookService.deleteBookById(id);
+           return "redirect:/book/allBook";
+       }
+   }
+   ```
+
+#### 查询书籍功能
+
+1. 编写首页，添加搜索栏   index.jsp
+
+2. 编写Dao层查询功能
+
+3. 编写Service查询功能
+
+4. 编写 BookController
+
+   ```java
+   package controller;
+   
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.beans.factory.annotation.Qualifier;
+   import org.springframework.stereotype.Controller;
+   import org.springframework.ui.Model;
+   import org.springframework.web.bind.annotation.PathVariable;
+   import org.springframework.web.bind.annotation.RequestMapping;
+   import pojo.Books;
+   import service.BookService;
+   
+   import java.util.ArrayList;
+   import java.util.List;
+   
+   @Controller
+   @RequestMapping("/book")
+   public class BookController {
+   
+       // controller层 调 service层
+       @Autowired
+       @Qualifier("BookServiceImpl")
+       private BookService bookService;
+   
+       // 查询书籍
+       @RequestMapping("/queryBook")
+       public String queryBook(String queryBookName, Model model) {
+           Books book = bookService.queryBookByName(queryBookName);
+           List<Books> books = new ArrayList<>();
+           books.add(book);
+   
+           if (book == null) {
+               books = bookService.queryAllBook();
+               model.addAttribute("error", "未查到");
+           }
+           model.addAttribute("books", books);
+           return "allBook";
+       }
+   }
+   ```
+
+   
+
+
+

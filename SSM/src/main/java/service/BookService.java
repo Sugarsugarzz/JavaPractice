@@ -1,5 +1,6 @@
 package service;
 
+import org.apache.ibatis.annotations.Param;
 import pojo.Books;
 
 import java.util.List;
@@ -20,4 +21,6 @@ public interface BookService {
 
     // 查询全部书
     List<Books> queryAllBook();
+
+    Books queryBookByName(String bookName);
 }

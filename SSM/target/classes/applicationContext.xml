@@ -10,22 +10,8 @@
                         http://www.springframework.org/schema/aop
                         https://www.springframework.org/schema/aop/spring-aop.xsd">
 
-    <!--1. 扫描service下面的包-->
-    <context:component-scan base-package="service"/>
-
-    <!--2. 将所有的业务类，注入到Spring，可以通过配置或者注解实现-->
-    <!--也可以通过注解来实现  @Service  @Autowired-->
-    <bean id="BookServiceImpl" class="service.BookServiceImpl">
-        <property name="bookMapper" ref="bookMapper"/>
-    </bean>
-
-    <!--3. 声明式事务配置-->
-    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
-        <!--注入数据源-->
-        <property name="dataSource" ref="dataSource"/>
-    </bean>
-
-    <!--4. AOP事务支持（这个项目里不需要）-->
-
+    <import resource="classpath:spring-dao.xml"/>
+    <import resource="classpath:spring-service.xml"/>
+    <import resource="classpath:spring-mvc.xml"/>
 
 </beans>
