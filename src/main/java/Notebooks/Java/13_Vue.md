@@ -228,6 +228,8 @@ MVVM源自于经典的MVC模式，**其核心是 ViewModel 层**，负责转换 
 
 ##### v-bind
 
+**简写 `:`**
+
 目前已将数据和 Dom 建立了关联，所有东西都是响应式的。在控制台操作对象属性，界面可以实时更新。
 
 可以使用 `v-bind` 来绑定元素特性。
@@ -311,6 +313,8 @@ v-bind等被称为指令。指令带有前缀 v-，以表示它们是Vue提供�
 
 ##### v-on 绑定事件
 
+**简写  `@`**
+
 将时间绑定到Vue中的`methods`中的方法事件中。
 
 ```html
@@ -338,7 +342,7 @@ v-bind等被称为指令。指令带有前缀 v-，以表示它们是Vue提供�
 
 ### 5. 表单双向绑定、组件
 
-#### 5.1 双向数据绑定
+#### 5.1 v-model 双向数据绑定
 
 Vue.js 是一个 MVVM 框架，即数据双向绑定，即**当数据发生变化的时候，视图也就发生变化，当视图发生变化的时候，数据也会跟着同步变化**。
 
@@ -633,4 +637,202 @@ methods 里的调用**需要带括号**，computed 里的调用**不需要带括
 数据项在 Vue 的实例中，但删除操作要在组件中完成，那么组件如何才能删除 Vue 实例中的数据？这一过程就涉及到参数传递与事件分发，Vue提供了自定义事件的功能能够解决该问题，使用 `this.$emit('自定义事件名', 参数)` ，操作过程如下：
 
 1. 在Vue的实例中，增加了一个 methods 对象并定义了一个名为 **removeTodoItems** 的方法。
-2. 修改 todo-items 待办内容组件的代码，增加一个删除按钮，并且绑定时间。
+2. 修改 todo-items 待办内容组件的代码，增加一个删除按钮，并且绑定事件。
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<div id="app">
+    <todo>
+        <todo-title slot="todo-title" :title="title"></todo-title>
+        <todo-items slot="todo-items" v-on:remove="removeItems(index)"
+                    v-for="(item,index) in todoItems" :item="item" :index="index"></todo-items>
+    </todo>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.min.js"></script>
+<script>
+    // slot：插槽
+    Vue.component("todo", {
+        template:
+            '<div>\
+                <slot name="todo-title"></slot>\
+                <ul>\
+                    <slot name="todo-items"></slot>\
+                </ul>\
+             </div>'
+    });
+
+    Vue.component("todo-title", {
+        props: ['title'],
+        template: '<div>{{title}}</div>'
+    });
+
+    Vue.component("todo-items", {
+        props: ['item', 'index'],
+        // 只能绑定当前组件内的方法
+        template: '<li>{{index}} - {{item}}  <button @click="remove">删除</button></li> ',
+        methods: {
+            remove: function (index) {
+                // 自定义事件，
+                this.$emit('remove', index);
+            }
+        }
+    });
+
+    var vm = new Vue({
+        el: "#app",
+        data: {
+            title: "Sugar",
+            todoItems: ['Java', 'Python', 'Linux']
+        },
+        methods: {
+            // 根据下标删除数组元素
+            removeItems: function (index) {
+                this.todoItems.splice(index, 1);  // 一次只删除一个元素
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
+```
+
+### 8. Vue 小结
+
+**核心**：数据驱动，组件化
+
+**优点**：借鉴了AngularJS的模块化开发和React的虚拟Dom，虚拟Dom就是把Dom操作放到内存中执行。
+
+**常用属性**：
+
+- v-if
+- v-else-if
+- v-else
+- v-for
+- v-on  绑定事件，简写`@`
+- v-model  数据双向绑定
+- v-bind  给组件绑定参数，简写 `:`
+
+**组件化**：
+
+- 组合组件 slot 插槽
+- 组件内部绑定事件需要使用 `this.$emit('事件名', 参数)`
+- 计算属性的特色：缓存计算数据
+
+遵循SoC关注度分离原则，Vue是纯粹的视图框架，并不包含如Ajax之类的通信功能，为了解决通信问题，使用 Axios 框架做异步通信。
+
+**说明**：
+
+Vue的开发都是要基于**NodeJS**，实际开发采用 **vue-cli** 脚手架开发，**vue-router** 路由，**vuex** 做状态管理，Vue UI界面一般使用 **ElementUI**（饿了么出品）或者**ICE**（阿里巴巴出品）来快速搭建前端项目。
+
+### 9. Vue正式入门
+
+#### 9.1 vue-cli
+
+vue-cli 是官方提供的脚手架，用于快速生成一个 vue 项目模板。
+
+预先定义好的目录结构及基础代码，好比Maven创建的骨架项目。
+
+**主要功能**：
+
+- 统一的目录结构
+- 本地调试
+- 热部署
+- 单元测试
+- 集成打包上线
+
+##### 基本环境搭建
+
+- Node.js：http://nodejs.cn/download
+- Git：https://git-scm.com/downloads
+
+**确认nodejs安装成功：**
+
+- cmd下输入 `node -v`，查看是否能够正确打印版本号即可
+- cmd下输入 `npm -v`，查看是否能够正常打印版本号即可
+
+**安装 Node.js 淘宝镜像加速器（cnpm）**
+
+```cmd
+# -g 就是全局安装
+npm install cnpm -g
+# 或者 使用如下语句解决npm速度慢的问题(每次安装的时候都带上)
+npm install --registry=https://registry.npm.taobao.org
+```
+
+##### 安装 vue-cli
+
+```cmd
+cnpm install vue-cli -g
+
+# 测试是否安装成功
+# 查看可以基于哪些模板创建 vue 应用程序，通常选择 webpack
+vue list
+```
+
+##### 第一个 vue-cli 应用程序
+
+1. 创建一个Vue项目，随便建立一个空文件夹
+
+2. 创建一个基于 webpack 模板的 vue 应用程序
+
+   ```cmd
+   # 这里的 myvue 是项目名称，根据需求起名
+   vue init webpack myvue
+   # 一路都选择no即可。（for 学习这个过程，其实也可以yes）
+   ```
+
+   说明：
+
+   - Project name：项目名称，默认回车即可
+   - Project description：项目描述，默认回车即可
+
+3. 初始化并执行
+
+   ```cmd
+   cd myvue
+   npm install
+   npm run dev
+   ```
+
+   启动成功后：
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200918174825523.png" alt="image-20200918174825523" style="zoom:50%;" />
+
+#### 9.2 Webpack
+
+webpack 是现代 JavaScript 应用程序的静态模块打包器（module bundler），当 webpack 处理应用程序时，它会递归地构建一个依赖关系图（dependency graph），其中包含应用程序需要的每个模块，然后将所有这些模块打包成一个或多个bundle。
+
+Webpack 是当下最热门的前端资源模块化管理和打包工具，可以将许多松散耦合的模块按照依赖和规则打包成符合生产环境部署的前端资源，还可以将按需加载的模块进行代码分离，等到时机需要时再异步加载。通过loader转换，任何形式的资源都可以当做模块，比如 CommonsJS、AMD、ES6、CSS、JSON、LESS等。
+
+当今越来越多网站已从网页模式进化到了WebApp模式。它们运行在现代浏览器中，使用HTML5、CSS3、ES6等新的技术来开发丰富的功能，网页已经不仅仅是完成浏览器的基本需求，WebApp 通常是一个**SPA（单页面应用）**，每一个视图通过异步的方式加载，导致页面初始化和使用过程中会加载越来越多的JS代码，给前端开发流程和资源组织带来巨大挑战。
+
+##### 安装Webpack
+
+```cmd
+npm install webpack -g
+npm install webpack-cli -g
+```
+
+测试
+
+```cmd
+webpack -v
+webpack-cli -v
+```
+
+##### 配置
+
+创建 `webpack.config.js` 配置文件
+
+- entry：入口文件，指定Webpack用哪个文件作为项目入口
+- output：输出，指定Webpack把处理完成的文件放置到指定路径
+- 
