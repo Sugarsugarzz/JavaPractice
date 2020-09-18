@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<!--View层，模板-->
+<div id="app">
+    <!--组件：传递给组件中的值：props-->
+    <sugar v-for="item in items" v-bind:sss="item"></sugar>
+</div>
+
+<!--1. 导入Vue.js-->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.min.js"></script>
+<script>
+    // 定义一个Vue组件component
+    Vue.component("sugar", {
+        props: ['sss'],
+        template: '<li>{{sss}}</li>'
+    });
+    // Vue和组件定义是同级的，所以组件不能直接拿到items数组，需要通过props再传递回组件
+    var vm = new Vue({
+        el: "#app",
+        data: {
+            items: ["Java", "Linux", "Python"]
+        }
+    })
+</script>
+
+
+</body>
+</html>

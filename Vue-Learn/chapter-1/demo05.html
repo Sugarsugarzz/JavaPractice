@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<!--View层，模板-->
+<div id="app">
+    
+    输入的文本: <input type="text" v-model="message">
+    {{message}}
+
+    <br>
+
+    性别：
+    <input type="radio" name="sex" value="男" v-model="sugar"> 男
+    <input type="radio" name="sex" value="女" v-model="sugar"> 女
+
+    <p>
+        选中了：{{sugar}}
+    </p>
+
+    <br>
+    下拉框：
+    <select v-model="selected">
+        <option value="" disabled>--请选择--</option>
+        <option>A</option>
+        <option>B</option>
+        <option>C</option>
+    </select>
+    <p>{{selected}}</p>
+</div>
+
+<!--1. 导入Vue.js-->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.min.js"></script>
+<script>
+    var vm = new Vue({
+        el: "#app",
+        data: {
+            message: "123",
+            sugar: "",
+            selected: "B",
+        }
+    });
+</script>
+
+
+</body>
+</html>
