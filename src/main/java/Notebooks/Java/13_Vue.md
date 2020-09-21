@@ -829,10 +829,219 @@ webpack -v
 webpack-cli -v
 ```
 
-##### 配置
+##### 配置(了解即可)
 
 创建 `webpack.config.js` 配置文件
 
 - entry：入口文件，指定Webpack用哪个文件作为项目入口
 - output：输出，指定Webpack把处理完成的文件放置到指定路径
-- 
+- module：模块，用于处理各种类型的文件
+- plugins：插件，如：热更新，代码复用等
+- resolve：设置路径指向
+- watch：监听，用于设置文件改动后直接打包
+
+##### 使用Webpack
+
+1. 创建项目
+
+2. 创建一个名为 modules 的目录，用于放置 JS 模块等资源文件
+
+3. 在 modules 下创建模块文件，如 hello.js，用于编写 JS 模块相关代码
+
+   ```javascript
+   // 暴露一个方法
+   exports.sayHi = function () {
+       document.write("<h1>Sugar</h1>")
+   };
+   ```
+
+4. 在 modules 下创建一个名为 main.js 的入口文件，用于打包时设置 entry 属性
+
+   ```js
+   // require 导入一个模块，就可以调用该模块下的方法了
+   var hello = require("./hello");
+   hello.sayHi()
+   ```
+
+5. 在项目目录下创建 **webpack.config.js** 配置文件，使用 webpack 命令打包
+
+   ```javascript
+   module.exports = {
+       entry: './modules/main.js',
+       output: {
+           filename: "./js/bundle.js"
+       }
+   };
+   ```
+
+6. 在项目目录下创建 HTML 页面，导入 WebPack 打包后的JS文件
+
+   ```html
+   <!DOCTYPE html>
+   <html lang="en">
+   <head>
+       <meta charset="UTF-8">
+       <title>webpack</title>
+   </head>
+   <body>
+   
+   <!--前端的模块化开发-->
+   <script src="dist/js/bundle.js"></script>
+   </body>
+   </html>
+   ```
+
+7. 在项目根目录下，执行 **webpack**  命令（失败的话，使用管理员权限运行）
+
+8. 打开页面浏览效果
+
+#### 9.3 vue-router 路由
+
+Vue Router 是 Vue.js 官方的路由管理器。与 Vue.js 的核心深度集成，让构建单页面应用变得简单。包含的功能有：
+
+- 嵌套的路由/视图表
+- 模块化的、基于组件的路由配置
+- 路由参数、查询、通配符
+- 基于Vue.js过滤系统的视图过滤效果
+- 粗粒度的导航控制
+- 带有自动激活的 CSS class 的链接
+- HTML5 历史模式或hash模式，在 IE9 中自动降级
+- 自定义的滚动条行为
+
+##### 安装
+
+**基于第一个 `vue-cli` 进行测试学习，先查看 node_modules 中是否存在 vue-router**
+
+vue-router 是一个插件包，需要使用 npm/cnpm 来进行安装。
+
+进行项目目录，打开命令行工具，输入下面命令，vue-router 将被安装至 node_modules下。
+
+```cmd
+npm install vue-router --save-dev
+```
+
+在模块化工程中使用，必须要通过 Vue.use() 显式声明使用路由功能：
+
+```js
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+
+Vue.use(VueRouter);
+```
+
+##### 使用
+
+1. 删除无用的东西
+
+2. `components` 目录下存放编写的组件
+
+3. 定义一个 `Content.vue` 的组件
+
+   ```vue
+   <template>
+     <h1>内容页</h1>
+   </template>
+   
+   <script>
+   export default {
+     name: "Content"
+   }
+   </script>
+   ```
+
+4. 安装路由，在 src 目录下，新建一个文件夹：`router`，专门存放路由，新建 `index.js`写配置
+
+   **注意**：是 **routes**，不是routers！
+
+   ```js
+   import Vue from 'vue'
+   import VueRouter from 'vue-router'
+   
+   import Content from '../components/Content'
+   import Main from '../components/Main'
+   
+   // 安装路由
+   Vue.use(VueRouter);
+   
+   // 配置导出路由
+   export default new VueRouter({
+     routes: [
+       {
+         // 路由路径
+         path: '/content',
+         name: 'content',
+         // 跳转的组件
+         component: Content
+       },
+       {
+         path: '/main',
+         name: 'main',
+         component: Main
+       }
+     ]
+   });
+   
+   ```
+
+5. 在 `main.js` 中配置路由
+
+   ```js
+   import Vue from 'vue'
+   import App from './App'
+   import router from './router'  // 自动扫描里面的路由配置
+   
+   Vue.config.productionTip = false
+   
+   /* eslint-disable no-new */
+   new Vue({
+     el: '#app',
+     // 配置路由
+     router,
+     components: { App },
+     template: '<App/>',
+   })
+   ```
+
+6. 在 `App.vue` 中使用路由
+
+   ```vue
+   <template>
+     <div id="app">
+   
+       <h1>Hello World</h1>
+       <router-link to="/main">首页</router-link>
+       <router-link to="/content">内容页</router-link>
+       <router-view></router-view>
+   
+     </div>
+   </template>
+   ```
+
+#### 9.4 ElementUI（快速入门）
+
+##### 创建工程
+
+1. 创建一个名为 `hello-vue`的工程，
+
+   ```cmd
+   vue init webpack hello-vue
+   ```
+
+2. 安装依赖，需要安装 **vue-router**、**element-ui**、**sass-loader** 和 **node-sass** 四个插件。
+
+   ```cmd
+   # 进入工程目录
+   cd hello-vue
+   # 安装 vue-router
+   npm install vue-router --save-dev
+   # 安装 element-ui
+   npm i element-ui -S
+   # 安装依赖
+   npm install
+   # 安装 SPSS 加载器
+   cnpm install sass-loader node-sass --save-dev
+   # 启动测试
+   npm run dev
+   ```
+
+3. Npm命令解释：
