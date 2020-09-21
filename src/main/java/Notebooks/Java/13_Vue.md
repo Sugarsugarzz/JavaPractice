@@ -1017,7 +1017,7 @@ Vue.use(VueRouter);
    </template>
    ```
 
-#### 9.4 ElementUI（快速入门）
+#### 9.4 ElementUI（快速入门实现登录页面）
 
 ##### 创建工程
 
@@ -1044,4 +1044,421 @@ Vue.use(VueRouter);
    npm run dev
    ```
 
-3. Npm命令解释：
+##### 创建登录页面
+
+1. 编写登录页和首页 Login.vue  Main.vue
+
+   ```vue
+   <template>
+     <div>
+       <el-form ref="loginForm" :model="form" :rules="rules" label-width="80px" class="login-box">
+         <h3 class="login-title">登录</h3>
+         <el-form-item label="账号" prop="username">
+           <el-input type="text" placeholder="请输入账号" v-model="form.username"/>
+         </el-form-item>
+         <el-form-item label="密码" prop="password">
+           <el-input type="password" placeholder="请输入密码" v-model="form.password"/>
+         </el-form-item>
+         <el-form-item>
+           <el-button type="primary" v-on:click="onSubmit('loginForm')">登录</el-button>
+         </el-form-item>
+       </el-form>
+   
+       <el-dialog
+         title="温馨提示"
+         :visible.sync="dialogVisible"
+         width="30%"
+         :before-close="handleClose">
+         <span>请输入账号和密码</span>
+         <span slot="footer" class="dialog-footer">
+           <el-button type="primary" @click="dialogVisible = false">确定</el-button>
+         </span>
+       </el-dialog>
+     </div>
+   </template>
+   
+   <script>
+   export default {
+     name: "Login",
+     data() {
+       return {
+         form: {
+           username: '',
+           password: ''
+         },
+         // 表单验证，需要在 el-form-item 元素中增加 prop 属性
+         rules: {
+           username: [
+             {required:true, message:'账号不能为空', trigger:'blur'}
+           ],
+           password: [
+             {required:true, message:'密码不能为空', trigger:'blur'}
+           ]
+         },
+         // 对话框显示和隐藏
+         dialogVisible: false
+       }
+     },
+     methods: {
+       onSubmit(formName) {
+         // 为表单绑定验证功能
+         this.$refs[formName].validate((valid) => {
+           if (valid) {
+             // 使用 vue-router 路由到指定页面，该方式称之为编程式导航
+             this.$router.push("/main");
+           } else {
+             this.dialogVisible = true;
+             return false;
+           }
+         });
+       }
+     }
+   }
+   </script>
+   
+   <style scoped>
+     .login-box {
+       border: 1px solid #DCDFE6;
+       width: 350px;
+       margin:180px auto;
+       padding: 35px 35px 15px 35px;
+       border-radius: 5px;
+       -webkit-border-radius: 5px;
+       -moz-border-radius: 5px;
+       box-shadow: 0 0 25px #909399;
+     }
+   
+     .login-title {
+       text-align: center;
+       margin: 0 auto 40px auto;
+       color: #303133;
+     }
+   </style>
+   ```
+
+   ```vue
+   <template>
+     <h1>首页</h1>
+   </template>
+   
+   <script>
+   export default {
+     name: "Main"
+   }
+   </script>
+   
+   <style scoped>
+   </style>
+   ```
+
+2. 编写主页  App.vue
+
+   ```vue
+   <template>
+     <div id="app">
+       <router-link to="/login">login</router-link>
+       <router-link to="/main">main</router-link>
+       <router-view></router-view>
+     </div>
+   </template>
+   
+   <script>
+   export default {
+     name: 'App'
+   }
+   </script>
+   ```
+
+3. 编写router 路由配置 index.js
+
+   **注意**：是 **component**，不是components！
+
+   ```js
+   import Vue from 'vue'
+   import Router from 'vue-router'
+   
+   import Main from '../views/Main'
+   import Login from '../views/Login'
+   
+   Vue.use(Router);
+   
+   export default new Router({
+   
+     routes: [
+       {
+         path: '/main',
+         component: Main
+       },
+       {
+         path: '/login',
+         component: Login
+       },
+     ]
+   });
+   
+   ```
+
+4. 编写主配置文件 main.js
+
+   ```js
+   import Vue from 'vue'
+   import App from './App'
+   import router from './router'
+   import Element from 'element-ui'
+   import 'element-ui/lib/theme-chalk/index.css'  // ElementUI需要导入一个CSS
+   
+   Vue.use(router);
+   Vue.use(Element);
+   
+   new Vue({
+     el: '#app',
+     router,
+     render: h => h(App)  // ElementUI
+   })
+   ```
+
+#### 9.5 嵌套路由
+
+嵌套路由又称为子路由，在实际应用中，通常由多层嵌套的组件组合而成。同样地，URL中各段动态路径也按某种结构对应嵌套的各层组件，如下：
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200921122817728.png" alt="image-20200921122817728" style="zoom:30%;" />
+
+1. 在 views 目录下新建一个 user 目录，再新建两个子页面  List.vue  Profile.vue
+
+2. 修改主页来展示这两个子页面  Main.vue
+
+   ```vue
+   <template>
+     <div>
+       <el-form ref="loginForm" :model="form" :rules="rules" label-width="80px" class="login-box">
+         <h3 class="login-title">登录</h3>
+         <el-form-item label="账号" prop="username">
+           <el-input type="text" placeholder="请输入账号" v-model="form.username"/>
+         </el-form-item>
+         <el-form-item label="密码" prop="password">
+           <el-input type="password" placeholder="请输入密码" v-model="form.password"/>
+         </el-form-item>
+         <el-form-item>
+           <el-button type="primary" v-on:click="onSubmit('loginForm')">登录</el-button>
+         </el-form-item>
+       </el-form>
+   
+       <el-dialog
+         title="温馨提示"
+         :visible.sync="dialogVisible"
+         width="30%"
+         :before-close="handleClose">
+         <span>请输入账号和密码</span>
+         <span slot="footer" class="dialog-footer">
+           <el-button type="primary" @click="dialogVisible = false">确定</el-button>
+         </span>
+       </el-dialog>
+     </div>
+   </template>
+   
+   <script>
+   export default {
+     name: "Login",
+     data() {
+       return {
+         form: {
+           username: '',
+           password: ''
+         },
+         // 表单验证，需要在 el-form-item 元素中增加 prop 属性
+         rules: {
+           username: [
+             {required:true, message:'账号不能为空', trigger:'blur'}
+           ],
+           password: [
+             {required:true, message:'密码不能为空', trigger:'blur'}
+           ]
+         },
+         // 对话框显示和隐藏
+         dialogVisible: false
+       }
+     },
+     methods: {
+       onSubmit(formName) {
+         // 为表单绑定验证功能
+         this.$refs[formName].validate((valid) => {
+           if (valid) {
+             // 使用 vue-router 路由到指定页面，该房事称之为编程式导航
+             this.$router.push("/main");
+           } else {
+             this.dialogVisible = true;
+             return false;
+           }
+         });
+       }
+     }
+   }
+   </script>
+   
+   <style scoped>
+     .login-box {
+       border: 1px solid #DCDFE6;
+       width: 350px;
+       margin:180px auto;
+       padding: 35px 35px 15px 35px;
+       border-radius: 5px;
+       -webkit-border-radius: 5px;
+       -moz-border-radius: 5px;
+       box-shadow: 0 0 25px #909399;
+     }
+   
+     .login-title {
+       text-align: center;
+       margin: 0 auto 40px auto;
+       color: #303133;
+     }
+   </style>
+   ```
+
+3. 配置子路由 router  index.js
+
+   ```js
+     routes: [
+       {
+         path: '/main',
+         component: Main,
+         // 嵌套路由
+         children: [
+           {path: '/user/profile', component: UserProfile},
+           {path: '/user/list', component: UserList},
+         ]
+       },
+   ```
+
+#### 9.6 参数传递及重定向
+
+##### 参数传递
+
+1. 修改页面中 router-link 标签 的 **:to**。
+
+   ```vue
+   <!--name：传组件名，params：传递参数，需要对象：v-bind-->
+   <router-link :to="{name: 'UserProfile', params: {id: 1}}">个人信息</router-link>
+   ```
+
+2. 修改 router 的配置，带上参数
+
+   ```js
+   // 如果传递了参数，必须写 name，开启参数传递 props:true
+   {path: '/user/profile/:id', name: 'UserProfile', component: UserProfile, props: true},
+   ```
+
+3. 展示传递的参数
+
+   ```html
+   <template>
+     <!--所有元素，不能直接写在根节点下-->
+     <div>
+       <h1>个人信息</h1>
+       {{id}}
+     </div>
+   </template>
+   
+   <script>
+   export default {
+     props: ['id'],
+     name: "UserProfile"
+   }
+   </script>
+   ```
+
+##### 重定向
+
+1. 在 router 配置 index.js
+
+   ```js
+   {
+   	  path: '/goHome',
+       redirect: '/main'
+   }
+   ```
+
+#### 9.7 404和路由钩子
+
+##### 路由模式与404
+
+路由模式有两种：
+
+- hash：路径带 # 符号
+- history：路径不带 # 符号
+
+修改路由配置，如下：
+
+```js
+export default new Router({
+  mode: 'history',
+  routes: []
+});
+```
+
+404：
+
+1. 新建一个404页面  NotFound.vue
+
+2. 配置路由
+
+   ```js
+   {
+   	  path: '*',
+       component: NotFound
+   }
+   ```
+
+##### 路由钩子与异步请求
+
+**beforeRouteEnter**：在进入路由前执行
+
+**beforeRouteLeave**：在离开路由前执行
+
+```js
+export default {
+  props: ['id'],
+  name: "UserProfile",
+  // 过滤器 chain
+  beforeRouteEnter: (to, from, next) => {
+    console.log("进入路由之前");
+    next();
+  },
+  beforeRouteLeave: (to, from, next) => {
+    console.log("进入路由之后");
+    next();
+  },
+}
+```
+
+参数说明：
+
+- to：路由将要跳转的路径信息
+- from：路由跳转前的路径信息
+- next：路由的控制参数
+  - next() 跳入下一个页面
+  - next('/path') 改变路由的跳转方向，使其跳到另一个路由
+  - next(false)  返回原来的页面
+  - next((vm) => {})  仅在 beforeRouteEnter 中可用，vm是组件实例
+
+##### 在钩子函数中使用异步请求
+
+1. 安装 Axios
+
+   ```cmd
+   npm install --save axios
+   npm install --save vue-axios
+   ```
+
+2. `main.js`引用 Axios
+
+   ```js
+   import axios from 'axios';
+   import VueAxios from 'vue-axios'
+   
+   Vue.use(VueAxios, axios);
+   ```
+
+3. 准备数据：只有 static 目录下的文件是可以被访问到的，所以把静态文件放在该目录下。
+
+4. 在 beforeRouteEnter 中进行异步请求。
