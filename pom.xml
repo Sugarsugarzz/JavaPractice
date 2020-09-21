@@ -15,6 +15,7 @@
         <module>SpringMVC-Learn</module>
         <module>SSM</module>
         <module>Vue-Learn</module>
+        <module>SpringBoot-Learn</module>
     </modules>
 
     <!-- Package:项目的打包方式
