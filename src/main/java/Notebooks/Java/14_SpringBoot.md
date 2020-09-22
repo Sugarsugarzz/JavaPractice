@@ -65,3 +65,66 @@ Spring再简化：SpringBoot  **jar：内嵌tomcat**；微服务架构！
 官方：提供了一个快速生成的网站，IDEA提供了这种方式。
 
 https://start.spring.io/
+
+#### 2.1 Springboot自动装配原理
+
+**pom.xm**l
+
+- spring-boot-dependencies：核心依赖在该父工程中
+- 我们在写或者引入一些SpringBoot依赖的时候，不需要指定版本，就因为有这些版本仓库
+
+**启动器**
+
+- ```xml
+  <!--启动器-->
+  <dependency>
+  	  <groupId>org.springframework.boot</groupId>
+    	<artifactId>spring-boot-starter</artifactId>
+  </dependency>
+  ```
+
+- 就是SpringBoot的启动场景；
+
+- 比如，Spring-boot-starter-web，就会帮助自动导入web环境所有的依赖！
+
+  ```xml
+  <!--web依赖-->
+  <dependency>
+  	  <groupId>org.springframework.boot</groupId>
+    	<artifactId>spring-boot-starter-web</artifactId>
+  	  <version>2.3.1.RELEASE</version>
+  </dependency>
+  ```
+
+- SpringBoot会将所有的功能场景，都变成一个个的启动器
+
+- 要使用什么功能，就只需要找到对应的启动器即可
+
+**主程序**
+
+```java
+// @SpringBootApplication：标注这个类是一个Springboot的应用
+@SpringBootApplication
+public class Springboot01HelloworldApplication {
+	public static void main(String[] args) {
+		// 将Springboot应用启动
+		SpringApplication.run(Springboot01HelloworldApplication.class, args);
+	}
+}
+```
+
+- 注解
+
+  - ```java
+    @SpringBootConfiguration：SpringBoot的配置
+      	@Configuration：Spring配置类
+      			@Component：说明这也是一个Spring的组件	
+    
+    @EnableAutoConfiguration：自动配置
+      	@AutoConfigurationPackage：自动配置包
+      			@Import({AutoConfigurationImportSelector.class})：导入选择器
+    ```
+
+  - 
+
+- w
