@@ -122,9 +122,209 @@ public class Springboot01HelloworldApplication {
     
     @EnableAutoConfiguration：自动配置
       	@AutoConfigurationPackage：自动配置包
-      			@Import({AutoConfigurationImportSelector.class})：导入选择器
+      			@Import({Registrar.class})：包注册
+        @Import({AutoConfigurationImportSelector.class})：导入选择器
+      
+    // 获取所有的配置
+    List<String> configurations = this.getCandidateConfigurations(annotationMetadata, attributes);
     ```
 
-  - 
+    获取候选的配置
 
-- w
+    ```java
+    protected List<String> getCandidateConfigurations(AnnotationMetadata metadata, AnnotationAttributes attributes) {
+      List<String> configurations = SpringFactoriesLoader.loadFactoryNames(this.getSpringFactoriesLoaderFactoryClass(), this.getBeanClassLoader());
+      Assert.notEmpty(configurations, "No auto configuration classes found in META-INF/spring.factories. If you are using a custom packaging, make sure that file is correct.");
+      return configurations;
+    }
+    ```
+
+    META-INF/spring.factories：自动配置的核心文件
+
+    <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200922101331426.png" alt="image-20200922101331426" style="zoom:30%;" />
+
+    所有的资源加载到配置类中
+
+    ```xml
+    Properties properties = PropertiesLoaderUtils.loadProperties(resource);
+    ```
+
+- 结论：Springboot所有自动配置都是在启动的时候扫描并加载，`spring.factories`所有的自动配置类都在这里面，但不一定生效，要判断条件是否成立，只要导入了对应的start，就有对应的启动器了，有了启动器，自动装配就会生效，就会配置成功。
+
+1. springboot在启动的时候，从类路径下的 /META-INF/`spring.factories`获取指定的值
+2. 将这些自动配置的类导入容器，自动配置就会生效，就会进行自动配置
+3. 以前需要自动配置的东西，现在Springboot帮忙做了。
+4. 整个JavaEE的解决方案和自动配置的东西，都在`spring-boot-autoconfigure-2.2.0.RELEASE.jar`这个包下。
+5. 它会把所有需要导入的组件，以类名的方式返回，这些组件就会被添加到容器。
+6. 容器中也会存在非常多的x...AutoConfiguration的文件，就是这些类给容器中导入了这个场景需要的所有组件，并自动配置。 @Configuration，JavaConfig！
+7. 有了自动配置类，就免去手动导入。
+
+#### 2.2 SpringApplication
+
+这个类主要做了以下四件事：
+
+1. 腿短应用的类型是普通项目还是web项目
+2. 查找并加载所有可用初始化器，设置到 initializers 属性中
+3. 找出所有的应用程序监听器，设置到 listeners 属性中
+4. 推荐并设置 main 方法的定义类，找到运行的主类
+
+##### 面试题：关于SpringBoot，谈谈理解
+
+- 自动装配
+- SpringApplication.run()方法（就是上面四件事）
+
+#### 2.3 Yaml语法
+
+官方文档：https://docs.spring.io/spring-boot/docs/2.1.6.RELEASE/reference/htmlsingle/#boot-features-external-config
+
+##### 配置文件
+
+SpringBoot使用一个全局的配置文件，名称固定
+
+- application.properties
+  - 语法：key=value
+- application.yaml
+  - 语法：key：空格 value
+
+**作用**：修改SpringBoot自动配置的默认值。
+
+##### YAML
+
+是一种标记语言，也不是标记语言
+
+对比一下 YAML 和 XML
+
+```xml
+server: 
+	port:8080
+
+<server>
+	<port>8080</port>
+</server>
+```
+
+##### YAML语法
+
+基本语法
+
+```yaml
+# 对空格要求高
+# 可以注入到配置类中
+name: sugar
+# 对象
+student:
+  name: sugar
+  age: 3
+# 行内写法
+student2: {name: sugar, age: 3}
+# 数组
+pets:
+  - cat
+  - dog
+pets2: [cat, dog]
+```
+
+**YAML可以直接给实体类赋值**
+
+```yaml
+person:
+  name: sugar
+  age: ${random.int}
+  happy: false
+  birth: 2020/11/11
+  maps: {k1: v1, k2: v2}
+  list:
+    - code
+    - music
+  dog:
+    name: ${person.hello:hello}  # 存在的走person.hello，否则为hello
+    age: 3
+```
+
+```java
+/*
+@ConfigurationProperties作用：
+将配置文件中配置的每一个属性的值，映射到这个组件中
+告诉SpringBoot将本类中的所有属性和配置文件中相关的配置进行绑定
+参数 prefix="person"：将配置文件中的person下面的所有属性一一对应
+只有这个组件是容器中的组件，才能使用容器的@ConfigurationProperties功能
+ */
+@Component  // 注册bean
+@ConfigurationProperties(prefix = "person")
+public class Person {
+    private String name;
+    private int age;
+    private boolean happy;
+    private Date birth;
+    private Map<String, Object> maps;
+    private List<Object> list;
+    private Dog dog;
+}
+```
+
+YAML与Properties对比
+
+- 配置yaml和properties都可以获取到值，推荐yaml
+- 如果在某个业务中，只需要获取配置文件中的某个值，可以使用一下@Value
+- 如果专门编写了一个JavaBean来和配置文件进行映射，就直接使用 @ConfigurationProperties，不要犹豫！
+
+#### 2.4 JSR303数据校验
+
+依赖
+
+```xml
+<dependency>
+  	<groupId>org.springframework.boot</groupId>
+	  <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+```
+
+基本规则
+
+```java
+空检查 
+@Null 验证对象是否为null 
+@NotNull 验证对象是否不为null, 无法查检长度为0的字符串 
+@NotBlank 检查约束字符串是不是Null还有被Trim的长度是否大于0,只对字符串,且会去掉前后空格. 
+@NotEmpty 检查约束元素是否为NULL或者是EMPTY.
+
+Booelan检查 
+@AssertTrue 验证 Boolean 对象是否为 true 
+@AssertFalse 验证 Boolean 对象是否为 false
+
+长度检查 
+@Size(min=, max=) 验证对象（Array,Collection,Map,String）长度是否在给定的范围之内 
+@Length(min=, max=) Validates that the annotated string is between min and max included.
+
+日期检查 
+@Past 验证 Date 和 Calendar 对象是否在当前时间之前，验证成立的话被注释的元素一定是一个过去的日期 
+@Future 验证 Date 和 Calendar 对象是否在当前时间之后 ，验证成立的话被注释的元素一定是一个将来的日期 
+@Pattern 验证 String 对象是否符合正则表达式的规则，被注释的元素符合制定的正则表达式，regexp:正则表达式 flags: 指定 Pattern.Flag 的数组，表示正则表达式的相关选项。
+
+数值检查 
+建议使用在Stirng,Integer类型，不建议使用在int类型上，因为表单值为“”时无法转换为int，但可以转换为Stirng为”“,Integer为null 
+@Min 验证 Number 和 String 对象是否大等于指定的值 
+@Max 验证 Number 和 String 对象是否小等于指定的值 
+@DecimalMax 被标注的值必须不大于约束中指定的最大值. 这个约束的参数是一个通过BigDecimal定义的最大值的字符串表示.小数存在精度 
+@DecimalMin 被标注的值必须不小于约束中指定的最小值. 这个约束的参数是一个通过BigDecimal定义的最小值的字符串表示.小数存在精度 
+@Digits 验证 Number 和 String 的构成是否合法 
+@Digits(integer=,fraction=) 验证字符串是否是符合指定格式的数字，interger指定整数精度，fraction指定小数精度。 
+@Range(min=, max=) 被指定的元素必须在合适的范围内 
+@Range(min=10000,max=50000,message=”range.bean.wage”) 
+@Valid 递归的对关联对象进行校验, 如果关联对象是个集合或者数组,那么对其中的元素进行递归校验,如果是一个map,则对其中的值部分进行校验.(是否进行递归验证) 
+@CreditCardNumber信用卡验证 
+@Email 验证是否是邮件地址，如果为null,不进行验证，算通过验证。 
+@ScriptAssert(lang= ,script=, alias=) 
+@URL(protocol=,host=, port=,regexp=, flags=)
+```
+
+示例
+
+```java
+@Validated  // 数据校验
+public class Person {
+    @Email(message = "邮箱格式错误")
+    private String name;
+}
+```
+
