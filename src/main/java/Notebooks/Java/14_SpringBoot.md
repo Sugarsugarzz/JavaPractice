@@ -432,16 +432,16 @@ public void addResourceHandlers(ResourceHandlerRegistry registry) {
 }
 ```
 
-什么是 webjars
+**什么是 webjars**
 
-​	以Maven方式引入静态资源，比如 JQuery。
+​	以Maven方式引入静态资源，比如 JQuery。（不推荐）
 
 **ResourceProperties 定义的 CLASSPATH_RESOURCE_LOCATIONS 包括：**
 
 优先级自上而下
 
 ```xml
-classpath:/META-INF/resources/
+classpath:/META-INF/resources/   # 也就是webjars方式
 classpath:/resources/
 classpath:/static/
 classpath:/public/
@@ -454,3 +454,130 @@ classpath:/public/
    - public、static、resources、/**    访问：localhost:8080/
 
 2. 优先级：resources > static > public
+
+#### 3.2 首页定制
+
+```java
+@Bean
+public WelcomePageHandlerMapping welcomePageHandlerMapping(ApplicationContext applicationContext, FormattingConversionService mvcConversionService, ResourceUrlProvider mvcResourceUrlProvider) {
+  WelcomePageHandlerMapping welcomePageHandlerMapping = new WelcomePageHandlerMapping(new TemplateAvailabilityProviders(applicationContext), applicationContext, this.getWelcomePage(), this.mvcProperties.getStaticPathPattern());
+  welcomePageHandlerMapping.setInterceptors(this.getInterceptors(mvcConversionService, mvcResourceUrlProvider));
+  welcomePageHandlerMapping.setCorsConfigurations(this.getCorsConfigurations());
+  return welcomePageHandlerMapping;
+}
+
+private Optional<Resource> getWelcomePage() {
+  String[] locations = WebMvcAutoConfiguration.getResourceLocations(this.resourceProperties.getStaticLocations());
+  return Arrays.stream(locations).map(this::getIndexHtml).filter(this::isReadable).findFirst();
+}
+
+private Resource getIndexHtml(String location) {
+  return this.resourceLoader.getResource(location + "index.html");
+}
+```
+
+将 **index.html** 放在 public/static/resources 下，默认即为首页。
+
+一般来说，是放在 templates 中，不能直接访问，由 Controller 控制其访问。
+
+#### 3.3 thymeleaf 模板引擎
+
+JSP好处：当查出一些数据转到到JSP页面之后，可以轻松实现数据的显示及交互等，能够写Java代码。但在SpringBoot项目中，首先是以jar方式，不是jar，其次用的嵌入式Tomcat，所以**默认不支持JSP**。
+
+直接用纯静态页面的方式，开发会有很大的麻烦，SpringBoot推荐使用模板引擎。
+
+模板引擎有：JSP、freemarker、**thymeleaf**（SpringBoot推荐）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200924121856808.png" alt="image-20200924121856808" style="zoom:30%;" />
+
+依赖：
+
+```xml
+<dependency>
+	  <groupId>org.thymeleaf</groupId>
+	  <artifactId>thymeleaf-spring5</artifactId>
+</dependency>
+<dependency>
+	  <groupId>org.thymeleaf.extras</groupId>
+	  <artifactId>thymeleaf-extras-java8time</artifactId>
+</dependency>
+```
+
+**结论**：只要需要使用thymeleaf，只需要导入对应的依赖即可！将 **html** 放在 **templates** 目录下即可。
+
+##### thymeleaf语法
+
+见官网
+
+```java
+@RequestMapping("/test")
+public String test(Model model) {
+  model.addAttribute("msg", "<h1>hello 123</h1>");
+
+  model.addAttribute("users", Arrays.asList("sugar", "java"));
+  return "test";
+}
+```
+
+```html
+<!--所有的 HTML 元素都可以被 thymeleaf 接管  语法：th:元素名-->
+
+<!--不转义-->
+<div th:text="${msg}"></div>
+<!--转义-->
+<div th:utext="${msg}"></div>
+
+<!--遍历数组-->
+<!--<h3 th:each="user:${users}" th:text="${user}"></h3>-->
+<h3 th:each="user:${users}">[[${user}]]</h3>
+```
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20200924124614177.png" alt="image-20200924124614177" style="zoom:40%;" />
+
+#### 3.4 MVC配置原理
+
+SpringBoot在自动配置很多组件时，先看容器中有没有用户自己配置的（如果用户自己配置@bean），如果有就用用户配置的，如果没有就用自动配置的；如果有些组件可以存在多个，比如视图解析器，就将用户配置的和自己默认的组合起来！
+
+```java
+// 如果想 DIY 一些定制化的功能，只要写这个组件，然后将它交给SpringBoot，然后就会自动装配
+// 扩展 SpringMVC
+@Configuration
+public class MyMvcConfig implements WebMvcConfigurer {
+
+    // ViewResolver  实现了视图解析器接口的类，就可以将其看做视图解析器
+    @Bean
+    public ViewResolver myViewResolver() {
+        return new MyViewResolver();
+    }
+
+    // 自定义一个自己的视图解析器 MyViewResolver
+    public static class MyViewResolver implements ViewResolver {
+        @Override
+        public View resolveViewName(String s, Locale locale) throws Exception {
+            return null;
+        }
+    }
+}
+```
+
+#### 3.5 扩展SpringMVC（重难点）
+
+编写一个 **@Configuration** 注解类，并且类型要为 **WebMvcConfigurer**，还**不能标注** **@EnableWebMvc** 注解。
+
+然后去写一个视图解析器，新建一个包叫 config，写一个类 MyMvcConfig
+
+```java
+// 如果要扩展SpringMVC，官方建议这样做！
+@Configuration
+public class MyMvcConfig implements WebMvcConfigurer {
+    // 视图跳转
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        // 访问 /sugar，跳转到 test.html
+        registry.addViewController("/sugar").setViewName("test");
+    }
+}
+```
+
+**总结**：在SpringBoot中，有非常多的 xxxConfiguration，会帮助进行扩展配置，只要看见这个东西就要注意了，
+
