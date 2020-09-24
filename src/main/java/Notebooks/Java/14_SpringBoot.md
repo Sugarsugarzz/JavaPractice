@@ -188,6 +188,17 @@ SpringBoot使用一个全局的配置文件，名称固定
 
 **作用**：修改SpringBoot自动配置的默认值。
 
+##### 配置文件位置
+
+优先级自上而下
+
+```xml
+根目录:./config/
+根目录:./
+classpath:/config/
+classpath:
+```
+
 ##### YAML
 
 是一种标记语言，也不是标记语言
@@ -222,6 +233,27 @@ pets:
   - cat
   - dog
 pets2: [cat, dog]
+```
+
+**YAML多配置环境切换**
+
+```yml
+# 多环境测试
+server:
+  port: 8081
+spring:
+  profiles:
+    active: dev
+---
+server:
+  port: 8082
+spring:
+  profiles: dev
+---
+server:
+  port: 8083
+spring:
+  profiles: test
 ```
 
 **YAML可以直接给实体类赋值**
@@ -328,3 +360,97 @@ public class Person {
 }
 ```
 
+#### 2.5 自动装配原理再理解
+
+YAML中能配置的东西，都与 **spring.factories** 相联系。
+
+在配置文件中能够配置的东西，都存在一个固有的规律：
+
+xxxAutoConfiguration：默认值   --->  xxxProperties  --->  与配置文件绑定，可以使用自定义的配置了！
+
+**自动装配原理的精髓**：
+
+1. SpringBoot启动会加载大量的自动配置类
+
+2. 看需要的功能有没有在SpringBoot默认写好的自动配置类当中
+
+3. 再看这个自动配置类中到底配置了哪些组件（只要要用的组件存在其中，就不需要再手动配置了）
+
+4. 给容器中自动配置类添加组件时，会从properties类中获取某些属性，我们只需要在配置文件中指定这些属性的值即可
+
+   xxxAutoConfiguration：自动配置类；给容器中添加组件
+
+   xxxProperties：封装配置文件中相关属性
+
+**@Conditional**注解，判断指定的条件成立，才给容器中添加组件，配置类里面的所有内容才会生效。
+
+**总结：根据当前不同的条件判断，决定这个配置类是否生效。**
+
+```yml
+在YAML中配置
+debug: true
+会打印日志，查看哪些组件生效，哪些没有生效。
+```
+
+### 3. SpringBoot Web开发
+
+SpringBoot配置了什么？能否修改？能修改什么？能不能扩展？
+
+- xxxAutoConfiguration：向容器中自动配置组件
+- xxxProperties：自动配置类，装配配置文件中自定义的一些内容
+
+要解决的问题：
+
+- 导入静态资源
+- 首页
+- jsp，模板引擎 Thymeleaf（不要盲目前后端分离，一般大型项目需要分离，小项目看情况）
+- 装配扩展SpringMVC
+- 增删改查
+- 拦截器
+- 国家化
+
+#### 3.1 静态资源
+
+```java
+public void addResourceHandlers(ResourceHandlerRegistry registry) {
+  // 如果在yaml配置了资源路径，则失效
+  if (!this.resourceProperties.isAddMappings()) {
+    logger.debug("Default resource handling disabled");
+  } else {
+    Duration cachePeriod = this.resourceProperties.getCache().getPeriod();
+    CacheControl cacheControl = this.resourceProperties.getCache().getCachecontrol().toHttpCacheControl();
+    // webjars 引入
+    if (!registry.hasMappingForPattern("/webjars/**")) {
+      this.customizeResourceHandlerRegistration(registry.addResourceHandler(new String[]{"/webjars/**"}).addResourceLocations(new String[]{"classpath:/META-INF/resources/webjars/"}).setCachePeriod(this.getSeconds(cachePeriod)).setCacheControl(cacheControl));
+    }
+		// 从默认路径，staticLocation(CLASSPATH_RESOURCE_LOCATIONS) 定义的所有路径中引入
+    String staticPathPattern = this.mvcProperties.getStaticPathPattern();
+    if (!registry.hasMappingForPattern(staticPathPattern)) {
+      this.customizeResourceHandlerRegistration(registry.addResourceHandler(new String[]{staticPathPattern}).addResourceLocations(WebMvcAutoConfiguration.getResourceLocations(this.resourceProperties.getStaticLocations())).setCachePeriod(this.getSeconds(cachePeriod)).setCacheControl(cacheControl));
+    }
+  }
+}
+```
+
+什么是 webjars
+
+​	以Maven方式引入静态资源，比如 JQuery。
+
+**ResourceProperties 定义的 CLASSPATH_RESOURCE_LOCATIONS 包括：**
+
+优先级自上而下
+
+```xml
+classpath:/META-INF/resources/
+classpath:/resources/
+classpath:/static/
+classpath:/public/
+```
+
+总结：
+
+1. 在SpringBoot中，可以使用一下方式处理静态资源
+   - webjars  访问：localhost:8080/webjars/
+   - public、static、resources、/**    访问：localhost:8080/
+
+2. 优先级：resources > static > public

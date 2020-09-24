@@ -10,3 +10,20 @@ person:
   dog:
     name: ${person.hello:hello}  # 存在的走person.hello，否则为hello
     age: 3
+
+# 多环境测试
+server:
+  port: 8081
+spring:
+  profiles:
+    active: dev
+---
+server:
+  port: 8082
+spring:
+  profiles: dev
+---
+server:
+  port: 8083
+spring:
+  profiles: test
