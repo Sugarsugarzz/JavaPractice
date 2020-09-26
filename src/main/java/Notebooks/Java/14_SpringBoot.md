@@ -513,7 +513,6 @@ JSP好处：当查出一些数据转到到JSP页面之后，可以轻松实现�
 @RequestMapping("/test")
 public String test(Model model) {
   model.addAttribute("msg", "<h1>hello 123</h1>");
-
   model.addAttribute("users", Arrays.asList("sugar", "java"));
   return "test";
 }
