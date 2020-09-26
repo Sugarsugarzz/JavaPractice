@@ -1,12 +1,14 @@
 package com.sugar.dao;
 
 import com.sugar.pojo.Department;
+import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 // 部门Dao
+@Repository
 public class DepartmentDao {
 
     // 模拟数据库中的数据
@@ -27,7 +29,7 @@ public class DepartmentDao {
     }
 
     // 通过id得到部门
-    public Department getDepartment() {
-        return null;
+    public Department getDepartmentById(Integer id) {
+        return departments.get(id);
     }
 }

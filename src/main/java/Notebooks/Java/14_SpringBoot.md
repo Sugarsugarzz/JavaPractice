@@ -580,3 +580,138 @@ public class MyMvcConfig implements WebMvcConfigurer {
 
 **总结**：在SpringBoot中，有非常多的 xxxConfiguration，会帮助进行扩展配置，只要看见这个东西就要注意了，
 
+### 4. 员工管理系统 实践
+
+#### 4.1 准备工作
+
+1. 准备 404.html、dashboard.html、index.html、list.html
+2. 准备 员工和部门 Pojo 和 dao
+3. 准备 config/MyMvcConfig
+
+#### 4.2 首页实现
+
+使用 thymeleaf 接管，注意用 th:href 导入静态资源即可。
+
+#### 4.3 国际化
+
+1. 在 resources 下新建 i18n 文件夹，存放国际化配置文件
+
+2. 在 i18n 下建各种配置文件 ， xxx_地区_国家.properties（如 login_zh_CN.properties），并配置参数
+
+3. 改造 html 中国际化参数，用 #{ } 表示
+
+4. 在 html 中加入切换国际化的按钮
+
+   ```html
+   <a class="btn btn-sm" th:href="@{/index.html(l='zh_CN')}">中文</a>
+   <a class="btn btn-sm" th:href="@{/index.html(l='en_US')}">English</a>
+   ```
+
+5. 自定义一个本地化解析器 LocaleResolver，如果请求携带国际化参数，则传入地区和国家参数
+
+   ```java
+   // 国际化：本地化解析器
+   public class MyLocaleResolver implements LocaleResolver {
+   
+       // 解析请求
+       @Override
+       public Locale resolveLocale(HttpServletRequest request) {
+           // 获取语言请求参数
+           String language = request.getParameter("l");
+           // 如果没有就使用默认的
+           Locale locale = Locale.getDefault();
+           // 如果请求的参数携带了国际化的参数
+           if (!StringUtils.isEmpty(language)) {
+               String[] split = language.split("_");
+               // 国家，地区
+               locale = new Locale(split[0], split[1]);
+           }
+           return locale;
+       }
+       @Override
+       public void setLocale(HttpServletRequest request, HttpServletResponse response, Locale locale) {
+   
+       }
+   }
+   ```
+
+6. 将自定义组件，配置到Spring容器
+
+   ```java
+   // 自定义的国际化组件生效
+   @Bean
+   public LocaleResolver localeResolver() {
+     return new MyLocaleResolver();
+   }
+   ```
+
+**注意点：**
+
+- 需要配置 i18n 文件
+- 如果需要，在项目中进行按钮自动切换，需要自定义一个组件 `LocaleResolver`
+- 将组件配置到Spring容器
+- #{}
+
+#### 4.4 登录注册实现
+
+1. 在 index.html 添加一个 p，显示登录返回的信息
+
+   ```html
+   <!--如果msg为空，则不显示-->
+   <p th:text="${msg}" style="color: red" th:if="${not #strings.isEmpty(msg)}"></p>
+   ```
+
+2. 添加登录控制器 LoginController，处理登录业务
+
+   ```java
+   @Controller
+   public class LoginController {
+   
+      @RequestMapping("/user/login")
+       public String login(@RequestParam("username") String username,
+                           @RequestParam("password") String password,
+                           Model model, HttpSession session) {
+   
+          // 具体业务
+          if (!StringUtils.isEmpty(username) && "123456".equals(password)) {
+              session.setAttribute("loginUser", username);
+              return "redirect:/main.html";
+          } else {
+              model.addAttribute("msg", "用户名或密码错误！");
+              return "index";
+          }
+       }
+   }
+   ```
+
+3. 添加拦截器，LoginHandlerInterceptor，限制未登录状态
+
+   ```java
+   // 拦截器
+   public class LoginHandlerInterceptor implements HandlerInterceptor {
+     @Override
+     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+       // 登录成功之后，应该取得用户的Session
+       Object loginUser = request.getSession().getAttribute("loginUser");
+       if (loginUser == null) {
+         request.setAttribute("msg", "没有权限，请先登录");
+         request.getRequestDispatcher("/index.html").forward(request, response);
+         return false;
+       } else {
+         return true;
+       }
+     }
+   }
+   ```
+
+4. 注册拦截器
+
+   ```java
+   // 自定义拦截器
+   @Override
+   public void addInterceptors(InterceptorRegistry registry) {
+     registry.addInterceptor(new LoginHandlerInterceptor())
+       .addPathPatterns("/**")
+       .excludePathPatterns("/index.html", "/", "/user/login", "/css/*", "/js/*", "/img/*");
+   }
+   ```
