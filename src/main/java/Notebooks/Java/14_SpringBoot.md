@@ -715,3 +715,188 @@ public class MyMvcConfig implements WebMvcConfigurer {
        .excludePathPatterns("/index.html", "/", "/user/login", "/css/*", "/js/*", "/img/*");
    }
    ```
+
+#### 4.5 展示员工列表
+
+1. 提取公共页面
+
+   -  `th:fragent="sidebar"` 
+   -  `th:replace="~{commons/commons::sidebar}"` 或 `th:insert="~{commons/commons::sidebar}"`
+   - 如果要传递参数，可以使用 （）传参，接收判断即可。
+
+   commons.html
+
+   ```html
+   <!--侧边栏-->
+   <nav class="col-md-2 d-none d-md-block bg-light sidebar" th:fragment="sidebar">
+       <div class="sidebar-sticky">
+           <ul class="nav flex-column">
+               <li class="nav-item">
+                   <a th:class="${active=='main.html'? 'nav-link active' : 'nav-link'}" th:href="@{/main.html}">
+                       首页
+                   </a>
+               </li>
+               <li class="nav-item">
+                   <a th:class="${active=='list.html'? 'nav-link active' : 'nav-link'}" th:href="@{/emps}">
+                       员工管理
+                   </a>
+               </li>
+               <li class="nav-item">
+                   <a class="nav-link" href="">
+                       注销
+                   </a>
+               </li>
+           </ul>
+       </div>
+   </nav>
+   ```
+
+   dashboard.html
+
+   ```html
+   <div class="container-fluid">
+       <div class="row">
+           <div th:replace="~{common/commons::sidebar(active='main.html')}"></div>
+       </div>
+   </div>
+   ```
+
+2. 编写 EmployeeController，提供展示员工数据的请求
+
+   ```java
+   @RequestMapping("/emps")
+   public String list(Model model) {
+     Collection<Employee> employees = employeeDao.getAll();
+     model.addAttribute("emps", employees);
+     return "emp/list";
+   }
+   ```
+
+3. 编写展示员工列表页面
+
+   ```html
+   <div class="container-fluid">
+       <div class="row">
+           <div th:replace="~{common/commons::sidebar(active='list.html')}"></div>
+   
+           <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+               <h2>员工列表</h2>
+               <div class="table-responsive">
+                   <table class="table table-striped table-sm">
+                       <thead>
+                           <tr>
+                               <th>id</th>
+                               <th>lastName</th>
+                               <th>email</th>
+                               <th>gender</th>
+                               <th>department</th>
+                               <th>birth</th>
+                               <th>操作</th>
+                           </tr>
+                       </thead>
+                       <tbody>
+                           <tr th:each="emp: ${emps}">
+                               <td th:text="${emp.getId()}"></td>
+                               <td th:text="${emp.getLastName()}"></td>
+                               <td th:text="${emp.getEmail()}"></td>
+                               <td th:text="${emp.getGender() == 0 ? '女' : '男'}"></td>
+                               <td th:text="${emp.getDepartment().getDepartmentName()}"></td>
+                               <td th:text="${#dates.format(emp.getBirth(), 'yyyy-MM-dd HH:mm:ss')}"></td>
+                               <td>
+                                   <button class="btn btn-sm btn-primary">编辑</button>
+                                   <button class="btn btn-sm btn-danger">删除</button>
+                               </td>
+                           </tr>
+                       </tbody>
+                   </table>
+               </div>
+           </main>
+       </div>
+   </div>
+   ```
+
+#### 4.6 增加员工
+
+1. 修改员工展示页面，增加添加按钮
+
+   ```html
+   <h5><a class="btn btn-sm btn-success" th:href="@{/emp}">添加员工</a></h5>
+   ```
+
+2. 编写添加员工页面
+
+   ```html
+   <div class="container-fluid">
+       <div class="row">
+           <div th:replace="~{common/commons::sidebar(active='list.html')}"></div>
+   
+           <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+               <!--添加员工表单-->
+               <form th:action="@{/emp}" method="post">
+                   <div class="form-group">
+                       <label>LastName</label>
+                       <input name="lastName" type="text" class="form-control" placeholder="Sugar">
+                   </div>
+                   <div class="form-group">
+                       <label>Email</label>
+                       <input name="email" type="email" class="form-control" placeholder="406857586@qq.com">
+                   </div>
+                   <div class="form-group">
+                       <label>Gender</label>
+                       <div class="form-check form-check-inline">
+                           <input class="form-check-input" type="radio" name="gender" value="1">
+                           <label class="form-check-label">男</label>
+                       </div>
+                       <div class="form-check form-check-inline">
+                           <input class="form-check-input" type="radio" name="gender" value="0">
+                           <label class="form-check-label">女</label>
+                       </div>
+                   </div>
+                   <div class="form-group">
+                       <label>Department</label>
+                       <select class="form-control" name="department.id">
+                         <!--department.id！！-->
+                         <!--在Controller接收的是一个 Employee，所以在需要提交的是Department其中一个属性！-->
+                           <option th:each="dept: ${departments}" th:text="${dept.getDepartmentName()}" th:value="${dept.getId()}"></option>
+                       </select>
+                   </div>
+                   <div class="form-group">
+                       <label>Birth</label>
+                       <input name="birth" type="text" class="form-control" placeholder="sugar">
+                   </div>
+                   <button type="submit" class="btn btn-primary">添加</button>
+               </form>
+   
+           </main>
+       </div>
+   </div>
+   ```
+
+3. 编写 EmployeeController，处理添加员工请求
+
+   ```java
+   @GetMapping("/emp")
+   public String toAddpage(Model model) {
+     // 查出所有的部门信息
+     Collection<Department> departments = departmentDao.getDepartments();
+     model.addAttribute("departments", departments);
+     return "emp/add";
+   }
+   
+   @PostMapping("/emp")
+   public String addEmp(Employee employee) {
+     // 调用底层方法增加员工
+     employeeDao.add(employee);
+     return "redirect:/emps";
+   }
+   ```
+
+**注意：**
+
+日期问题，在 SpringBoot 配置文件中定义一下。 然后 department.id 注意一下。
+
+```properties
+# 自定义时间日期
+spring.mvc.date-format=yyyy-MM-dd
+```
+

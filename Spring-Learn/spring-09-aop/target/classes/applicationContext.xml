@@ -47,6 +47,7 @@
 
     <!--方式三：使用注解-->
     <!--开启注解支持-->
+    <!--JDP（默认proxy-target-class="false"）  cglib(proxy-target-class="true")-->
     <aop:aspectj-autoproxy/>
     <bean id="annotationPointCut" class="diy.AnnotationPointCut"/>
 

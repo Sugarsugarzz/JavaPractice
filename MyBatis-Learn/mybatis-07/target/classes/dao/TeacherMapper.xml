@@ -25,6 +25,7 @@
     </resultMap>
 
     <!--============================================================-->
+    <!--按查询嵌套查询-->
     <select id="getTeacher2" resultMap="TeacherStudent2">
         SELECT * FROM teacher WHERE id = #{tid}
     </select>

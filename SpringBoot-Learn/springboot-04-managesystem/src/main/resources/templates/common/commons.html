@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<!--侧边栏-->
+<nav class="col-md-2 d-none d-md-block bg-light sidebar" th:fragment="sidebar">
+    <div class="sidebar-sticky">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a th:class="${active=='main.html'? 'nav-link active' : 'nav-link'}" th:href="@{/main.html}">
+                    首页
+                </a>
+            </li>
+            <li class="nav-item">
+                <a th:class="${active=='list.html'? 'nav-link active' : 'nav-link'}" th:href="@{/emps}">
+                    员工管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="">
+                    注销
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+
+
+</html>

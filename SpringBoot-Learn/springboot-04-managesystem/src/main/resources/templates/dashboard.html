@@ -3,12 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet"/>
 </head>
 <body>
 
-Dashboard
+<h1>Dashboard</h1>
+<h5>Username：[[${session.loginUser}]]</h5>
 
-[[${session.loginUser}]]
+<div class="container-fluid">
+    <div class="row">
+        <div th:replace="~{common/commons::sidebar(active='main.html')}"></div>
+    </div>
+</div>
+
+
 
 </body>
 </html>

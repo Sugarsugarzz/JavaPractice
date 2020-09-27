@@ -11,7 +11,9 @@
     <context:annotation-config/>
 
     <bean id="cat" class="pojo.Cat"/>
+    <bean id="cat222" class="pojo.Cat"/>
     <bean id="dog" class="pojo.Dog"/>
+    <bean id="dog222" class="pojo.Dog"/>
     <bean id="people" class="pojo.People"/>
 
 </beans>

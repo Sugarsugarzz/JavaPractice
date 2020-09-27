@@ -26,6 +26,6 @@
 
     <mappers>
         <mapper class="dao.TeacherMapper" />
-        <mapper class="dao.StudentMapper" />
+        <mapper class="dao.BlogMapper" />
     </mappers>
 </configuration>

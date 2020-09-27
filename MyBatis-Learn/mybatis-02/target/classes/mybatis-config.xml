@@ -41,6 +41,9 @@
     </environments>
 
     <mappers>
-        <mapper resource="dao/UserMapper.xml" />
+<!--        <mapper resource="dao/UserMapper.xml" />-->
+<!--        <mapper class="dao.UserDao"/>-->
+        <package name="dao"/>
     </mappers>
+
 </configuration>

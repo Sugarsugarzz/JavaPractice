@@ -12,6 +12,8 @@
     <!--开启注解支持-->
     <context:annotation-config/>
 
-
+    <bean id="user" class="pojo.User">
+        <property name="name" value="Sugar"/>
+    </bean>
 
 </beans>

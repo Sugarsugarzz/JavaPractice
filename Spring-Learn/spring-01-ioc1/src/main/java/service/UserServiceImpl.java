@@ -1,6 +1,5 @@
 package service;
 
-import com.mysql.cj.protocol.a.MysqlBinaryValueDecoder;
 import dao.UserDao;
 import dao.UserDaoImpl;
 import dao.UserDaoMysqlImpl;

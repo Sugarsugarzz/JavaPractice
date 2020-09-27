@@ -10,7 +10,7 @@
     </select>
 
     <select id="getUserLike" resultType="pojo.User">
-        SELECT * FROM `user` WHERE `name` LIKE #{value}
+        SELECT * FROM `user` WHERE `name` LIKE CONCAT("%", #{value}, "%")
     </select>
 
     <select id="getUserByID" parameterType="int" resultType="pojo.User">

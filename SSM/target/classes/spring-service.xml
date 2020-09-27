@@ -10,18 +10,22 @@
                         http://www.springframework.org/schema/aop
                         https://www.springframework.org/schema/aop/spring-aop.xsd">
 
-    <!--applicationContext.xml 专注 bean的注册-->
-    <!--spring-dao.xml 专注 数据库-->
-    <import resource="spring-dao.xml"/>
+    <!--1. 扫描service下面的包-->
+    <context:component-scan base-package="service"/>
 
-    <!--注册bean-->
-    <bean id="userMapper" class="dao.UserMapperImpl">
-        <property name="sqlSession" ref="sqlSession"/>
+    <!--2. 将所有的业务类，注入到Spring，可以通过配置或者注解实现-->
+    <!--也可以通过注解来实现  @Service  @Autowired-->
+    <bean id="BookServiceImpl" class="service.BookServiceImpl">
+        <property name="bookMapper" ref="bookMapper"/>
     </bean>
 
-    <!--第二种：SqlSessionDaoSupport实现-->
-    <!--spring-dao.xml 中的sqlSession也不需要配置了，Impl类中也不需要sqlSession属性了，继承SqlSessionDaoSupport抽象类即可-->
-    <bean id="userMapper2" class="dao.UserMapperImpl">
-        <property name="sqlSessionFactory" ref="sqlSessionFactory"/>
+    <!--3. 声明式事务配置-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <!--注入数据源-->
+        <property name="dataSource" ref="dataSource"/>
     </bean>
+
+    <!--4. AOP事务支持（这个项目里不需要）-->
+
+
 </beans>

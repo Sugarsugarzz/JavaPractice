@@ -3,6 +3,9 @@
 
 <mapper namespace="dao.UserMapper">
 
+    <!--ehcache-->
+    <cache type="org.mybatis.caches.ehcache.EhcacheCache" />
+
     <!--在当前 Mapper.xml 中使用二级缓存-->
     <cache eviction="FIFO"
            flushInterval="60000"
