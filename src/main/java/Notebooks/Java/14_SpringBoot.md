@@ -900,3 +900,11 @@ public class MyMvcConfig implements WebMvcConfigurer {
 spring.mvc.date-format=yyyy-MM-dd
 ```
 
+##### 5. 整合 Mybatis
+
+1. 导入包
+2. 配置文件
+3. mybatis配置
+4. 编写sql
+5. service层调用dao层
+6. controller层调用service层
