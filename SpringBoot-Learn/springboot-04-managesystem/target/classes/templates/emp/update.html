@@ -12,24 +12,24 @@
         <div th:replace="~{common/commons::sidebar(active='list.html')}"></div>
 
         <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
-            <!--添加员工表单-->
-            <form th:action="@{/emp}" method="post">
+            <form th:action="@{/updateEmp}" method="post">
+                <input type="hidden" name="id" th:value="${emp.getId()}">
                 <div class="form-group">
                     <label>LastName</label>
-                    <input name="lastName" type="text" class="form-control" placeholder="Sugar">
+                    <input name="lastName" type="text" class="form-control" th:value="${emp.getLastName()}">
                 </div>
                 <div class="form-group">
                     <label>Email</label>
-                    <input name="email" type="email" class="form-control" placeholder="406857586@qq.com">
+                    <input name="email" type="email" class="form-control" th:value="${emp.getEmail()}">
                 </div>
                 <div class="form-group">
                     <label>Gender</label>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="gender" value="1">
+                        <input class="form-check-input" type="radio" name="gender" value="1" th:checked="${emp.getGender() == 1}">
                         <label class="form-check-label">男</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="gender" value="0">
+                        <input class="form-check-input" type="radio" name="gender" value="0" th:checked="${emp.getGender() == 0}">
                         <label class="form-check-label">女</label>
                     </div>
                 </div>
@@ -37,14 +37,15 @@
                     <label>Department</label>
                     <select class="form-control" name="department.id">
                         <!--在Controller接收的是一个 Employee，所以在需要提交的是Department其中一个属性！-->
-                        <option th:each="dept: ${departments}" th:text="${dept.getDepartmentName()}" th:value="${dept.getId()}"></option>
+                        <option th:selected="${dept.getId() == emp.getDepartment().getId()}" th:each="dept: ${departments}" th:text="${dept.getDepartmentName()}"
+                                th:value="${dept.getId()}"></option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Birth</label>
-                    <input name="birth" type="text" class="form-control" placeholder="sugar">
+                    <input name="birth" type="text" class="form-control" th:value="${#dates.format(emp.getBirth(), 'yyyy-MM-dd')}">
                 </div>
-                <button type="submit" class="btn btn-primary">添加</button>
+                <button type="submit" class="btn btn-primary">修改</button>
             </form>
 
         </main>

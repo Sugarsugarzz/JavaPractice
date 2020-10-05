@@ -580,7 +580,7 @@ public class MyMvcConfig implements WebMvcConfigurer {
 
 **总结**：在SpringBoot中，有非常多的 xxxConfiguration，会帮助进行扩展配置，只要看见这个东西就要注意了，
 
-### 4. 员工管理系统 实践
+### 4. 员工管理系统（实践）
 
 #### 4.1 准备工作
 
@@ -900,7 +900,156 @@ public class MyMvcConfig implements WebMvcConfigurer {
 spring.mvc.date-format=yyyy-MM-dd
 ```
 
-##### 5. 整合 Mybatis
+#### 4.6 修改员工
+
+1. 修改员工展示页面，添加编辑请求
+
+   ```html
+   <a class="btn btn-sm btn-primary" th:href="@{/emp/} + ${emp.getId()}">编辑</a>
+   ```
+
+2. 编写修改员工页面（隐藏域加一个id）
+
+   ```html
+   <!DOCTYPE html>
+   <html lang="en" xmlns:th="http://www.thymeleaf.org">
+   <head>
+       <meta charset="UTF-8">
+       <title>Title</title>
+       <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet"/>
+   </head>
+   <body>
+   
+   <div class="container-fluid">
+       <div class="row">
+           <div th:replace="~{common/commons::sidebar(active='list.html')}"></div>
+   
+           <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+               <form th:action="@{/updateEmp}" method="post">
+                   <input type="hidden" name="id" th:value="${emp.getId()}">
+                   <div class="form-group">
+                       <label>LastName</label>
+                       <input name="lastName" type="text" class="form-control" th:value="${emp.getLastName()}">
+                   </div>
+                   <div class="form-group">
+                       <label>Email</label>
+                       <input name="email" type="email" class="form-control" th:value="${emp.getEmail()}">
+                   </div>
+                   <div class="form-group">
+                       <label>Gender</label>
+                       <div class="form-check form-check-inline">
+                           <input class="form-check-input" type="radio" name="gender" value="1" th:checked="${emp.getGender() == 1}">
+                           <label class="form-check-label">男</label>
+                       </div>
+                       <div class="form-check form-check-inline">
+                           <input class="form-check-input" type="radio" name="gender" value="0" th:checked="${emp.getGender() == 0}">
+                           <label class="form-check-label">女</label>
+                       </div>
+                   </div>
+                   <div class="form-group">
+                       <label>Department</label>
+                       <select class="form-control" name="department.id">
+                           <!--在Controller接收的是一个 Employee，所以在需要提交的是Department其中一个属性！-->
+                           <option th:selected="${dept.getId() == emp.getDepartment().getId()}" th:each="dept: ${departments}" th:text="${dept.getDepartmentName()}"
+                                   th:value="${dept.getId()}"></option>
+                       </select>
+                   </div>
+                   <div class="form-group">
+                       <label>Birth</label>
+                       <input name="birth" type="text" class="form-control" th:value="${#dates.format(emp.getBirth(), 'yyyy-MM-dd')}">
+                   </div>
+                   <button type="submit" class="btn btn-primary">修改</button>
+               </form>
+   
+           </main>
+       </div>
+   </div>
+   
+   </body>
+   </html>
+   ```
+
+3. 编写 EmployeeController，处理修改员工请求
+
+   ```java
+   package com.sugar.controller;
+   
+   import com.sugar.dao.DepartmentDao;
+   import com.sugar.dao.EmployeeDao;
+   import com.sugar.pojo.Department;
+   import com.sugar.pojo.Employee;
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.stereotype.Controller;
+   import org.springframework.ui.Model;
+   import org.springframework.web.bind.annotation.GetMapping;
+   import org.springframework.web.bind.annotation.PathVariable;
+   import org.springframework.web.bind.annotation.PostMapping;
+   import org.springframework.web.bind.annotation.RequestMapping;
+   
+   import java.util.Collection;
+   
+   @Controller
+   public class EmployeeController {
+   
+       @Autowired
+       EmployeeDao employeeDao;
+       @Autowired
+       DepartmentDao departmentDao;
+   
+       // 去员工的修改页面
+       @GetMapping("/emp/{id}")
+       public String toUpdateEmp(@PathVariable Integer id, Model model) {
+           // 查出原来的数据
+           Employee employee = employeeDao.getEmployeeById(id);
+           model.addAttribute("emp", employee);
+           Collection<Department> departments = departmentDao.getDepartments();
+           model.addAttribute("departments", departments);
+           return "emp/update";
+       }
+   
+       @PostMapping("/updateEmp")
+       public String updateEmp(Employee employee) {
+           employeeDao.add(employee);
+           return "redirect:/emps";
+       }
+   }
+   
+   ```
+
+#### 4.7 删除员工
+
+1. 修改员工展示页面，编辑删除请求
+
+   ```html
+   <a class="btn btn-sm btn-danger" th:href="@{/delEmp/{id}(id=${emp.getId()})}">删除</a>
+   ```
+
+2. 编写 EmployeeController，处理删除员工请求
+
+   ```java
+   // 删除员工
+   @GetMapping("/delEmp/{id}")
+   public String deleteEmp(@PathVariable("id") Integer id) {
+     employeeDao.delete(id);
+     return "redirect:/emps";
+   }
+   ```
+
+#### 4.8 404
+
+只需要在 `templates` 目录下建一个 `error` 文件夹，放 `404.html` 等错误代码页面即可。
+
+#### 4.9 注销
+
+```java
+@RequestMapping("/user/logout")
+public String logout(HttpSession session) {
+  session.invalidate();
+  return "redirect:/index.html";
+}
+```
+
+### 5. 整合 Mybatis
 
 1. 导入包
 2. 配置文件
