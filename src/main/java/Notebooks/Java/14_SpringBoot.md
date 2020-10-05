@@ -900,7 +900,7 @@ public class MyMvcConfig implements WebMvcConfigurer {
 spring.mvc.date-format=yyyy-MM-dd
 ```
 
-#### 4.6 修改员工
+#### 4.7 修改员工
 
 1. 修改员工展示页面，添加编辑请求
 
@@ -1016,7 +1016,7 @@ spring.mvc.date-format=yyyy-MM-dd
    
    ```
 
-#### 4.7 删除员工
+#### 4.8 删除员工
 
 1. 修改员工展示页面，编辑删除请求
 
@@ -1035,11 +1035,11 @@ spring.mvc.date-format=yyyy-MM-dd
    }
    ```
 
-#### 4.8 404
+#### 4.9 404
 
 只需要在 `templates` 目录下建一个 `error` 文件夹，放 `404.html` 等错误代码页面即可。
 
-#### 4.9 注销
+#### 4.10 注销
 
 ```java
 @RequestMapping("/user/logout")
@@ -1049,7 +1049,278 @@ public String logout(HttpSession session) {
 }
 ```
 
-### 5. 整合 Mybatis
+#### 4.11 网站开发思路
+
+1. 前端
+   - 模板：用现成写好的，改成自己IDE
+   - 框架：组件：自己手动组合拼接！  Bootstrap、Layui、semantic-ui、elementui
+     - 栅格系统
+     - 导航栏
+     - 侧边栏
+     - 表单
+2. 设计数据库（**难点**）
+3. 前端能够自动运行，独立化工程
+4. 数据接口如何对接：JSON，对象
+5. 前后端联调测试
+
+
+
+要求：
+
+- 有一套自己熟悉的后台模板：X-admin
+- 前端界面，至少能够通过前端框架，组合出来一个网站页面
+  - index
+  - about
+  - blog
+  - post
+  - user
+- 让网站独立运行
+
+### 5. Data
+
+SpringBoot 底层统一用 Spring Data 来处理。
+
+#### 5.1 JDBC
+
+默认使用 **HikariDataSource**，号称 Java WEB 当前速度最快的数据源，相比传统的C3P0、DBCP、Tomcat jdbc等连接池更加优秀。
+
+导入依赖
+
+```xml
+		<!--JDBC-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jdbc</artifactId>
+		</dependency>
+		<!--MYSQL-->
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+```
+
+测试
+
+```java
+@SpringBootTest
+class Springboot05DataApplicationTests {
+
+	@Autowired
+	DataSource dataSource;
+
+	@Test
+	void contextLoads() throws SQLException {
+		// 查看默认数据源:class com.zaxxer.hikari.HikariDataSource
+		System.out.println(dataSource.getClass());
+
+		// 获取数据库连接
+		Connection conn = dataSource.getConnection();
+		System.out.println(conn);
+
+		// xxxx Template： SpringBoot已经配置好的模板bean，拿来即用（例如：jdbc、redis）
+
+		// 关闭
+		conn.close();
+	}
+
+}
+```
+
+1. 配置 application.yml 的 datasource
+
+   ```yml
+   spring:
+     datasource:
+       username: root
+       password: 123456
+       url: jdbc:mysql://localhost:3306/learn_mybatis?useUnicode=true&characterEncoding=utf-8
+       driver-class-name: com.mysql.cj.jdbc.Driver
+   ```
+
+2. 使用 jdbcTemplate
+
+   ```java
+   package com.sugar.controller;
+   
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.jdbc.core.JdbcTemplate;
+   import org.springframework.web.bind.annotation.GetMapping;
+   import org.springframework.web.bind.annotation.PathVariable;
+   import org.springframework.web.bind.annotation.RestController;
+   
+   import java.util.List;
+   import java.util.Map;
+   
+   @RestController
+   public class JDBCController {
+   
+       @Autowired
+       JdbcTemplate jdbcTemplate;
+   
+       // 查询数据库的所有信息
+       // 没有实体类，通过 Map 获取数据库中的东西
+       @GetMapping("/userList")
+       public List<Map<String, Object>> userList() {
+           String sql = "select * from user";
+           List<Map<String, Object>> maps = jdbcTemplate.queryForList(sql);
+           return maps;
+       }
+   
+       @GetMapping("/addUser")
+       public String addUser() {
+           String sql = "insert into user(id, name, pwd) values (99, '小明', '123321')";
+           jdbcTemplate.update(sql);
+           return "add-ok";
+       }
+   
+       @GetMapping("/updateUser/{id}")
+       public String updateUser(@PathVariable("id") int id) {
+           String sql = "update user set name = ?, pwd = ? where id = " + id;
+           // 封装
+           Object[] objects = new Object[2];
+           objects[0] = "小明22";
+           objects[1] = "zzzzz";
+           jdbcTemplate.update(sql, objects);
+           return "update-ok";
+       }
+   
+       @GetMapping("/deleteUser/{id}")
+       public String deleteUser(@PathVariable("id") int id) {
+           String sql = "delete from user where id = ?";
+           jdbcTemplate.update(sql, id);
+           return "delete-ok";
+       }
+   }
+   ```
+
+#### 5.2 Druid数据源
+
+结合了C3P0、DBCP等DB池的优点，同时加入日志监控。
+
+导入依赖
+
+```xml
+<dependency>
+  <groupId>com.alibaba</groupId>
+  <artifactId>druid</artifactId>
+  <version>1.1.23</version>
+</dependency>
+```
+
+1. 修改 application.yml
+
+   ```yml
+   spring:
+     datasource:
+       username: root
+       password: 123456
+       url: jdbc:mysql://localhost:3306/learn_mybatis?useUnicode=true&characterEncoding=utf-8
+       driver-class-name: com.mysql.cj.jdbc.Driver
+       type: com.alibaba.druid.pool.DruidDataSource
+   
+       # SpringBoot 默认是不注入这些属性值的，需要自己绑定
+       # druid 数据源专有配置
+       initialSize: 5
+       minIdle: 5
+       maxActive: 20
+       maxWait: 60000
+       timeBetweenEvictionRunsMillis: 60000
+       minEvictableIdleTimeMillis: 300000
+       validationQuery: SELECT 'x'
+       testWhileIdle: true
+       testOnBorrow: false
+       testOnReturn: false
+       poolPreparedStatements: true
+   
+       # 配置监控统计拦截的filters，stat：监控统计、log4j：日志记录、wall：防御sql注入
+       # 如果允许时报错 java.lang.ClassNotFoundException: org.apache.log4j.Priority
+       # 则导入 log4j 依赖即可，Maven地址： https://mvcrepository.com/artifact/log4j/log4j
+       filters: stat,wall,log4j
+       maxPoolPreparedStatementPerConnectionSize: 20
+       useGlobalDataSourceStat: true
+       connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+   ```
+
+2. 导入log4j
+
+   ```xml
+   <!--log4j-->
+   <dependency>
+     <groupId>log4j</groupId>
+     <artifactId>log4j</artifactId>
+     <version>1.2.17</version>
+   </dependency>
+   ```
+
+3. 创建 DruidConfig，绑定yml中的datasource，实现自定义配置
+
+   ```java
+   package com.sugar.config;
+   
+   import com.alibaba.druid.pool.DruidDataSource;
+   import com.alibaba.druid.support.http.StatViewServlet;
+   import com.alibaba.druid.support.http.WebStatFilter;
+   import org.springframework.boot.context.properties.ConfigurationProperties;
+   import org.springframework.boot.web.servlet.FilterRegistrationBean;
+   import org.springframework.boot.web.servlet.ServletRegistrationBean;
+   import org.springframework.context.annotation.Bean;
+   import org.springframework.context.annotation.Configuration;
+   
+   import javax.sql.DataSource;
+   import java.util.HashMap;
+   import java.util.Map;
+   
+   @Configuration
+   public class DruidConfig {
+   
+       @Bean
+       @ConfigurationProperties(prefix = "spring.datasource")
+       public DataSource druidDataSource() {
+           return new DruidDataSource();
+       }
+   
+       // 后台监控：web.xml  ServletRegistrationBean
+       // 因为 SpringBoot 内置了 servlet 容器，所以没有web.xml，可以用替代方法：ServletRegistrationBean
+       @Bean
+       public ServletRegistrationBean statViewServlet() {
+           ServletRegistrationBean<StatViewServlet> bean = new ServletRegistrationBean<>(new StatViewServlet(), "/druid/*");
+           // 后台需要有人登陆，账号密码配置
+           Map<String, String> initParameters = new HashMap<>();
+           // 增加配置
+           initParameters.put("loginUsername", "admin");  // key是固定的
+           initParameters.put("loginPassword", "123456");
+           // 允许谁可以访问
+           initParameters.put("allow", "");
+           // 禁止谁访问
+   //        initParameters.put("sugar", "192.168.1.1");
+           bean.setInitParameters(initParameters);   // 设置初始化参数
+           return bean;
+       }
+       
+       // filter 过滤器
+     	@Bean
+       public FilterRegistrationBean webStatFilter() {
+           FilterRegistrationBean bean = new FilterRegistrationBean();
+           bean.setFilter(new WebStatFilter());
+           
+           // 可以过滤哪些请求？
+           Map<String, String> initParameters = new HashMap<>();
+           // 这些不进行统计
+           initParameters.put("exclusions", "*.js, *.css, /druid/*");
+           
+           bean.setInitParameters(initParameters);
+           return bean;
+       }
+   }
+   
+   ```
+
+4. 登陆Druid后台：http://localhost:8080/druid
+
+   可以查看SQL注入防御、慢SQL查询等。
+
+#### 5.3 整合 Mybatis 框架
 
 1. 导入包
 2. 配置文件
