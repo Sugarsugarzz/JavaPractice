@@ -1323,8 +1323,468 @@ class Springboot05DataApplicationTests {
 #### 5.3 整合 Mybatis 框架
 
 1. 导入包
-2. 配置文件
-3. mybatis配置
-4. 编写sql
-5. service层调用dao层
-6. controller层调用service层
+
+   ```xml
+   <dependency>
+     <groupId>org.mybatis.spring.boot</groupId>
+     <artifactId>mybatis-spring-boot-starter</artifactId>
+     <version>2.1.1</version>
+   </dependency>
+   ```
+
+2. 配置 appllication.yml，并对 mybatis 自定义配置
+
+   ```yml
+   spring:
+     datasource:
+       username: root
+       password: 123456
+       url: jdbc:mysql://localhost:3306/mybatis?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8
+       driver-class-name: com.mysql.cj.jdbc.Driver
+   
+   # 整合mybatis
+   mybatis:
+     type-aliases-package: com.sugar.pojo
+     mapper-locations: classpath:mybatis/mapper/*.xml
+   
+   ```
+
+3. 编写 pojo 类
+
+   ```java
+   package com.sugar.pojo;
+   
+   import lombok.AllArgsConstructor;
+   import lombok.Data;
+   import lombok.NoArgsConstructor;
+   
+   @Data
+   @AllArgsConstructor
+   @NoArgsConstructor
+   public class User {
+       private int id;
+       private String name;
+       private String pwd;
+   }
+   ```
+
+4. 编写 Mapper 
+
+   ```java
+   package com.sugar.mapper;
+   
+   import com.sugar.pojo.User;
+   import org.apache.ibatis.annotations.Mapper;
+   import org.springframework.stereotype.Repository;
+   
+   import java.util.List;
+   
+   @Mapper
+   @Repository
+   public interface UserMapper {
+       List<User> queryUserList();
+       User queryUserById(int id);
+       int addUser(User user);
+       int updateUser(User user);
+       int deleteUser(int id);
+   }
+   ```
+
+5. 编写 Mapper.xml 
+
+   ```xml
+   <?xml version="1.0" encoding="UTF-8" ?>
+   <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+   
+   <mapper namespace="com.sugar.mapper.UserMapper">
+       <select id="queryUserList" resultType="User">
+           select * from user
+       </select>
+   </mapper>
+   ```
+
+6. service层调用dao层
+
+   略
+
+7. controller层调用service层
+
+   ```java
+   package com.sugar.controller;
+   
+   import com.sugar.mapper.UserMapper;
+   import com.sugar.pojo.User;
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.stereotype.Controller;
+   import org.springframework.web.bind.annotation.GetMapping;
+   import org.springframework.web.bind.annotation.RestController;
+   
+   import java.util.List;
+   
+   @RestController
+   public class UserController {
+   
+       @Autowired
+       private UserMapper userMapper;
+   
+       @GetMapping("/queryUserList")
+       public List<User> queryUserList() {
+           List<User> userList = userMapper.queryUserList();
+           for (User user : userList) {
+               System.out.println(user);
+           }
+           return userList;
+       }
+   }
+   ```
+
+### 6. 安全
+
+**传统：过滤器、拦截器**
+
+缺点：大量的原生代码，冗余
+
+非功能性需求
+
+在设计之初考虑
+
+SpringSecurity 和 shiro：很像，除了类和名字不一样
+
+认证，授权（vip1、vip2、vip3）
+
+- 功能权限
+- 访问权限
+- 菜单权限
+
+框架！
+
+AOP思想！
+
+#### 6.1 Spring Security
+
+Spring Security 是针对Spring项目的安全框架，也是SpringBoot底层安全模块默认的技术选型，可以实现强大的Web安全控制。
+
+对于安全控制，仅需要引入 `spring-boot-starter-security` 模块，进行少量的配置，即可实现强大的安全管理。
+
+几个重要的类：
+
+- `WebSecurityConfigurerAdapter`：自定义Security策略
+- `AuthenticationManagerBuilder`：自定义认证策略
+- `@EnableWebSecurity`：开启WebSecurity模式
+
+Spring Security两个主要目标：**认证**、**授权**（访问控制）
+
+认证（Authentication）
+
+授权（Authorization）
+
+参考官网：https://spring.io/projects/spring-security
+
+根据项目版本，查找对应的帮助文档：https://docs.spring.io/spring-security/site/docs/5.2.0.RELEASE/reference/htmlsingle
+
+注：以下测试需要在 Springboot 2.0.9 环境。
+
+1. 搭建测试项目结构
+
+2. 导入依赖
+
+   ```xml
+   <!--security-thymeleaf整合-->
+   <dependency>
+     <groupId>org.thymeleaf.extras</groupId>
+     <artifactId>thymeleaf-extras-springsecurity4</artifactId>
+     <version>3.0.4.RELEASE</version>
+   </dependency>
+   <!--spring security-->
+   <dependency>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-security</artifactId>
+   </dependency>
+   <!--thymeleaf-->
+   <dependency>
+     <groupId>org.thymeleaf</groupId>
+     <artifactId>thymeleaf-spring5</artifactId>
+   </dependency>
+   <dependency>
+     <groupId>org.thymeleaf.extras</groupId>
+     <artifactId>thymeleaf-extras-java8time</artifactId>
+   </dependency>
+   ```
+
+3. 编写 SecurityConfig 类，继承 `WebSecurityConfigurerAdapter` 类，重写 `configure` 方法。
+
+   - 实现用户认证和授权
+   - 实现注销及权限控制
+   - 记住我及首页定制
+
+   ```java
+   package com.sugar.config;
+   
+   import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+   import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+   import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+   import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+   import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+   
+   // AOP
+   @EnableWebSecurity
+   public class SecurityConfig extends WebSecurityConfigurerAdapter {
+   
+       // 授权 Authorization
+       @Override
+       protected void configure(HttpSecurity http) throws Exception {
+           // 首页所有人可以访问，但是功能页只有对应有权限的人才能访问
+           // 请求授权的规则
+           http.authorizeRequests()
+                   .antMatchers("/").permitAll()
+                   .antMatchers("/level1/**").hasRole("vip1")
+                   .antMatchers("/level2/**").hasRole("vip2")
+                   .antMatchers("/level3/**").hasRole("vip3");
+   
+           // 没有权限会默认请求 /login 到登录页面（自带的登录页面）
+           // 定制登录页
+           // 默认接收 username 和 password
+           http.formLogin().loginPage("/toLogin").loginProcessingUrl("/login")
+               .usernameParameter("username").passwordParameter("password");
+   
+           // 注销
+           http.csrf().disable();  // 关闭csrf，否则可能访问不到 /logout
+           http.logout().logoutSuccessUrl("/");
+   
+           // 开启记住我功能  cookie，默认保存两周
+           // 默认是 remember-me
+           http.rememberMe().rememberMeParameter("remember");
+       }
+   
+       // 认证 Authentication
+       // springboot 2.1.x 可以直接使用
+       // 密码编码：PasswordEncoder
+       // 在 SpringSecurity 5.0+ 新增了很多加密方法
+       @Override
+       protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+           // 这些数据正常从数据库取出
+           auth.inMemoryAuthentication().passwordEncoder(new BCryptPasswordEncoder())
+                   .withUser("sugar").password(new BCryptPasswordEncoder().encode("123456")).roles("vip2", "vip3")
+                   .and()
+                   .withUser("root").password(new BCryptPasswordEncoder().encode("123456")).roles("vip1", "vip2", "vip3")
+                   .and()
+                   .withUser("guest").password(new BCryptPasswordEncoder().encode("123456")).roles("vip1");
+       }
+   }
+   
+   ```
+
+4. 根据权限，定制 index.html 页面
+
+   ```html
+   <!DOCTYPE html>
+   <html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4">
+   <head>
+       <meta charset="UTF-8">
+       <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+       <title>首页</title>
+       <!--semantic-ui-->
+       <link href="https://cdn.bootcss.com/semantic-ui/2.4.1/semantic.min.css" rel="stylesheet">
+       <link th:href="@{/qinjiang/css/qinstyle.css}" rel="stylesheet">
+   </head>
+   <body>
+   
+   <!--主容器-->
+   <div class="ui container">
+   
+       <div class="ui segment" id="index-header-nav" th:fragment="nav-menu">
+           <div class="ui secondary menu">
+               <a class="item"  th:href="@{/index}">首页</a>
+   
+               <!--登录注销-->
+               <div class="right menu">
+   
+                   <!--如果未登录-->
+                   <div sec:authorize="!isAuthenticated()">
+                       <a class="item" th:href="@{/toLogin}">
+                           <i class="address card icon"></i> 登录
+                       </a>
+                   </div>
+                   <!--如果已登录-->
+                   <div sec:authorize="isAuthenticated()">
+                       <a class="item">
+                           用户名：<span sec:authentication="name"></span>
+                       </a>
+                       <a class="item" th:href="@{/logout}">
+                           <i class="address card icon"></i> 注销
+                       </a>
+                   </div>
+   
+               </div>
+           </div>
+       </div>
+   
+       <div>
+           <br>
+           <div class="ui three column stackable grid">
+               <!--根据用户角色，动态菜单展示-->
+               <div class="column" sec:authorize="hasRole('vip1')">
+                   <div class="ui raised segment">
+                       <div class="ui">
+                           <div class="content">
+                               <h5 class="content">Level 1</h5>
+                               <hr>
+                               <div><a th:href="@{/level1/1}"><i class="bullhorn icon"></i> Level-1-1</a></div>
+                               <div><a th:href="@{/level1/2}"><i class="bullhorn icon"></i> Level-1-2</a></div>
+                               <div><a th:href="@{/level1/3}"><i class="bullhorn icon"></i> Level-1-3</a></div>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+   
+               <div class="column" sec:authorize="hasRole('vip2')">
+                   <div class="ui raised segment">
+                       <div class="ui">
+                           <div class="content">
+                               <h5 class="content">Level 2</h5>
+                               <hr>
+                               <div><a th:href="@{/level2/1}"><i class="bullhorn icon"></i> Level-2-1</a></div>
+                               <div><a th:href="@{/level2/2}"><i class="bullhorn icon"></i> Level-2-2</a></div>
+                               <div><a th:href="@{/level2/3}"><i class="bullhorn icon"></i> Level-2-3</a></div>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+   
+               <div class="column" sec:authorize="hasRole('vip3')">
+                   <div class="ui raised segment">
+                       <div class="ui">
+                           <div class="content">
+                               <h5 class="content">Level 3</h5>
+                               <hr>
+                               <div><a th:href="@{/level3/1}"><i class="bullhorn icon"></i> Level-3-1</a></div>
+                               <div><a th:href="@{/level3/2}"><i class="bullhorn icon"></i> Level-3-2</a></div>
+                               <div><a th:href="@{/level3/3}"><i class="bullhorn icon"></i> Level-3-3</a></div>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+   
+           </div>
+       </div>
+       
+   </div>
+   
+   
+   <script th:src="@{/qinjiang/js/jquery-3.1.1.min.js}"></script>
+   <script th:src="@{/qinjiang/js/semantic.min.js}"></script>
+   
+   </body>
+   </html>
+   ```
+
+#### 6.2 Shiro
+
+Apache Shiro 是一个 Java 的安全（权限）框架。
+
+可以非常容易的开发出足够好的应用，不仅可以用在 JavaSE 环境，也可以用在 JavaEE 环境。
+
+Shiro可以完成认证、授权、加密、会话管理、Web继承、缓存等。
+
+下载地址：https://shiro.apache.org/
+
+**Shiro功能**
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201006234750186.png" alt="image-20201006234750186" style="zoom:30%;" />
+
+- Authentication：身份认证、登录，验证用户是否拥有相应的身份
+- Authorization：授权，即权限验证，验证某个已认证的用户是否拥有某个权限，即判断用户能否进行什么操作，如：验证某个用户是否拥有某个角色，或者细粒度的验证某个用户对某个资源是否具有某个权限！
+- Session Manager：会话管理，即用户登录后就是第一次会话，在没有退出之前，所有信息都在会话中，会话可以是普通的JavaSE环境，也可以是Web环境。
+- Cryptography：加密，保护数据的安全性，如密码加密存储到数据库中，而不是明文存储
+- Web Support：Web支持，可以非常容易集成到Web环境
+- Caching：缓存，如用户登录后，其用户信息，拥有的角色、权限不必每次去查，可以提高效率
+- Concurrency：Shiro支持多线程应用的并发验证，如在一个线程中开启另一个线程，能把权限自动的传播过去
+- Testing：提供测试支持
+- Run As：允许一个用户假装成另一个用户的身份进行访问
+- Remember Me：记住我，即一次登录后，下次再来不用登录了
+
+**Shiro架构（外部）**
+
+从应用程序角度观察如何使用shiro完成工作
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201006235302324.png" alt="image-20201006235302324" style="zoom:30%;" />
+
+- subject：应用代码直接交互的对象是Subject，即Shiro的对外AIP核心就是Subject，Subject代表了当前的用户，这个用户不一定是一个具体的人，与当前应用交互的任何东西都是Subject，如网络爬虫、机器人等，与Subject的所有交互都会委托给SecurityManager，Subject其实是一个门面，SecurityManager才是实际的执行者
+- SecurityManager：安全管理器，即所有与安全有关的操作都会与SecurityManager交互，并且它管理着所有的Subject，它是Shiro的核心，负责与Shiro的其他组件进行交互，相当于SpringMVC的DispatcherServlet的角色
+- Realm：Shiro从Realm获取安全数据（如用户、角色、权限），即，SecurityManager要验证用户身份，那么它需要从Realm获取相应的用户进行比较，来确定用户的身份是否合法，也需要从Realm得到用户相应的角色、权限，进行验证用户的操作是否能够进行，可以把Realm看成DataSource。
+
+**Shiro架构（内部）**
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201006235815003.png" alt="image-20201006235815003" style="zoom:30%;" />
+
+- Subject：任何可以与应用交互的”用户“
+- Security Manager：核心，所有的具体交互都通过Security Manager进行控制，管理所有的Subject，负责进行认证、授权、会话及缓存的管理。
+- Authenticator：负责Subject认证，是一个扩展点，可以自定义实现，可以使用认证策略（Authentication Strategy），即什么情况下算用户认证通过
+- Authorizer：授权器，即访问控制器，用来决定主题是否有权限进行相应的操作，即控制着用户能访问应用中的哪些功能
+- Realm：可以有一个或多个Realm，可认为是安全实体数据源，即用于获取安全试题的，可以用JDBC实现，也可以是内存实现，由用户提供，在一般应用中都需要实现自己的Realm
+- SessionManager：缓存控制器，来管理如用户、角色、权限等缓存的，因为这些数据基本很少改变，放在缓存中可以提高访问性能
+- Criptography：密码模块，Shiro提高了一些常见的加密组件，用于密码加密、解密等。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### 7. Swagger
+
+### 8. 特定任务
+
+#### 8.1 异步任务
+
+#### 8.2 邮件任务
+
+#### 8.3 定时执行任务
+
+### 9. Redis
+
+### 10. 分布式
+
+#### 10.1 RPC
+
+#### 10.2 Dubbo
+
+#### 10.3 Zookeeper
