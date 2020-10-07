@@ -2477,11 +2477,58 @@ public class User {
 
 **注意点**：在正式发布的时候，关闭Swagger！
 
+### 8. 特定任务
 
+#### 8.1 异步任务
 
+1. 开启异步注解功能
 
+   ```java
+   // 开启异步注解功能
+   @EnableAsync
+   @SpringBootApplication
+   public class Springboot09TaskApplication {
+   	public static void main(String[] args) {
+   		SpringApplication.run(Springboot09TaskApplication.class, args);
+   	}
+   }
+   ```
 
+2. 在需要异步的方法上，加上异步注解
 
+   ```java
+   // 告诉Spring这是一个异步的方法
+   @Async
+   public void hello() {
+     try {
+       Thread.sleep(3000);
+     } catch (Exception e) {
+       e.printStackTrace();
+     }
+     System.out.println("数据正在处理...");
+   }
+   ```
+
+3. 编写Controller调用测试
+
+   ```java
+   @RestController
+   public class AsyncController {
+   
+       @Autowired
+       AsyncService asyncService;
+   
+       @RequestMapping("/hello")
+       public String hello() {
+           asyncService.hello();  // 停止三秒
+           return "OK";
+       }
+   }
+   ```
+
+#### 8.2 邮件任务
+
+#### 8.3 定时执行任务
 
 
 
@@ -2503,13 +2550,11 @@ public class User {
 
 ### 
 
-### 8. 特定任务
+#### 
 
-#### 8.1 异步任务
+#### 
 
-#### 8.2 邮件任务
-
-#### 8.3 定时执行任务
+#### 
 
 ### 9. Redis
 
