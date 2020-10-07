@@ -1910,6 +1910,106 @@ Shiro可以完成认证、授权、加密、会话管理、Web继承、缓存等
 
 ##### 6.2.2 在SpringBoot中集成
 
+1. 导入依赖
+
+   ```xml
+   <!--
+     Subject  用户
+     SecurityManager  管理所有用户
+     Realm  连接数据
+     -->
+   <!--shiro整合spring的包-->
+   <dependency>
+     <groupId>org.apache.shiro</groupId>
+     <artifactId>shiro-spring</artifactId>
+     <version>1.4.1</version>
+   </dependency>
+   <!--thymeleaf-->
+   <dependency>
+     <groupId>org.thymeleaf</groupId>
+     <artifactId>thymeleaf-spring5</artifactId>
+   </dependency>
+   <dependency>
+     <groupId>org.thymeleaf.extras</groupId>
+     <artifactId>thymeleaf-extras-java8time</artifactId>
+   </dependency>
+   ```
+
+2. 编写配置类 ShiroConfig
+
+   ```java
+   package com.sugar.config;
+   
+   import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
+   import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
+   import org.springframework.beans.factory.annotation.Qualifier;
+   import org.springframework.context.annotation.Bean;
+   import org.springframework.context.annotation.Configuration;
+   
+   @Configuration
+   public class ShiroConfig {
+   
+       // ShiroFilterFactoryBean（第三步）
+       @Bean
+       public ShiroFilterFactoryBean getShiroFilterFactoryBean(@Qualifier("securityManager") DefaultWebSecurityManager securityManager) {
+           ShiroFilterFactoryBean bean = new ShiroFilterFactoryBean();
+           // 设置安全管理器
+           bean.setSecurityManager(securityManager);
+           return bean;
+       }
+   
+       // DefaultWebSecurityManager（第二步）
+       @Bean(name = "securityManager")
+       public DefaultWebSecurityManager getDefaultWebSecurityManager(@Qualifier("userRealm") UserRealm userRealm) {
+           DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
+           // 关联UserRealm
+           securityManager.setRealm(userRealm);
+           return securityManager;
+       }
+   
+       // 创建Realm对象，需要自定义类（第一步）
+       @Bean(name="userRealm")
+       public UserRealm userRealm() {
+           return new UserRealm();
+       }
+   }
+   ```
+
+3. 自定义 Realm
+
+   ```java
+   package com.sugar.config;
+   
+   import org.apache.shiro.authc.AuthenticationException;
+   import org.apache.shiro.authc.AuthenticationInfo;
+   import org.apache.shiro.authc.AuthenticationToken;
+   import org.apache.shiro.authz.AuthorizationInfo;
+   import org.apache.shiro.realm.AuthorizingRealm;
+   import org.apache.shiro.subject.PrincipalCollection;
+   
+   // 自定义的 UserRealm
+   public class UserRealm extends AuthorizingRealm {
+   
+       // 授权
+       @Override
+       protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principalCollection) {
+           System.out.println("执行了授权>doGetAuthorizationInfo");
+           return null;
+       }
+   
+       // 认证
+       @Override
+       protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken authenticationToken) throws AuthenticationException {
+           System.out.println("执行了认证>doGetAuthenticationInfo");
+           return null;
+       }
+   }
+   ```
+
+##### 6.2.3 实现登录拦截
+
+1. 
+
 
 
 
