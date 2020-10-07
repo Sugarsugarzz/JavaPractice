@@ -2528,8 +2528,153 @@ public class User {
 
 #### 8.2 邮件任务
 
+1. 导入mail依赖
+
+   ```xml
+   <!--Email-->
+   <dependency>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-mail</artifactId>
+   </dependency>
+   ```
+
+2. 在 application.yml 编写 mail相关配置
+
+   ```yml
+   spring:
+     mail:
+       username: 406857586@qq.com
+       password: nmeejbsjhtklcagh
+       host: smtp.qq.com
+       # 开启加密验证，仅QQ邮箱需要
+       properties:
+         mail:
+           smtp:
+             ssl:
+               enable: true
+   ```
+
+3. 测试
+
+   ```java
+   package com.sugar;
+   
+   import org.junit.jupiter.api.Test;
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.boot.test.context.SpringBootTest;
+   import org.springframework.mail.SimpleMailMessage;
+   import org.springframework.mail.javamail.JavaMailSenderImpl;
+   import org.springframework.mail.javamail.MimeMailMessage;
+   import org.springframework.mail.javamail.MimeMessageHelper;
+   
+   import javax.mail.MessagingException;
+   import javax.mail.internet.MimeMessage;
+   import java.io.File;
+   
+   @SpringBootTest
+   class Springboot09TaskApplicationTests {
+   
+   	@Autowired
+   	JavaMailSenderImpl mailSender;
+   
+   	@Test
+   	void contextLoads() {
+   		// 一个简单的邮件
+   		SimpleMailMessage mailMessage = new SimpleMailMessage();
+   		mailMessage.setSubject("Sugar，你好");
+   		mailMessage.setText("谢谢啊");
+   		mailMessage.setTo("406857586@qq.com");
+   		mailMessage.setFrom("406857586@qq.com");
+   		mailSender.send(mailMessage);
+   	}
+   
+   	@Test
+   	void contextLoads2() throws MessagingException {
+   		// 一个复杂的邮件
+   		MimeMessage mimeMessage = mailSender.createMimeMessage();
+   		// 组装
+   		MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+   		helper.setSubject("Sugar，你好");
+   		helper.setText("<p style='color:red'>啊哈哈哈</p>", true);  // true，开启解析html
+   		// 附件
+   		helper.addAttachment("1.jpg", new File("/Users/Sugar/Desktop/1.jpg"));
+   		helper.setTo("406857586@qq.com");
+   		helper.setFrom("406857586@qq.com");
+   		mailSender.send(mimeMessage);
+   	}
+   
+   	// 封装发邮件方法
+   	public void sendMail(boolean enableHtml, String subject, String text) throws MessagingException {
+   		// 一个复杂的邮件
+   		MimeMessage mimeMessage = mailSender.createMimeMessage();
+   		// 组装
+   		MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, enableHtml);
+   		helper.setSubject(subject);
+   		helper.setText(text, true);  // true，开启解析html
+   		// 附件
+   		helper.addAttachment("1.jpg", new File("/Users/Sugar/Desktop/1.jpg"));
+   		helper.setTo("406857586@qq.com");
+   		helper.setFrom("406857586@qq.com");
+   		mailSender.send(mimeMessage);	
+   	}
+   }
+   
+   ```
+
 #### 8.3 定时执行任务
 
+核心接口：`TaskScheduler[任务调度者]`和`TaskExecutor[任务执行者]`
+
+核心注解：`@EnableScheduling[开启定时功能的注解]` 和 `@Scheduled[什么时候执行]`
+
+表达式：`Cron`
+
+1. 开启定时功能注解
+
+   ```java
+   @EnableAsync  // 开启异步注解功能
+   @EnableScheduling  // 开启定时功能
+   @SpringBootApplication
+   public class Springboot09TaskApplication {
+   	public static void main(String[] args) {
+   		SpringApplication.run(Springboot09TaskApplication.class, args);
+   	}
+   }
+   ```
+
+2. 设定定时任务
+
+   ```java
+   package com.sugar.service;
+   
+   import org.springframework.scheduling.annotation.Scheduled;
+   import org.springframework.stereotype.Service;
+   
+   @Service
+   public class ScheduledService {
+       
+       // 在一个特定时间执行这个方法
+       // cron表达式
+       // 秒 分 时 日 月 周几~
+       /*
+          30 15 10 * * ?  每天10点15分30秒 执行一次
+          30 0/5 10,18 * * ?  每天10点和18点，从0分开始，每隔5分钟 执行一次
+          0 15 10 ? * 1-6  每个月的周一到周六，10点15分执行一次
+        */
+       @Scheduled(cron = "0 * * * * 0-7")
+       public void hello() {
+           System.out.println("hello，你被执行了");
+       }
+   }
+   ```
+
+### 9. 分布式
+
+#### 9.1 RPC
+
+#### 9.2 Dubbo
+
+#### 9.3 ZooKeeper
 
 
 
@@ -2541,27 +2686,3 @@ public class User {
 
 
 
-
-
-
-
-
-
-
-### 
-
-#### 
-
-#### 
-
-#### 
-
-### 9. Redis
-
-### 10. 分布式
-
-#### 10.1 RPC
-
-#### 10.2 Dubbo
-
-#### 10.3 Zookeeper
