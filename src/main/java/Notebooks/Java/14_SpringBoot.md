@@ -2182,9 +2182,61 @@ Shiro可以完成认证、授权、加密、会话管理、Web继承、缓存等
 ##### 6.2.7 整合 thymeleaf
 
 1. 导入依赖
-2. w
-3. w
+
+   ```xml
+   <dependency>
+     <groupId>com.github.theborakompanioni</groupId>
+     <artifactId>thymeleaf-extras-shiro</artifactId>
+     <version>2.0.0</version>
+   </dependency>
+   ```
+
+2. 在 ShiroConfig 中整合 thymeleaf
+
+   ```java
+   // 整合 ShiroDialect：用来整合 shiro thymeleaf
+   @Bean
+   public ShiroDialect getShiroDialect() {
+     return new ShiroDialect();
+   }
+   ```
+
+3. 修改 index.html，根据权限动态展示
+
+   ```html
+   <!DOCTYPE html>
+   <html lang="en" xmlns:th="http://www.thymeleaf.org"
+         xmlns:shiro="http://www.thymeleaf.org/thymeleaf-extras-shiro">
+   <head>
+       <meta charset="UTF-8">
+       <title>Title</title>
+   </head>
+   <body>
+   
+   <h1>首页</h1>
+   
+   <p th:text="${msg}"></p>
+   <div shiro:notAuthenticated>
+       <a th:href="@{/toLogin}">登录</a>
+   </div>
+   
+   <hr>
+   
+   <div shiro:hasPermission="user:add">
+       <a th:href="@{/user/add}">add</a> |
+   </div>
+   
+   <div shiro:hasPermission="user:update">
+       <a th:href="@{/user/update}">update</a>
+   </div>
+   </body>
+   </html>
+   ```
+
+   
+
 4. w
+
 5. w
 
 

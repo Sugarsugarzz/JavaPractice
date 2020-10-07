@@ -1,5 +1,6 @@
 package com.sugar.config;
 
+import at.pollux.thymeleaf.shiro.dialect.ShiroDialect;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -62,4 +63,9 @@ public class ShiroConfig {
         return new UserRealm();
     }
 
+    // 整合 ShiroDialect：用来整合 shiro thymeleaf
+    @Bean
+    public ShiroDialect getShiroDialect() {
+        return new ShiroDialect();
+    }
 }
