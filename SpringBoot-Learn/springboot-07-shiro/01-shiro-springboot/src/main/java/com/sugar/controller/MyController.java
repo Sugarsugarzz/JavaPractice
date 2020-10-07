@@ -15,8 +15,8 @@ public class MyController {
 
     @RequestMapping({"/", "/index"})
     public String toIndex(Model model) {
-       model.addAttribute("msg", "hello, shiro");
-       return "index";
+        model.addAttribute("msg", "hello, shiro");
+        return "index";
     }
 
     @RequestMapping("/user/add")

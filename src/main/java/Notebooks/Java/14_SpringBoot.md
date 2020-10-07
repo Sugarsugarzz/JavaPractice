@@ -2233,51 +2233,275 @@ Shiro可以完成认证、授权、加密、会话管理、Web继承、缓存等
    </html>
    ```
 
-   
-
-4. w
-
-5. w
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### 7. Swagger
+
+学习目标：
+
+- 了解Swagger的作用和概念
+- 了解前后端分离
+- 在SpringBoot中集成Swagger
+
+#### 7.1 简介
+
+**前后端分离**
+
+Vue + SpringBoot
+
+- 前后端交互  ==> API
+- 前后端相对独立，松耦合
+- 前后端甚至可以部署在不同服务器上
+
+产生问题：
+
+- 前后端集成联调，前后端人员无法做到”即时协商，尽早解决“，最终导致问题集中爆发
+
+解决方案：
+
+- 首先指定`schema`[计划的提纲]，实时更新最新的API，降低集成的风险
+- 早些年：制定word计划文档
+- 前后端分离：
+  - 前端测试后端的接口：**Postman**
+  - 后端提供接口，需要实时更新最新的消息及改动
+- Swagger！
+  - 号称世界上最流行的API框架
+  - RestFulAPI文档在线自动生成工具 => **API文档与API定义同步更新**
+  - 直接运行，可以在线测试API接口
+  - 支持多种语言
+  - 官网：https://swagger.io
+
+**Swagger**
+
+在项目中使用Swagger需要 `Springbox`
+
+- swagger2
+- ui
+
+#### 7.2 SpringBoot集成Swagger
+
+##### 7.2.1 环境搭建
+
+1. 新建一个SpringBoot web项目
+
+2. 导入相关依赖
+
+   ```xml
+   <!--Swagger-->
+   <dependency>
+     <groupId>io.springfox</groupId>
+     <artifactId>springfox-swagger2</artifactId>
+     <version>2.9.2</version>
+   </dependency>
+   <dependency>
+     <groupId>io.springfox</groupId>
+     <artifactId>springfox-swagger-ui</artifactId>
+     <version>2.9.2</version>
+   </dependency>
+   ```
+
+3. 编写一个HelloWorld Controller
+
+   ```java
+   @RestController
+   public class HelloController {
+   
+       @RequestMapping("/hello")
+       public String hello() {
+           return "hello";
+       }
+   }
+   ```
+
+4. 配置Swagger  ==> Config
+
+   ```java
+   @Configuration
+   @EnableSwagger2
+   public class SwaggerConfig {
+       
+      
+   }
+   ```
+
+5. 测试运行：http://localhost:8080/swagger-ui.html
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201007225131143.png" alt="image-20201007225131143" style="zoom:40%;" />
+
+##### 7.2.2 配置基本信息
+
+Swagger的bean实例：Docket
+
+修改 SwaggerConfig，配置基本信息
+
+```java
+@Configuration
+@EnableSwagger2
+public class SwaggerConfig {
+
+    // 配置Swagger的 Docket 的 Bean实例
+    @Bean
+    public Docket docket() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo());
+    }
+
+    // 配置Swagger信息 apiInfo
+    private ApiInfo apiInfo() {
+        // 作者信息
+        Contact contact = new Contact("Sugar", "https://www.tzchuan.cn", "406857586@qq.com");
+
+        return new ApiInfo(
+                "Sugar的Swagger API文档",
+                "哈哈哈描述",
+                "1.0",
+                "https://www.tzchuan.cn",
+                contact,
+                "Apache 2.0",
+                "http://www.apache.org/licenses/LICENSE-2.0",
+                new ArrayList());
+    }
+}
+```
+
+##### 7.2.3 配置扫描接口及开关
+
+Docket.select()
+
+```java
+// 配置Swagger的 Docket 的 Bean实例
+@Bean
+public Docket docket() {
+  return new Docket(DocumentationType.SWAGGER_2)
+    .apiInfo(apiInfo())
+    // 是否开启Swagger
+    .enable(false)
+    .select()
+    // RequestHandlerSelectors 配置要扫描接口的方式
+    // basePackage 指定要扫描的包
+    // any() 扫描全部
+    // none() 不扫描
+    // withClassAnnotation() 扫描类上的注解，参数是一个注解的反射对象
+    // withMethodAnnotation() 扫描方法上的注解
+    .apis(RequestHandlerSelectors.basePackage("com.sugar.controller"))
+    // paths() 过滤要扫描的路径
+    //                .paths(PathSelectors.ant("/sugar/**"))
+    .build();
+}
+```
+
+如何使Swagger在生产环境中使用，在发布时不适用？
+
+- 判断是否是生产环境 flag = false
+- 注入enable()
+
+```java
+// 设置要显示Swagger的环境
+Profiles profiles = Profiles.of("dev", "test");
+// 通过监听，判断是否项目处在设定的环境当中
+boolean flag = environment.acceptsProfiles(profiles);
+
+return new Docket(DocumentationType.SWAGGER_2)
+  .enable(flag);
+```
+
+##### 7.2.4 配置API文档分组
+
+```java
+.groupName("sugar")
+```
+
+配置多个分组，可以通过配置多个Docket实例即可。
+
+```java
+@Bean
+public Docket docket1() {
+  return new Docket(DocumentationType.SWAGGER_2)
+    .groupName("sugar2");
+}
+@Bean
+public Docket docket3() {
+  return new Docket(DocumentationType.SWAGGER_2)
+    .groupName("sugar3");
+}
+@Bean
+public Docket docket4() {
+  return new Docket(DocumentationType.SWAGGER_2)
+    .groupName("sugar4");
+}
+```
+
+##### 7.2.5 配置注释
+
+实体类上
+
+```java
+@Api(tags = "Hello控制类")
+@RestController
+public class HelloController {
+
+    @GetMapping("/hello")
+    public String hello() {
+        return "hello";
+    }
+
+    // 只要接口中，返回值中存在实体类，就会被扫描到swagger中
+    @GetMapping("/user")
+    public User user() {
+        return new User();
+    }
+
+    // Operation放在方法上
+    @ApiOperation("hello2方法")
+    @GetMapping("/hello2")
+    public String hello2(@ApiParam("用户名") String username) {
+        return "hello " + username;
+    }
+}
+```
+
+Controller上
+
+```java
+@ApiModel("用户实体类")
+public class User {
+    @ApiModelProperty("用户名")
+    public String username;
+    public String password;
+}
+```
+
+##### 7.2.6 总结
+
+1. 可以通过Swagger给一些比较难理解的属性或者接口，增加注释信息
+2. 接口文档实时更新
+3. 可以在线测试
+
+**注意点**：在正式发布的时候，关闭Swagger！
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### 
 
 ### 8. 特定任务
 

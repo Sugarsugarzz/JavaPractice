@@ -9,12 +9,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class Springboot02ConfigApplicationTests {
 
-	@Autowired
-	private Person person;
+    @Autowired
+    private Person person;
 
-	@Test
-	void contextLoads() {
-		System.out.println(person);
-	}
+    @Test
+    void contextLoads() {
+        System.out.println(person);
+    }
 
 }

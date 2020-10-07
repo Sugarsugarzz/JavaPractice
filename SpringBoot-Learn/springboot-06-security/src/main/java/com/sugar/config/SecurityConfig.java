@@ -25,7 +25,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         // 定制登录页
         // 默认接收 username 和 password
         http.formLogin().loginPage("/toLogin").loginProcessingUrl("/login")
-            .usernameParameter("username").passwordParameter("password");
+                .usernameParameter("username").passwordParameter("password");
 
         // 注销
         http.csrf().disable();  // 关闭csrf，否则可能访问不到 /logout

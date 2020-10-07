@@ -58,7 +58,7 @@ public class ShiroConfig {
     }
 
     // 创建Realm对象，需要自定义类（第一步）
-    @Bean(name="userRealm")
+    @Bean(name = "userRealm")
     public UserRealm userRealm() {
         return new UserRealm();
     }

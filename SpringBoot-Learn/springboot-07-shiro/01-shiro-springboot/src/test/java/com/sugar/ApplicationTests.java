@@ -8,12 +8,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class ApplicationTests {
 
-	@Autowired
-	UserServiceImpl userService;
+    @Autowired
+    UserServiceImpl userService;
 
-	@Test
-	void contextLoads() {
-		System.out.println(userService.queryUserByName("haha"));
-	}
+    @Test
+    void contextLoads() {
+        System.out.println(userService.queryUserByName("haha"));
+    }
 
 }
