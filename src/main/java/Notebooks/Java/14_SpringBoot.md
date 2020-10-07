@@ -2008,9 +2008,184 @@ Shiro可以完成认证、授权、加密、会话管理、Web继承、缓存等
 
 ##### 6.2.3 实现登录拦截
 
-1. 
+1. 修改 ShiroConfig
 
+   ```java
+       // ShiroFilterFactoryBean（第三步）
+       @Bean
+       public ShiroFilterFactoryBean getShiroFilterFactoryBean(@Qualifier("securityManager") DefaultWebSecurityManager securityManager) {
+           ShiroFilterFactoryBean bean = new ShiroFilterFactoryBean();
+           // 设置安全管理器
+           bean.setSecurityManager(securityManager);
+   
+           // 添加shiro的内置过滤器
+           /*
+               anon：无需认证就可以访问
+               authc：必须认证了才能访问
+               user：必须拥有记住我才能用
+               perms：拥有对某个资源的权限才能访问
+               role：拥有某个角色权限才能访问
+   
+   //        filterMap.put("/user/add", "authc");
+   //        filterMap.put("/user/update", "authc");
+            */
+           Map<String, String> filterMap = new LinkedHashMap<>();
+           filterMap.put("/user/*", "authc");
+           bean.setFilterChainDefinitionMap(filterMap);
+   
+           // 没有权限，跳转到登录页面
+           bean.setLoginUrl("/toLogin");
+           return bean;
+       }
+   ```
 
+##### 6.2.4 实现用户认证
+
+1. 编写登录页面 login.html
+
+   ```html
+   <h1>登录</h1>
+   <hr>
+   <p th:text="${msg}" style="color: red"></p>
+   
+   <form th:action="@{/login}">
+       <p>用户名：<input type="text" name="username"></p>
+       <p>密码：<input type="text" name="password"></p>
+       <p><input type="submit" value="登录"></p>
+   </form>
+   ```
+
+2. 编写 Controller，处理登录请求
+
+   subject.login，就会自动走认证。
+
+   ```java
+       @RequestMapping("/toLogin")
+       public String toLogin() {
+           return "login";
+       }
+   
+       @RequestMapping("/login")
+       public String login(String username, String password, Model model) {
+           // 获取当前用户
+           Subject subject = SecurityUtils.getSubject();
+           // 封装用户的登录数据
+           UsernamePasswordToken token = new UsernamePasswordToken(username, password);
+   
+           try {
+               subject.login(token);   // 执行登录的方法，如果没有异常则OK
+               return "index";
+           } catch (UnknownAccountException e) { // 用户名不存在
+               model.addAttribute("msg", "用户名错误");
+               return "login";
+           } catch (IncorrectCredentialsException e) {  // 密码不存在
+               model.addAttribute("msg", "密码错误");
+               return "login";
+           }
+   
+       }
+   ```
+
+3. 修改 UserRealm，处理认证
+
+   这里需要从数据库中取 username 和 password。
+
+   ```java
+       // 认证
+       @Override
+       protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken token) throws AuthenticationException {
+           System.out.println("执行了认证>doGetAuthenticationInfo");
+   
+           // 用户名、密码，从数据库中取！
+           String name = "root";
+           String password = "123456";
+   
+           UsernamePasswordToken userToken = (UsernamePasswordToken) token;
+   
+           if (!userToken.getUsername().equals(name)) {
+               return null;  // 抛出异常，UnknownAccountException
+           }
+           // 密码认证，交给shiro做
+           return new SimpleAuthenticationInfo("", password, "");
+       }
+   ```
+
+##### 6.2.5 集成 Mybatis
+
+1. 搭建环境，pojo、mapper、mapper.xml、service
+
+2. 修改 UserRealm，从真实数据库对比用户名和密码
+
+   ```java
+       // 认证
+       @Override
+       protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken token) throws AuthenticationException {
+           System.out.println("执行了认证>doGetAuthenticationInfo");
+   
+           // 1、用户名、密码，从内存取
+   //        String name = "root";
+   //        String password = "123456";
+   //        UsernamePasswordToken userToken = (UsernamePasswordToken) token;
+   //        if (!userToken.getUsername().equals(name)) {
+   //            return null;  // 抛出异常，UnknownAccountException
+   //        }
+   //         密码认证，交给shiro做
+   //        return new SimpleAuthenticationInfo("", password, "");
+   
+           // 2、连接真实数据库
+           UsernamePasswordToken userToken = (UsernamePasswordToken) token;
+           User user = userService.queryUserByName(userToken.getUsername());
+           if (user == null) {
+               return null;
+           }
+           return new SimpleAuthenticationInfo("", user.getPwd(), "");
+       }
+   ```
+
+##### 6.2.6 实现请求授权
+
+1. 在 ShiroConfig 添加授权拦截，配置未授权跳转页面
+
+   ```java
+   Map<String, String> filterMap = new LinkedHashMap<>();
+   // 授权（注意语句顺序，授权需要在前）
+   filterMap.put("/user/add", "perms[user:add]");
+   filterMap.put("/user/update", "perms[user:update]");
+   // 拦截
+   filterMap.put("/user/*", "authc");
+   bean.setFilterChainDefinitionMap(filterMap);
+   // 没有登录，跳转到登录页面
+   bean.setLoginUrl("/toLogin");
+   // 没有授权，跳转到未授权页面
+   bean.setUnauthorizedUrl("/noauth");
+   ```
+
+2. 修改 UserRealm，处理授权
+
+   ```java
+   // 授权
+   @Override
+   protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principalCollection) {
+     System.out.println("执行了授权>doGetAuthorizationInfo");
+   
+     SimpleAuthorizationInfo info = new SimpleAuthorizationInfo();
+   
+     // 拿到当前登录的对象
+     Subject subject = SecurityUtils.getSubject();
+     User currentUser = (User) subject.getPrincipal();
+     // 设置当前用户的权限
+     info.addStringPermission(currentUser.getPerms());
+     return info;
+   }
+   ```
+
+##### 6.2.7 整合 thymeleaf
+
+1. 导入依赖
+2. w
+3. w
+4. w
+5. w
 
 
 
