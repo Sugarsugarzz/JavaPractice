@@ -2670,15 +2670,362 @@ public class User {
 
 ### 9. 分布式
 
-#### 9.1 RPC
+#### 9.1 分布式理论
 
-#### 9.2 Dubbo
+分布式系统是由一组通过**网络进行通信**，为了完成**共同的任务**而协调工作的计算机节点组成的系统。
 
-#### 9.3 ZooKeeper
+分布式系统的出现是为了用廉价、普通的机器完成单个计算机无法完成的计算、存储任务。
+
+其目的是**利用更多的机器，处理更多的数据**。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201008110243605.png" alt="image-20201008110243605" style="zoom:40%;" />
+
+**单一应用架构**
+
+网站流量很小时，只需一个应用，将所有功能都部署在一起，以减少部署节点和成本。
+
+此时，用于简化增删改查工作量的**数据访问框架（ORM）**是关键。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201008105705376.png" alt="image-20201008105705376" style="zoom:30%;" />
+
+缺点：
+
+- 性能扩展比较难
+- 协同开发问题
+- 不利于升级维护
+
+**垂直应用架构**
+
+当访问量逐渐增大，单一应用增加机器带来的加速度越来越小，将应用拆成互不相干的几个应用，以提升效率。
+
+此时，用于加速前端页面开发的**Web框架（MVC）**是关键。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201008105836710.png" alt="image-20201008105836710" style="zoom:30%;" />
+
+缺点：公共模块无法重复利用，开发性的浪费。
+
+**分布式服务架构**
+
+当垂直应用越来越多，应用之间交互不可避免，将核心业务抽取出来，作为独立的服务，主键形成稳定的服务中心，使前端应用能更快速的响应多变的市场需求。
+
+此时，用于提高业务复用及整合的**分布式服务框架（RPC）**是关键。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201008110029737.png" alt="image-20201008110029737" style="zoom:30%;" />
+
+**流动计算架构**
+
+当服务越来越多，容量的评估，小服务资源的浪费等问题逐渐显现，此时需增加一个调度中心基于访问压力实时管理集群容量，提高集群利用率。
+
+此时，用于**提高机器利用率的资源调度和治理中心（SOA）**是关键。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201008110142626.png" alt="image-20201008110142626" style="zoom:30%;" />
+
+#### 9.2 RPC
+
+RPC（Remote Procedure Call）指远程过程调用，是一种进程间通信方式，是一种技术思想而不是规范。它允许程序调用另一个地址空间（通常是共享网络的另一台机器上）的过程或函数，而不用程序员显式编码这个远程调用的细节。即程序员无论是调用本地的还是远程的函数，本质上编写的调用代码基本相同。
+
+即两台服务器A和B，一个应用部署在A服务器上，想要调用B服务器上应用提供的函数/方法，由于不在一个内存空间，不能直接调用，需要通过网络来表达调用的语义和传达调用的数据。
+
+使用RPC的目的：就是无法再一个进程内，甚至一个计算机内通过本地调用的方式完成的需求，比如不同的系统间的通讯，甚至不同的组织间的通讯，由于计算能力需要横向扩展，需要在多台计算机组成的集群上部署应用。RPC就是要像调用本地的函数一样去调用远程函数。
+
+核心模块：**通讯**、**序列化**
+
+序列化：数据传输需要转换
+
+**RPC基本原理**
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201008110941103.png" alt="image-20201008110941103" style="zoom:40%;" />
+
+**步骤解析**
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201008111027414.png" alt="image-20201008111027414" style="zoom:40%;" />
 
 
 
+#### 9.3 Dubbo、Zookeeper
 
+##### 9.3.1 简介
+
+Apache Dubbo是一款高性能、轻量级的开源 Java RPC框架，提供三大核心能力：**面向接口的远程方法调用**、**智能容错和负载均衡**、**服务自动注册和发现**。
+
+官网：http://dubbo.apache.org/
+
+<img src="http://dubbo.apache.org/img/architecture.png" alt="img" style="zoom:50%;" />
+
+**服务提供者（Provider）**：暴露服务的服务提供方，服务提供者在启动时，向注册中心注册自己提供的服务。
+
+**服务消费者（Consumer）**：调用远程服务的服务消费方，服务消费者在启动时，向注册中心订阅自己所需的服务，服务消费者，从提供者地址列表中，基于软负载均衡算法，选一台提供者进行调用，如果调用失败，再选另一台调用。
+
+**注册中心（Register）**：注册中心返回服务提供者地址列表给消费者，如果有变更，注册中心将基于长连接推送变更数据给消费者。
+
+**监控中心（Monitor）**：服务消费者和提供者，在内存中累计调用次数和调用时间，定时每分钟发送一次统计数据到监控中心。
+
+
+
+**调用关系说明：**
+
+- 服务容器负责启动，加载，运行服务提供者
+- 服务提供者在启动时，向注册中心注册自己提供的服务
+- 服务消费者在启动时，向注册中心订阅自己所需的服务
+- 注册中心返回服务提供者地址列表给消费者，如果有变更，注册中心将基于长连接推送变更数据给消费者
+- 服务消费者，从提供者地址列表中，基于软负载均衡算法，选一台提供者进行调用，如果调用失败，再选另一台调用
+- 服务消费者和提供者，在内存中累计调用次数和调用时间，定时每分钟发送一次统计数据到监控中心
+
+##### 9.3.2 Dubbo环境搭建
+
+推荐使用 **Zookeeper注册中心**。
+
+**安装Zookeeper**
+
+1. 直接解压 `zookeeper-3.4.14`
+
+2. 在 `conf` 目录下，新建一个 `zoo.cfg` 文件，配置如下
+
+   ```cfg
+   # 服务器与客户端之间交互的基本时间单元（ms）
+   tickTime=2000
+   # zookeeper所能接受的客户端数量
+   initLimit=10
+   # 服务器和客户端之间请求和应答之间的时间间隔
+   syncLimit=5
+   # 数据目录，可以是任意目录
+   dataDir=/tmp/zookeeper
+   # 监听client连接的端口号
+   clientPort=2181
+   # 最大客户端连接数
+   #maxClientCnxns=60
+   # The number of snapshots to retain in dataDir
+   #autopurge.snapRetainCount=3
+   # Purge task interval in hours
+   # Set to "0" to disable auto purge feature
+   #autopurge.purgeInterval=1
+   ```
+
+3. 运行/关闭 Zookeeper
+
+   ```cmd
+   ./zkServer.sh start
+   ./zkServer.sh stop
+   ```
+
+4. 使用 zkCli.cmd 测试
+
+   ```cmd
+   ls /：列出zookeeper跟下保存的所有节点
+   create -e /sugar 123：创建一个sugar节点，值为123
+   get /sugar：获取/sugar节点的值
+   ```
+
+**安装Dubbo-admin**
+
+Dubbo本身不是一个服务软件，而是一个jar包，能够帮助Java程序连接到Zookeeper，并利用zookeeper消费、提供服务。
+
+但为了更好的管理监控众多的dubbo服务，官方提供了一个可视化的监控程序 dubbo-admin。（不装也不影响使用）
+
+1. 下载dubbo-admin
+
+   地址：https://github.com/apache/dubbo-admin/tree/master
+
+2. 解压进入目录
+
+   修改 dubbo-admin/src/main/resources/application.properties 指定 zookeeper地址。
+
+   ```properties
+   server.port=7001
+   spring.velocity.cache=false
+   spring.velocity.charset=UTF-8
+   spring.velocity.layout-url=/templates/default.vm
+   spring.messages.fallback-to-system-locale=false
+   spring.messages.basename=i18n/message
+   spring.root.password=root
+   spring.guest.password=guest
+   # 注册中心的地址
+   dubbo.registry.address=zookeeper://127.0.0.1:2181
+   ```
+
+3. 打包 dubbo-admin-master 目录下执行
+
+   ```cmd
+   mvn clean package -Dmaven.test.skip=true
+   ```
+
+4. 执行 dubbo-admin/target 下的 dubbo-admin-0.0.1-SNAPSHOT.jar
+
+   **注意：**如果zookeeper服务未启动，就会报错连接失败，并处于监听状态，再次启动zookeeper即可。
+
+   ```cmd
+   java -jar dubbo-admin-0.0.1-SNAPSHOT.jar
+   ```
+
+5. 启动成功后，访问管理页面：https://localhost:7001
+
+   默认账号密码：root/root
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201008122329847.png" alt="image-20201008122329847" style="zoom:30%;" />
+
+#### 9.4 Dubbo+Zookeeper+SpringBoot
+
+1. 创建 consumer-server 和 provider-server 两个项目
+
+2. 导入 dubbo 和 zookeeper 依赖
+
+   ```xml
+   <!--Dubbo-->
+   <dependency>
+     <groupId>org.apache.dubbo</groupId>
+     <artifactId>dubbo-spring-boot-starter</artifactId>
+     <version>2.7.3</version>
+   </dependency>
+   <!--zkclient-->
+   <dependency>
+     <groupId>com.github.sgroschupf</groupId>
+     <artifactId>zkclient</artifactId>
+     <version>0.1</version>
+   </dependency>
+   <!--zookeeper，日志会冲突-->
+   <dependency>
+     <groupId>org.apache.curator</groupId>
+     <artifactId>curator-framework</artifactId>
+     <version>2.12.0</version>
+   </dependency>
+   <dependency>
+     <groupId>org.apache.curator</groupId>
+     <artifactId>curator-recipes</artifactId>
+     <version>2.12.0</version>
+   </dependency>
+   <dependency>
+     <groupId>org.apache.zookeeper</groupId>
+     <artifactId>zookeeper</artifactId>
+     <version>3.4.14</version>
+     <exclusions>
+       <exclusion>
+         <groupId>org.slf4j</groupId>
+         <artifactId>slf4j-log4j12</artifactId>
+       </exclusion>
+     </exclusions>
+   </dependency>
+   ```
+
+3. 先编写provider-server，在 application.yml 配置 dubbo
+
+   ```properties
+   server.port=8001
+   
+   # 服务应用名字
+   dubbo.application.name=provider-server
+   # 注册中心地址
+   dubbo.registry.address=zookeeper://127.0.0.1:2181
+   # 哪些服务要被注册
+   dubbo.scan.base-packages=com.sugar.service
+   ```
+
+4. 编写 Service，并添加注解注册到注册中心
+
+   ```java
+   package com.sugar.service;
+   
+   import org.apache.dubbo.config.annotation.Service;
+   import org.springframework.stereotype.Component;
+   
+   // Zookeeper：服务注册与发现
+   // 使用了Dubbo后，尽量不使用@Service注解注册到Spring容器（防止与Spring容器注册的@Service弄混）
+   // @Service 使其可以被Dubbo扫描到，在项目已启动就自动注册到Zookeeper注册中心
+   @Service
+   @Component
+   public class TicketServiceImpl implements TicketService{
+       @Override
+       public String getTicket() {
+           return "Sugar";
+       }
+   }
+   ```
+
+5. 访问 localhost:7100（dubbo-admin），查看服务（需要启动zookeeper，dubbo-admin和Springboot测试项目）
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201008160140443.png" alt="image-20201008160140443" style="zoom:50%;" />
+
+6. 然后编写 consumer-server，同样导入相同的依赖
+
+7. 配置 consumer 的 application.yml
+
+   ```properties
+   server.port=8002
+   
+   # 消费者去哪里拿服务，需要暴露自己的名字
+   dubbo.application.name=consumer-server
+   # 注册中心的地址
+   dubbo.registry.address=zookeeper://127.0.0.1:2181
+   ```
+
+8. 编写一个与provier-server中相同的接口，但不需要实现
+
+   ```java
+   package com.sugar.service;
+   
+   public interface TicketService {
+       public String getTicket();
+   }
+   ```
+
+9. 编写 UserService，调用注册中心的方法
+
+   ```java
+   package com.sugar.service;
+   
+   import org.apache.dubbo.config.annotation.Reference;
+   import org.springframework.stereotype.Service;
+   
+   @Service  // 放到Spring容器中，非Dubbo
+   public class UserService {
+   
+       // 要拿到 provide-server 提供的 Ticket，要去注册中心拿到服务
+       @Reference  // 引用，Pom坐标，可以定义路径相同的接口名
+       TicketService ticketService;
+   
+       public void buyTicket() {
+           String ticket = ticketService.getTicket();
+           System.out.println("在注册中心拿到 => " + ticket);
+       }
+   }
+   ```
+
+10. 测试
+
+    ```java
+    package com.sugar;
+    
+    import com.sugar.service.UserService;
+    import org.junit.jupiter.api.Test;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.boot.test.context.SpringBootTest;
+    
+    @SpringBootTest
+    class ConsumerServerApplicationTests {
+    
+    	@Autowired
+    	UserService userService;
+    
+    	@Test
+    	void contextLoads() {
+    		userService.buyTicket();
+    	}
+    }
+    ```
+
+    
+
+##### 总结
+
+前提：Zookeeper已开启
+
+1. 提供者提供服务
+   1. 导入依赖
+   2. 配置注册中心的地址，以及服务发现名，和要扫描的包
+   3. 在想要被注册的服务上面，增加一个注册 @Service
+2. 消费者如何消费
+   1. 导入依赖
+   2. 配置注册中心的地址，配置自己的服务名
+   3. 从远程注入服务 @Reference
 
 
 

@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>springboot-07-shiro</module>
+        <module>springboot-10-dubbo</module>
     </modules>
 
 
