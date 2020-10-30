@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Mybatis.Repository.AccountRepository">
+    <!--    开启二级缓存  -->
+    <cache type="org.mybatis.caches.ehcache.EhcacheCache">
+        <!--    创建缓存后，最后一次访问缓存至缓存失效的时间间隔  -->
+        <property name="timeToIdleSeconds" value="3600"/>
+        <!--    创建自创建至失效的时间间隔  -->
+        <property name="timeToLiveSeconds" value="3600"/>
+        <!--    缓存回收策略，LRU表示移除近期使用最少的对象  -->
+        <property name="memoryStoreEvictionPolicy" value="LRU"/>
+    </cache>
+
+    <!--    返回一定是int类型，影响的行数-->
+    <insert id="save" parameterType="Mybatis.Entity.Account">
+        INSERT INTO t_account(username, password, age)
+        VALUES (#{username}, #{password}, #{age})
+    </insert>
+
+<!--    <update id="update" parameterType="Mybatis.Entity.Account">-->
+<!--        UPDATE t_account SET username = #{username}, password = #{password}, age = #{age}-->
+<!--        WHERE id = #{id}-->
+<!--    </update>-->
+
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM t_account
+        WHERE id = #{id}
+    </delete>
+
+    <select id="findAll" resultType="Mybatis.Entity.Account">
+        SELECT * FROM t_account
+    </select>
+    
+    <select id="findById" parameterType="long" resultType="Mybatis.Entity.Account">
+        SELECT * FROM t_account
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByName" parameterType="java.lang.String" resultType="Mybatis.Entity.Account">
+        SELECT * FROM t_account
+        WHERE username = #{name}
+    </select>
+
+    <!--    多参数传入的时候，不需要写parameterType了-->
+    <!--    传入的参数用下标表示,arg0、arg1或param等等-->
+    <select id="findByNameAndAge" resultType="Mybatis.Entity.Account">
+        SELECT * FROM t_account
+        WHERE username = #{arg0} and age = #{arg1}
+    </select>
+
+    <!--    ResultType的    -->
+    <select id="count" resultType="int">
+        SELECT COUNT(id) FROM t_account;
+    </select>
+
+    <select id="findNameById" parameterType="long" resultType="java.lang.String">
+        SELECT username FROM t_account
+        WHERE id = #{id}
+    </select>
+
+    <!--    动态SQL    -->
+    <!--    where 和 id 标签（查询）   -->
+<!--    <select id="findByAccount" parameterType="Mybatis.Entity.Account" resultType="Mybatis.Entity.Account">-->
+<!--        SELECT *-->
+<!--        FROM t_account-->
+<!--        <where>-->
+<!--            <if test="id != 0">-->
+<!--                id = #{id}-->
+<!--            </if>-->
+<!--            <if test="username != null">-->
+<!--                and username = #{username}-->
+<!--            </if>-->
+<!--            <if test="password != null">-->
+<!--                and password = #{password}-->
+<!--            </if>-->
+<!--            <if test="age != 0">-->
+<!--                and age = #{age}-->
+<!--            </if>-->
+<!--        </where>-->
+<!--    </select>-->
+
+    <!--    choose 和 when 标签（查询）   -->
+    <!--    像Switch，遇到匹配项则输出    -->
+<!--    <select id="findByAccount" parameterType="Mybatis.Entity.Account" resultType="Mybatis.Entity.Account">-->
+<!--        SELECT *-->
+<!--        FROM t_account-->
+<!--        <where>-->
+<!--            <choose>-->
+<!--                <when test="id != 0">-->
+<!--                    id = #{id}-->
+<!--                </when>-->
+<!--                <when test="username != null">-->
+<!--                    username = #{username}-->
+<!--                </when>-->
+<!--                <when test="password != null">-->
+<!--                    password = #{password}-->
+<!--                </when>-->
+<!--                <when test="age != 0">-->
+<!--                    age = #{age}-->
+<!--                </when>-->
+<!--            </choose>-->
+<!--        </where>-->
+<!--    </select>-->
+
+    <!--    trim 标签（查询）   -->
+    <!--   不如where标签方便，但在其他特定场合有用     -->
+    <select id="findByAccount" parameterType="Mybatis.Entity.Account" resultType="Mybatis.Entity.Account">
+        SELECT *
+        FROM t_account
+        <trim prefix="where" prefixOverrides="and">
+            <if test="id != 0">
+                id = #{id}
+            </if>
+            <if test="username != null">
+                and username = #{username}
+            </if>
+            <if test="password != null">
+                and password = #{password}
+            </if>
+            <if test="age != 0">
+                and age = #{age}
+            </if>
+        </trim>
+    </select>
+
+    <!--    set 标签（更新）    -->
+    <update id="update" parameterType="Mybatis.Entity.Account">
+        UPDATE t_account
+        <set>
+            <if test="username != null">
+                username = #{username},
+            </if>
+            <if test="password != null">
+                password = #{password},
+            </if>
+            <if test="age != 0">
+                age = #{age},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!--    foreach 标签（查询多条）    -->
+    <select id="findByIds" parameterType="Mybatis.Entity.Account" resultType="Mybatis.Entity.Account">
+        SELECT *
+        FROM t_account
+        <where>
+            <foreach collection="ids" open="id in (" close=")" item="id" separator=",">
+                #{id}
+            </foreach>
+        </where>
+    </select>
+
+</mapper>

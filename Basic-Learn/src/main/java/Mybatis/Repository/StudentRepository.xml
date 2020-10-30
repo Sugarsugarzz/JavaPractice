@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Mybatis.Repository.StudentRepository">
+
+    <resultMap id="studentMap" type="Mybatis.Entity.Student">
+        <id column="id" property="id"></id>
+        <result column="name" property="name"></result>
+        <association property="classes" javaType="Mybatis.Entity.Classes">
+            <id column="cid" property="id"></id>
+            <result column="cname" property="name"></result>
+        </association>
+    </resultMap>
+
+    <select id="findById" parameterType="long" resultMap="studentMap">
+        SELECT s.id, s.name, c.id AS cid, c.name AS cname
+        FROM student s, classes c
+        WHERE s.id = #{id} and c.id = s.cid
+    </select>
+
+    <!--    懒加载-->
+    <resultMap id="studentMapLazy" type="Mybatis.Entity.Student">
+        <id column="id" property="id"></id>
+        <result column="name" property="name"></result>
+        <!--  根据cid字段，去调用Classes的findByIdLazy方法，其结果为student对象的classes字段-->
+        <association property="classes" javaType="Mybatis.Entity.Classes" select="Mybatis.Repository.ClassesRepository.findByIdLazy" column="cid"/>
+    </resultMap>
+
+    <select id="findByIdLazy" parameterType="long" resultMap="studentMapLazy">
+        SELECT * FROM student WHERE id = #{id}
+    </select>
+</mapper>
