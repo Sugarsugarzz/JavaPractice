@@ -19,6 +19,9 @@
         <module>SpringMVC-Learn</module>
         <module>SSM</module>
         <module>Vue-Learn</module>
+        <module>SpringCLoud-Learn</module>
+        <module>SpringCLoud-Learn/springcloud-api</module>
+        <module>SpringCLoud-Learn/springcloud-provider</module>
     </modules>
 
     <!-- Package:项目的打包方式
