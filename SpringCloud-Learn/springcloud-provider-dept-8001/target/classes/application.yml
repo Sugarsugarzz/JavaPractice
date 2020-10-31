@@ -17,3 +17,16 @@ spring:
     url: jdbc:mysql://localhost:3306/db01?useUnicode=true&characterEncoding=utf-8
     username: root
     password: 123456
+
+# Eureka配置，配置服务注册到哪里
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:7001/eureka/
+    instance:
+      instance-id: springcloud-provider-dept:8001 # 修改eureka上的默认描述信息
+
+# 配置监控信息
+info:
+  app.name: sugar-springcloud
+  company.name: casia

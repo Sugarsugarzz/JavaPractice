@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>SpringCLoud-Learn</artifactId>
+    <artifactId>SpringCloud-Learn</artifactId>
 
     <!--打包方式 pom-->
     <packaging>pom</packaging>
@@ -17,6 +17,7 @@
         <module>springcloud-api</module>
         <module>springcloud-provider-dept-8001</module>
         <module>springcloud-consumer-dept-80</module>
+        <module>springcloud-eureka-7001</module>
     </modules>
 
     <properties>

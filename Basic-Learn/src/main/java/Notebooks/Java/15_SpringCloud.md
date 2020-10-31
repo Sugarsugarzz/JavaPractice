@@ -302,3 +302,175 @@ RestFUL方式，是消费者直接从服务提供者调用服务。
   - **Eureka Server**：提供服务的注册与发现。（同ZooKeeper）
   - **Service Provider**：将自身服务注册到Eureka中，从而使消费方能够找到。
   - **Service Consumer**：服务消费方从Eureka中获取注册服务列表，从而找到消费服务。
+
+#### 5.3 写一个Eureka服务器（注册中心）
+
+新建项目 **springcloud-eureka-7001**
+
+1. 导入Eureka依赖
+
+   ```xml
+   <dependency>
+     <groupId>org.springframework.cloud</groupId>
+     <artifactId>spring-cloud-starter-eureka-server</artifactId>
+     <version>1.4.6.RELEASE</version>
+   </dependency>
+   ```
+
+2. 在application.yml配置 Eureka
+
+   ```yml
+   server:
+     port: 7001
+   
+   # Eureka配置
+   eureka:
+     instance:
+       hostname: localhost  # Eureka服务端的实例名称
+     client:
+       register-with-eureka: false  # 表示是否向eureka注册中心注册自己
+       fetch-registry: false  # 如果为false，表示自己为注册中心
+       service-url:  # 监控页面，与eureka交互地址
+         defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka
+   ```
+
+3. 注解启动EurekaServer服务
+
+   ```java
+   @SpringBootApplication
+   @EnableEurekaServer  // @EnableEurekaServer  服务端的启动类，可以接收服务注册进来
+   public class EurekaServer_7001 {
+       public static void main(String[] args) {
+           SpringApplication.run(EurekaServer_7001.class, args);
+       }
+   }
+   ```
+
+4. 访问 localhost:7001 即可来到 Eureka 监控页面
+
+#### 5.4 将服务注册到Eureka中
+
+将 **8001** 项目注册到 **7001** Eureka服务器中。
+
+1. 导入依赖
+
+   ```xml
+   <!--Eureka-->
+   <dependency>
+     <groupId>org.springframework.cloud</groupId>
+     <artifactId>spring-cloud-starter-eureka</artifactId>
+     <version>1.4.6.RELEASE</version>
+   </dependency>
+   ```
+
+2. 在application.yml 配置Eureka
+
+   ```yml
+   # Eureka配置，配置服务注册到哪里
+   eureka:
+     client:
+       service-url:
+         defaultZone: http://localhost:7001/eureka/
+       instance:
+         instance-id: springcloud-provider-dept:8001 # 修改eureka上的默认描述信息
+   ```
+
+3. 在启动类注册启动EurekaClient
+
+   ```java
+   @SpringBootApplication
+   @EnableEurekaClient  // 在服务启动后自动注册到Eureka中
+   public class DeptProvider_8001 {
+       public static void main(String[] args) {
+           SpringApplication.run(DeptProvider_8001.class, args);
+       }
+   }
+   ```
+
+4. 到Eureka监控页面查看注册情况
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201030180905362.png" alt="image-20201030180905362" style="zoom:30%;" />
+
+5. 完成监控信息，导入依赖
+
+   ```xml
+   <!--actuator完善监控信息-->
+   <dependency>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-actuator</artifactId>
+   </dependency>
+   ```
+
+6. 在application.yml配置监控信息
+
+   ```yml
+   # 配置监控信息
+   info:
+     app.name: sugar-springcloud
+     company.name: casia
+   ```
+
+7. 在监控页面进入实例的info页面，即可查看对应信息，可以写一下对服务功能的描述之类
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201030182614041.png" alt="image-20201030182614041" style="zoom:30%;" />
+
+
+##### 自我保护机制：好死不如赖活着
+
+<span style="color:red">EMERGENCY! EUREKA MAY BE INCORRECTLY CLAIMING INSTANCES ARE UP WHEN THEY'RE NOT. RENEWALS ARE LESSER THAN THRESHOLD AND HENCE THE INSTANCES ARE NOT BEING EXPIRED JUST TO BE SAFE.</span>
+
+一句话：某时刻某一个微服务不能使用了，eureka不会立刻清理，依旧会对微服务的信息进行保存！
+
+- 默认情况下，如果EurekaServer在一定时间内没有接收到某个微服务实例的心跳，EurekaServer将会注销该实例（默认90秒）。但是当网络分区鼓掌发生时，微服务与Eureka之间无法正常通信，以上行为可能变得非常危险。因为微服务本身是健康的，**此时不应该注销这个服务**。Eureka通过**自我保护机制**来解决这个问题，当RurekaServer节点在短时间内丢失过多客户端时，（可能网络分区鼓掌），那么这个节点就会进入自我保护模式，一旦进入该模式，EurekaServer就会保护服务注册表中的信息，不再删除服务注册表中的数据（不会注销任何微服务）。当网络故障恢复时，该EurekaServer节点会自动退出自我保护欧式。
+- 在自我保护模式中，EurekaServer会保护服务注册表中的信息，不再注销任何服务实例。当它收到的心跳数重新恢复到阈值以上时，该EurekaServer节点就会自动退出自我保护模式。其设计哲学就是宁可保留错误的服务注册信息，也不盲目注销任何可能健康的服务实例。
+- 综上，自我保护模式是一种应对网络异常的安全保护措施。它的架构哲学是宁可同时保留所有微服务（健康的和不健康的），也不盲目注销任何健康的微服务，使用自我保护模式，可以让Eureka集群更加健壮稳定。
+- 在SpringCloud中，可以使用 `eureka.server.enable-self-preservation = false`禁用自我保护模式。【不推荐】
+
+#### 5.5 在Client端从注册中心获取微服务信息
+
+1. 修改Controller，获取注册中心信息
+
+   ```java
+   @RestController
+   public class DeptController {
+   
+       // 获取一些注册中心的微服务配置信息，得到具体的微服务
+       @Autowired
+       private DiscoveryClient client;
+   
+       // 注册进来的微服务，获取一些信息
+       @RequestMapping("/dept/discovery")
+       public Object discovery() {
+           // 获取微服务列表的清单
+           List<String> service = client.getServices();
+           System.out.println("discovery => services" + service);
+   
+           // 得到一个具体的微服务信息，通过具体的微服务id，applicationName
+           List<ServiceInstance> instances = client.getInstances("SPRINGCLOUD-PROVIDER-DEPT");
+           for (ServiceInstance instance : instances) {
+               System.out.println(
+                       instance.getHost() + "\t" +
+                       instance.getPort() + "\t" +
+                       instance.getUri() + "\t" +
+                       instance.getServiceId()
+               );
+           }
+           return this.client;
+       }
+   }
+   ```
+
+2. 在启动类启动服务发现注解
+
+   ```java
+   @SpringBootApplication
+   @EnableEurekaClient  // 在服务启动后自动注册到Eureka中
+   @EnableDiscoveryClient // 服务发现
+   public class DeptProvider_8001 {
+       public static void main(String[] args) {
+           SpringApplication.run(DeptProvider_8001.class, args);
+       }
+   }
+   ```
+
+   
