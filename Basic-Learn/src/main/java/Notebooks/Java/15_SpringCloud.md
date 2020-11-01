@@ -691,3 +691,221 @@ Eureka看明白了这一点，设计时优先保证了可用性。**Eureka各个
 
 <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201101134041659.png" alt="image-20201101134041659" style="zoom:40%;" />
 
+1. 启动EurekaServer注册中心
+2. 启动Eureka服务，注册到注册中心
+3. 启动客户端，请求接口，可见默认是**轮询**实现负载均衡。
+
+#### 6.3 实现自定义负载均衡算法
+
+1. 在主启动类指定Ribbon对应的服务和负载均衡策略
+
+   ```java
+   @SpringBootApplication
+   @EnableEurekaClient
+   @RibbonClient(name = "SPRINGCLOUD-PROVIDER-DEPT", configuration = SugarRule.class)
+   // 在微服务启动的时候，就能去加载自定义的Ribbon类
+   public class DeptConsumer_80 {
+       public static void main(String[] args) {
+           SpringApplication.run(DeptConsumer_80.class, args);
+       }
+   }
+   ```
+
+2. 自定义负载均衡算法 SugarRule.class（注：不能被扫描到）
+
+   ```java
+   package com.sugar.myrule;
+   
+   import com.netflix.client.config.IClientConfig;
+   import com.netflix.loadbalancer.AbstractLoadBalancerRule;
+   import com.netflix.loadbalancer.ILoadBalancer;
+   import com.netflix.loadbalancer.Server;
+   import java.util.List;
+   import java.util.concurrent.ThreadLocalRandom;
+   
+   public class SugarRule extends AbstractLoadBalancerRule {
+   
+       // 每个机器访问5次，换下一个服务（3个）
+       // total=0，如果为5则指向下一个服务节点
+       // index=0，如果total=5，index++，如果index>3，total和index置为0
+   
+       private int total = 0;  // 调用次数
+       private int currentIndex = 0;  // 当前提供服务的
+   
+       @SuppressWarnings({"RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE"})
+       public Server choose(ILoadBalancer lb, Object key) {
+           if (lb == null) {
+               return null;
+           } else {
+               Server server = null;
+   
+               while(server == null) {
+                   if (Thread.interrupted()) {
+                       return null;
+                   }
+   
+                   List<Server> upList = lb.getReachableServers();  // 获得还活着的服务
+                   List<Server> allList = lb.getAllServers();  // 获得全部的fuwu
+                   int serverCount = allList.size();
+                   if (serverCount == 0) {
+                       return null;
+                   }
+   
+   //                int index = this.chooseRandomInt(serverCount);  // 生成区间随机数
+   //                server = (Server)upList.get(index);
+   
+                   // 自定义算法部分
+                   // ================================================
+                   if (total < 5) {
+                        server = upList.get(currentIndex);
+                        total++;
+                   } else {
+                       total = 0;
+                       currentIndex++;
+                       if (currentIndex > upList.size()) {
+                           currentIndex = 0;
+                       }
+                       server = upList.get(currentIndex);
+                   }
+                   // ================================================
+                   if (server == null) {
+                       Thread.yield();
+                   } else {
+                       if (server.isAlive()) {
+                           return server;
+                       }
+   
+                       server = null;
+                       Thread.yield();
+                   }
+               }
+   
+               return server;
+           }
+       }
+   
+       public Server choose(Object key) {
+           return this.choose(this.getLoadBalancer(), key);
+       }
+   
+   }
+   ```
+
+### 7. Feign负载均衡
+
+#### 7.1 Feign
+
+##### 简介
+
+feign是声明式的web service客户端，让微服务之间的调用更简单。类似Controller调用Service。SpringCloud继承了Ribbon和Eureka，可在使用Feign时提供负载均衡的http客户端。
+
+只需要创建一个接口，然后添加注解即可！
+
+Feign主要是社区，大家都习惯面向接口片成。调用微服务访问的两种方法：
+
+- 微服务名字【Ribbon】
+- 接口和注解【Feign】
+
+##### Feign能干什么
+
+- Feign旨在编写 Java Http客户端变得更容易。
+- 前面在使用Ribbon + RestTemplate时，利用RestTemplate对Http请求的封装处理，形成了一套模板化的调用方法。但在实际开发中，由于对服务依赖的调用可能不止一处，往往一个接口会被多处调用，所以通常都会针对每个微服务自行封装一些客户端类来包装这些依赖服务的调用。所以，Feign在此基础上做了进一步封装，由它来帮助定义和实现依赖服务接口的定义，在Feign的实现下，开发者只需要创建一个接口并使用注解的方式来配置它（类似在Dao接口上标注Mapper注解，现在是一个微服务接口上面标注一个Feign注解即可），即可完成对服务提供方的接口绑定，简化了使用SpringCloud Ribbon时，自动封装服务调用客户端的开发量。
+
+##### Feign集成了Ribbon
+
+- 利用Ribbon维护了MicroServiceCloud-Dept的服务列表信息，并且通过轮询实现了客户端的负载均衡，而与Ribbon不同的是，通过Feign只需要定义服务绑定接口且以声明式的方法，优雅而且简单的实现了服务调用。
+
+#### 7.2 Feign实现步骤
+
+新建 **springcloud-consumer-dept-feign** 项目
+
+1. 导入依赖
+
+   ```xml
+           <!--Feign-->
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-feign</artifactId>
+               <version>1.4.6.RELEASE</version>
+           </dependency>
+   ```
+
+2. 编写service接口，写注解
+
+   ```java
+   package com.sugar.springcloud.service;
+   
+   import com.sugar.springcloud.pojo.Dept;
+   import org.springframework.cloud.openfeign.FeignClient;
+   import org.springframework.stereotype.Component;
+   import org.springframework.web.bind.annotation.GetMapping;
+   import org.springframework.web.bind.annotation.PathVariable;
+   import org.springframework.web.bind.annotation.PostMapping;
+   
+   @Component
+   @FeignClient(value = "SPRINGCLOUD-PROVIDER-DEPT")
+   public interface DeptClientService {
+   
+       @GetMapping("/dept/get/{id}")
+       public Dept queryById(@PathVariable("id") Long id);
+   
+       @GetMapping("/dept/list")
+       public Dept queryAll();
+   
+       @PostMapping("/dept/add")
+       public Dept addDept(Dept dept);
+   }
+   ```
+
+3. 重新编写客户端Controller，在客户端调用
+
+   ```java
+   package com.sugar.springcloud.controller;
+   
+   import com.sugar.springcloud.pojo.Dept;
+   import com.sugar.springcloud.service.DeptClientService;
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.web.bind.annotation.PathVariable;
+   import org.springframework.web.bind.annotation.RequestMapping;
+   import org.springframework.web.bind.annotation.RestController;
+   import org.springframework.web.client.RestTemplate;
+   
+   import java.util.List;
+   
+   @RestController
+   public class DeptConsumerController {
+   
+       @Autowired
+       private DeptClientService service = null;
+   
+       @RequestMapping("/consumer/dept/add")
+       public Boolean add(Dept dept) {
+           return this.service.addDept(dept);
+       }
+   
+       @RequestMapping("/consumer/dept/get/{id}")
+       public Dept get(@PathVariable("id") Long id) {
+           return this.service.queryById(id);
+       }
+   
+       @RequestMapping("/consumer/dept/list")
+       public List<Dept> list() {
+           return this.service.queryAll();
+       }
+   }
+   ```
+
+4. 在启动类注解启动 @EnableFeign
+
+   ```java
+   @SpringBootApplication
+   @EnableEurekaClient
+   @EnableFeignClients(basePackages = {"com.sugar.springcloud"})
+   public class FeignDeptConsumer_80 {
+       public static void main(String[] args) {
+           SpringApplication.run(FeignDeptConsumer_80.class, args);
+       }
+   }
+   ```
+
+   
