@@ -9,4 +9,4 @@ eureka:
     register-with-eureka: false  # 表示是否向eureka注册中心注册自己
     fetch-registry: false  # 如果为false，表示自己为注册中心
     service-url:  # 监控页面，与eureka交互地址
-      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka
+      defaultZone: http://localhost:7002/eureka,http://localhost:7003/eureka

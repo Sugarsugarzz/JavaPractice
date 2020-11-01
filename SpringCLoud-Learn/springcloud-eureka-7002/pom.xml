@@ -9,30 +9,13 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>springcloud-consumer-dept-80</artifactId>
+    <artifactId>springcloud-eureka-7002</artifactId>
 
-    <!--实体类+web-->
     <dependencies>
-        <!--Ribbon-->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-ribbon</artifactId>
+            <artifactId>spring-cloud-starter-eureka-server</artifactId>
             <version>1.4.6.RELEASE</version>
-        </dependency>
-        <!--Eureka客户端-->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-eureka</artifactId>
-            <version>1.4.6.RELEASE</version>
-        </dependency>
-        <dependency>
-            <groupId>sugar</groupId>
-            <artifactId>springcloud-api</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -473,4 +473,221 @@ RestFUL方式，是消费者直接从服务提供者调用服务。
    }
    ```
 
+#### 5.6 Eureka集群配置
+
+注：hostname相同对会被认为是同一注册中心，导致集群搭建不成功。
+
+​	新建 **springcloud-eureka-7002** 和 **springcloud-eureka-7003** 项目，配置 pom.xml、application.yml和主启动类.
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201101110323848.png" alt="image-20201101110323848" style="zoom:30%;" />
+
+  1. 配置Eureka服务器，配置applicationyml，修改服务器实例名称 **hostname** ，挂载其他eureka服务器，修改 **defaultZone**
+
+     ```yml
+     server:
+       port: 7001
+     
+     # Eureka配置
+     eureka:
+       instance:
+         hostname: eureka7001.com  # Eureka服务端的实例名称
+       client:
+         register-with-eureka: false  # 表示是否向eureka注册中心注册自己
+         fetch-registry: false  # 如果为false，表示自己为注册中心
+         service-url:  # 监控页面，与eureka交互地址
+           # 单机：http://${eureka.instance.hostname}:${server.port}/eureka
+           # 集群（关联）：挂载7002和7003
+           defaultZone: http://eureka7002.com:7002/eureka
+     ```
+
+  2. 配置Eureka客户端的application.yml
+
+     修改发布地址，发布到三个服务器上
+
+     ```yml
+     eureka:
+       client:
+         service-url:
+           defaultZone: http://localhost:7001/eureka/, http://localhost:7002/eureka/, http://localhost:7003/eureka/
+     ```
+
+#### 5.7 对比Zookeeper
+
+##### 回顾CAP原则
+
+RDBMS（MySQl、Oracle、SqlServer）===> ACID
+
+NoSQL（Redis、MongoDB）===> CAP
+
+##### ACID
+
+- A：原子性
+- C：一致性
+- I：隔离性
+- D：持久性
+
+##### CAP
+
+- C（Consistency）：强一致性
+- A（Availability）：可用性
+- P（Partition tolerance）：分区容错性
+
+CAP的三进二：CA、AP、CP
+
+##### CAP理论的核心
+
+- 一个分布式系统不可能同时很好的满足一致性、可用性和分区容错性这三个需求
+- 根据CAP原则，将NoSQL数据库分成了满足CA原则、CP原则和AP原则三大类：
+  - CA：单点集群，满足一致性，可用性的系统，通常可扩展性较差
+  - CP：满足一致性，分区容错性的系统，通常性能不是特别高
+  - AP：满足可用性和分区容错性的系统，通常对一致性要求低一些
+
+##### 作为服务注册中心，Eureka比Zookeeper好在哪里
+
+由于分区容错性P在分布式系统中是必须要保证的，因此只能在A和C之间进行权衡。
+
+- Zookeeper保证的是CP
+- Eureka保证的是AP
+
+##### Zookeeper保证的是CP
+
+当向注册中心查询服务列表时，可以容忍注册中心返回的是几分钟以前的注册信息，但不能接收服务直接down掉不可用。即服务注册功能对可用性的要求要高于一致性。但Zookeeper会出现这样一种情况，当master节点因为网络故障与其他节点失去联系时，剩余节点会重新进行leader选举。问题在于，选举leader的时间太长了，30~120s，且选举期间整个zk集群都是不可用的，导致在选举期间注册服务瘫痪。在云部署的环境下，因为网络问题使得zk集群失去master节点是较大概率会发生的时间，虽然服务最后能够恢复，但是漫长的选举时间导致注册长期不可用是不能容忍的。
+
+##### Eureka保证的是AP
+
+Eureka看明白了这一点，设计时优先保证了可用性。**Eureka各个节点都是平等的**，几个节点挂掉不会影响正常节点的工作，剩余的节点依然可以提供注册和查询服务。而Eureka的客户端在向某个Eureka注册时，如果发现连接失败，则自动切换至其他节点，只要有一台Eureka还在，就能保住注册服务的可用性，只不过查到的信息可能不是最新的。除此之外，Eureka还有一种自我保护机制，如果15分钟内超过85%的节点都没有正常的心跳，那么Eureka就认为客户端与注册中心出现了网络故障，此时会出现以下几种情况：
+
+	1. Eureka不再从注册列表中移除因为长时间没收到心跳而应该过期的服务
+ 	2. Eureka仍然能够接受新服务的注册和查询请求，但是不会被同步打其他节点上（即保证当前节点依然可用）
+ 	3. 当网络稳定时，当前实例新的注册信息会被同步到其他节点中
+
+**因此，Eureka可以很好的应对因网络故障导致部分节点失去联系的情况，而不会像zk那样使整个注册服务瘫痪。**
+
+### 6. Ribbon客户端负载均衡
+
+#### 6.1 Ribbon
+
+##### ribbon是什么
+
+- Spring Cloud Ribbon是基于Netflix Ribbon实现的一套**客户端负载均衡工具**
+- 在客户端项目中做配置（**80项目**）
+- Ribbon是Netflix发布的开源项目，主要功能是提供客户端的软件负载均衡算法，将Netflix的中间层服务连接在一次。Ribbon的客户端组件提供一系列完整的配置项，如：连接超时、重试等等。就是在配置文件中累出LoadBalancer（简称LB：负载均衡）后面所有的机器，Ribbon会自动的帮助你基于某种规则（轮询、随机连接等）去连接这些机器，也可以很容易使用Ribbon实现自定义的负载均衡算法。
+
+##### ribbon能干嘛
+
+- LB，在微服务或分布式集群中经常用的一种应用
+- 负载均衡简单的说，就是将用户的请求平摊分配到多个服务上，从而达到系统的HA（高可用）。
+- 常见负载均衡软件有 **Nginx**、**Lvx** 等等。
+- Dubbo、SpringCloud中均提供了负载均衡，**SpringCloud的负载均衡算法可以自定义**
+- 负载均衡简单分类：
+  - 集中式LB
+    - 即在服务的消费方和提供方之间使用独立的LB设施，如Nginx：反向代理服务器！，由该设施负责把访问请求通过某种策略转发至服务的提供方
+  - 进程式LB
+    - 将LB逻辑集成到消费方，消费方从服务注册中心获知有哪些地址可用，然后自己再从这些地址中选出一个合适的服务器
+    - **Ribbon就属于进程内LB**，它只是一个类库，集成于消费方进程，消费方通过它来获取服务提供方的地址
+
+#### 6.2 客户端集成Ribbon
+
+在 **springcloud-consumer-dept-80** 项目配置Ribbon。
+
+1. 导入依赖
+
+   ```xml
+           <!--Ribbon-->
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-ribbon</artifactId>
+               <version>1.4.6.RELEASE</version>
+           </dependency>
+           <!--Eureka客户端-->
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-eureka</artifactId>
+               <version>1.4.6.RELEASE</version>
+           </dependency>
+   ```
+
+2. 编写application.yml，配置Eureka和Ribbon
+
+   ```yml
+   server:
+     port: 80
    
+   # Eureka配置
+   eureka:
+     client:
+       register-with-eureka: false  # 不注册自己
+       service-url:
+       	# 配置注册中心所在地址
+         defaultZone: http://localhost:7001/eureka,http://localhost:7002/eureka,http://localhost:7003/eureka
+   ```
+
+3. 启动类Enbale Eureka
+
+   ```java
+   // Ribbon和Eureka整合以后，客户端可以直接调用，而不用关心端口号
+   @SpringBootApplication
+   @EnableEurekaClient
+   public class DeptConsumer_80 {
+       public static void main(String[] args) {
+           SpringApplication.run(DeptConsumer_80.class, args);
+       }
+   }
+   ```
+
+4. 添加负载均衡注解  @LoadBalance
+
+   ```java
+   @Configuration
+   public class ConfigBean { // @Configuration - spring applicationContext.xml
+       // 配置负载均衡实现RestTemplate
+       @Bean
+       @LoadBalanced  // Ribbon
+       public RestTemplate getRestTemplate() {
+           return new RestTemplate();
+       }
+   }
+   ```
+
+5. 在Controller修改访问前缀，使用服务名访问
+
+   ```java
+   @RestController
+   public class DeptConsumerController {
+   
+       @Autowired
+       private RestTemplate restTemplate;
+   
+       // Ribbon，这里的地址应该是一个变量，通过服务名来访问
+   //    private static final String REST_URL_PREFIX = "http://localhost:8001";
+       private static final String REST_URL_PREFIX = "http://SPRINGCLOUD-PROVIDER-DEPT";
+   
+       // http://localhost:8001/dept/list
+   
+       @RequestMapping("/consumer/dept/add")
+       public Boolean add(Dept dept) {
+           return restTemplate.postForObject(REST_URL_PREFIX + "/dept/add", dept, Boolean.class);
+       }
+   
+       @RequestMapping("/consumer/dept/get/{id}")
+       public Dept get(@PathVariable("id") Long id) {
+           return restTemplate.getForObject(REST_URL_PREFIX + "/dept/get/" + id, Dept.class);
+       }
+   
+       @RequestMapping("/consumer/dept/list")
+       public List<Dept> list() {
+           return restTemplate.getForObject(REST_URL_PREFIX + "/dept/list", List.class);
+       }
+   }
+   ```
+
+#### 6.2 搭建多服务环境
+
+复制 **db01.dept** 表 到 **db02** 和 **db03**。
+
+复制项目 **springcloud-provider-dept-8001** 到 **springcloud-provider-dept-8002** 和 **springcloud-provider-dept-8003**。
+
+三个项目的 spring.application.name 一致，修改连接的数据库和eureka instance_id即可。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201101134041659.png" alt="image-20201101134041659" style="zoom:40%;" />
+
