@@ -202,7 +202,6 @@ public class DeptController {
     @Autowired
     private DeptService deptService;
 
-
     @PostMapping("/dept/add")
     public boolean addDept(Dept dept) {
         return deptService.addDept(dept);
@@ -217,7 +216,6 @@ public class DeptController {
     public List<Dept> queryAll() {
         return deptService.queryAll();
     }
-
 }
 ```
 
@@ -695,7 +693,7 @@ Eureka看明白了这一点，设计时优先保证了可用性。**Eureka各个
 2. 启动Eureka服务，注册到注册中心
 3. 启动客户端，请求接口，可见默认是**轮询**实现负载均衡。
 
-#### 6.3 实现自定义负载均衡算法
+#### 6.3 客户端实现自定义负载均衡算法
 
 1. 在主启动类指定Ribbon对应的服务和负载均衡策略
 
@@ -711,7 +709,7 @@ Eureka看明白了这一点，设计时优先保证了可用性。**Eureka各个
    }
    ```
 
-2. 自定义负载均衡算法 SugarRule.class（注：不能被扫描到）
+2. 自定义负载均衡算法 SugarRule.class（注：不能被扫描到，所以不能放在springcloud目录下）
 
    ```java
    package com.sugar.myrule;
@@ -830,7 +828,7 @@ Feign主要是社区，大家都习惯面向接口片成。调用微服务访问
            </dependency>
    ```
 
-2. 编写service接口，写注解
+2. 编写service接口，写注解 **@FeignClient**，对应上Eureka中的服务名
 
    ```java
    package com.sugar.springcloud.service;
@@ -908,4 +906,155 @@ Feign主要是社区，大家都习惯面向接口片成。调用微服务访问
    }
    ```
 
+### 8. Hystrix 服务熔断
+
+##### 分布式系统面临的问题
+
+复杂分布式体系结构中的应用程序有数十个依赖关系，每个依赖关系在某些时候将不可避免的失败。
+
+##### 服务雪崩
+
+多个微服务之间调用的时候，假设微服务A调用微服务B和微服务C，微服务B和微服务C又调用其他的微服务，这就是所谓的“扇出”，如果扇出的链路上某个微服务的调用响应事件过长或者不可用，对微服务A的调用就会占用越来越多的系统资源，进而引起系统崩溃，所谓的“雪崩效应”。
+
+对于高流量的应用来说，单一的后端依赖可能会导致所有服务器上的所有资源都在几秒中内饱和。比失败更糟糕的是，这些应用程序还可能导致服务器之间的延迟增加，备份队列，线程和其他系统资源紧张，导致整个系统发生更多的级联故障，这些都表示需要对故障和延迟进行隔离和管理，以便单个依赖关系的失败，不能取消整个应用程序或系统。
+
+即为 **弃车保帅**。
+
+#### 8.1 Hystrix
+
+##### 什么是Hystrix
+
+Hystrix是一个用于处理分布式系统的延迟和容错的开源库，在分布式系统里，许多依赖不可避免的会调用失败，比如超时、异常等，Hystrix能够保证在一个依赖出问题的情况下，不会导致整体服务失败，避免级联故障，以提高分布式系统的弹性。
+
+“断路器”本身是一种开关装置，当某个服务单元发生故障之后，通过断路器的故障监控（类似熔断保险丝），**向调用方返回一个服务预期的，可处理的备选响应（FallBack），而不是长时间的等待或者抛出调用方法无法处理的异常，这样就可以保证服务调用方的线程不会被长时间的、不必要的占用**，从而避免了故障在分布式系统中的蔓延，乃至雪崩。
+
+##### 能做什么
+
+- 服务降级
+- 服务熔断
+- 服务限流
+- 接近实时的监控
+- ...
+
+##### 官网
+
+https://github.com/Netfilx/Hystrix/wiki
+
+#### 8.2 服务熔断
+
+熔断机制是对应雪崩效应的一种微服务链路保护机制。
+
+当扇出链路的某个微服务不可用或者响应时间太长时，会进行服务的降级，**进而熔断该节点微服务的调用，快速返回错误的响应信息**。当检测到该节点微服务调用响应正常后恢复调用链路。在SpringCloud框架里熔断机制遇过Hystrix实现。Hystrix会监控微服务间调用的状况，当失效的调用到一定阈值，**缺省是5秒内20词调用失败**就会启动熔断机制。熔断机制的注解是 **@HystrixCommand**。
+
+#### 8.3 Hystrix服务熔断实现步骤（在服务端实现）
+
+1. 导入依赖
+
+   ```xml
+   <!--Hystrix-->
+   <dependency>
+     <groupId>org.springframework.cloud</groupId>
+     <artifactId>spring-cloud-starter-hystrix</artifactId>
+     <version>1.4.6.RELEASE</version>
+   </dependency>
+   ```
+
+2. 搭建项目 **springcloud-provider-dept-hystrix-8001**，同之前的8001项目，修改Controller，编写熔断方法
+
+   ```java
+   @RestController
+   public class DeptController {
    
+       @Autowired
+       private DeptService deptService;
+   
+       @GetMapping("/dept/get/{id}")
+       @HystrixCommand(fallbackMethod = "hystrixGet")
+       public Dept get(@PathVariable("id") Long id) {
+           Dept dept = deptService.queryById(id);
+           if (dept == null) {
+               throw new RuntimeException("id=>" + id + ". 不存在该用户.");
+           }
+           return dept;
+       }
+   
+       // 备选方法
+       public Dept hystrixGet(@PathVariable("id") Long id) {
+           return new Dept()
+                   .setDeptno(id)
+                   .setDname("id=>" + id + ". 不存在该用户.  @Hystrix")
+                   .setDb_source("no this database");
+       }
+   }
+   ```
+
+3. 在启动类注解启动 Hystrix
+
+   ```java
+   @SpringBootApplication
+   @EnableEurekaClient  // 在服务启动后自动注册到Eureka中
+   @EnableDiscoveryClient // 服务发现
+   @EnableCircuitBreaker // 添加对熔断的支持
+   public class DeptHystrixProvider_8001 {
+       public static void main(String[] args) {
+           SpringApplication.run(DeptHystrixProvider_8001.class, args);
+       }
+   }
+   ```
+
+#### 8.4 服务降级实现步骤（在客户端实现）
+
+在客户端实现 Feign
+
+在服务被关闭后，客户仍然能够访问，得到的Fallback的消息，不会直接报错。
+
+1. 在客户端编写服务降级处理类，继承Fallback接口
+
+   ```java
+   // 服务降级~
+   @Component
+   public class DeptClientServiceFallbackFactory implements FallbackFactory {
+   
+       public DeptClientService create(Throwable throwable) {
+           return new DeptClientService() {
+               public Dept queryById(Long id) {
+                   return new Dept()
+                           .setDeptno(id)
+                           .setDname("没有对应的信息，客户端提供了降级的信息，这个服务现在已经被关闭")
+                           .setDb_source("no database");
+               }
+   
+               public List<Dept> queryAll() {
+                   return null;
+               }
+   
+               public boolean addDept(Dept dept) {
+                   return false;
+               }
+           };
+       }
+   }
+   ```
+
+2. 在Service为Feign添加Fallback处理  fallbackFactory
+
+   ```java
+   @Component
+   @FeignClient(value = "SPRINGCLOUD-PROVIDER-DEPT", fallbackFactory = DeptClientServiceFallbackFactory.class)
+   public interface DeptClientService {
+   
+       @GetMapping("/dept/get/{id}")
+       public Dept queryById(@PathVariable("id") Long id);
+   
+       @GetMapping("/dept/list")
+       public List<Dept> queryAll();
+   
+       @PostMapping("/dept/add")
+       public boolean addDept(Dept dept);
+   }
+   ```
+
+#### 8.5 服务熔断与服务降级
+
+
+
