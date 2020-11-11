@@ -1056,5 +1056,266 @@ https://github.com/Netfilx/Hystrix/wiki
 
 #### 8.5 服务熔断与服务降级
 
+**服务熔断**：服务器~ 某个服务超时或者异常，引起熔断~
+
+**服务降级**：客户端~ 从整体网站请求负载考虑，当某个服务熔断或者关闭之后，服务将不再被调用~ 此时在客户端准备一个 FallbackFactory，返回一个缺省值，整体的服务下降了，但是请求还能用
+
+#### 8.6 Dashboard流监控
+
+创建 **springcloud-consumer-hystrix-dashboard** 项目，完成监控页面
+
+1. 添加依赖
+
+   ```xml
+           <!--Hystrix-->
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-hystrix</artifactId>
+               <version>1.4.6.RELEASE</version>
+           </dependency>
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-hystrix-dashboard</artifactId>
+               <version>1.4.6.RELEASE</version>
+           </dependency>
+   ```
+
+2. 配置 application.yml，设置启动端口
+
+   ```yml
+   server:
+     port: 9001
+   hystrix:
+     dashboard:
+       proxy-stream-allow-list: "*"
+   ```
+
+3. 启动类，配置开启
+
+   ```java
+   @SpringBootApplication
+   @EnableHystrixDashboard  // 开启
+   public class DeptConsumerDashboard_9001 {
+       public static void main(String[] args) {
+           SpringApplication.run(DeptConsumerDashboard_9001.class, args);
+       }
+   }
+   ```
+
+4. 然后开始配置服务端，保证服务端有监控依赖
+
+   ```xml
+           <!--Hystrix-->
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-hystrix</artifactId>
+               <version>1.4.6.RELEASE</version>
+           </dependency>
+           <!--actuator完善监控信息-->
+           <dependency>
+               <groupId>org.springframework.boot</groupId>
+               <artifactId>spring-boot-starter-actuator</artifactId>
+           </dependency>
+   ```
+
+5. 在服务端8001的启动类增加一个Servlet，并开启熔断，配合监控使用
+
+   ```java
+   @SpringBootApplication
+   @EnableEurekaClient  // 在服务启动后自动注册到Eureka中
+   @EnableDiscoveryClient // 服务发现
+   @EnableCircuitBreaker  // 添加熔断，以支持监控
+   public class DeptProvider_8001 {
+       public static void main(String[] args) {
+           SpringApplication.run(DeptProvider_8001.class, args);
+       }
+   
+       // 增加一个Servlet
+       @Bean
+       public ServletRegistrationBean hystrixMetricsStreamServlet() {
+           ServletRegistrationBean registrationBean = new ServletRegistrationBean(new HystrixMetricsStreamServlet());
+           registrationBean.addUrlMappings("/actuator/hystrix.stream");
+           return registrationBean;
+       }
+   }
+   ```
+
+6. 在服务端8001的Controller，需要被监控的方法上，添加 @HystrixCommand 注解，需要写一下fallback方法，不然请求失败页面会为空
+
+   ```java
+       @GetMapping("/dept/get/{id}")
+       @HystrixCommand
+       public Dept get(@PathVariable("id") Long id) {
+           return deptService.queryById(id);
+       }
+   ```
+
+7. 启动7001，8001和9001，访问localhost:9001 监控页面，访问 http://localhost:8001/actuator/hystrix.stream，查看监控
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201111192520885.png" alt="image-20201111192520885" style="zoom:30%;" />
+
+**Hystrix监控图解**
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201111192610966.png" alt="image-20201111192610966" style="zoom:30%;" />
+
+### 9. Zuul路由网关
+
+#### 9.1 概述
+
+Zuul包含了**请求**和**过滤**两个最主要的功能。
+
+其中路由功能负责将外部请求转发到具体的微服务实例上，是实现外部访问统一入口的基础，而过滤器功能则负责对请求的处理过程进行干预，是实现请求校验、服务聚合等功能的基础。Zuul和Eureka进行整合，将Zuul自身注册为Eureka服务助理下的应用，同时从Eureka中获得其他微服务的消息，也即以后访问的微服务都通过Zuul跳转后获得。
+
+**注意**：Zuul服务最终还是会注册进Eureka
+
+**提供**：代理+路由+过滤 三大功能！
+
+**官网文档**：https://github.om/Netflix/zuul
+
+#### 9.2 Zuul路由实现步骤
+
+新建 **springcloud-zuul-9527** 项目
+
+1. 添加依赖（主要是Zuul和Eureka）
+
+   ```xml
+           <!--Zuul-->
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-zuul</artifactId>
+               <version>1.4.6.RELEASE</version>
+           </dependency>
+   ```
+
+2. 配置 application.yml，注册到Eureka
+
+   ```yml
+   server:
+     port: 9527
+   
+   spring:
+     application:
+       name: springcloud-zuul
+   
+   # eureka
+   eureka:
+     client:
+       service-url:
+         defaultZone: http://localhost:7001/eureka/,http://localhost:7002/eureka/,http://localhost:7003/eureka/
+     instance:
+       instance-id: zuul9527.com
+       prefer-ip-address: true
+   
+   info:
+     app.name: sugar-springcloud
+     company.name: isi
+   ```
+
+3. 启动类，开启Zuul
+
+   ```java
+   @SpringBootApplication
+   @EnableZuulProxy
+   public class ZuulApplication_9527 {
+       public static void main(String[] args) {
+           SpringApplication.run(ZuulApplication_9527.class, args);
+       }
+   }
+   ```
+
+4. 通过Zuul，访问Eureka中的微服务。
+
+   隐藏了微服务的**真实IP和端口**，但依然会显示**服务名**。
+
+   http://localhost:9527/springcloud-provider-dept/dept/get/1
+
+5. 为了进一步隐藏服务名，修改 application.yml，使其只能用新定义的服务名访问。
+
+   ```yml
+   # zuul 隐藏服务名
+   zuul:
+     routes:
+       mydept.serviceId: springcloud-provider-dept
+       mydept.path: /mydept/**
+     ignored-services: "*"  # 隐藏全部的真实服务名
+     prefix: /sugar  # 统一的访问前缀
+   ```
+
+6. 用定义的微服务名，再次访问。
+
+   http://localhost:9527/mydept/dept/get/1
+
+### 10. Config分布式配置
+
+#### 10.1 概述
+
+##### 分布式系统面临的问题：配置文件过多
+
+微服务意味着将单体应用中的业务拆分成一个个子服务，每个服务的粒度相对较小，因此系统中会出现大量的服务，由于每个服务都需要必要的配置信息才能运行，所以一套集中式的、动态的配置管理设施必不可少。SpringCloud提供ConfigServer来解决这个问题。
+
+##### SpringCloud Config分布式配置中心
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20201111202745057.png" alt="image-20201111202745057" style="zoom:30%;" />
+
+Spring Cloud Config 为微服务架构中的微服务提供集中化的外部配置支持，配置服务器为**各个不同微服务应用**的所有环节提供了一个**中心化的外部配置**。
+
+Spring Cloud Config 分为 **服务端** 和 **客户端** 两部分：
+
+**服务端**也称为**分布式配置中心**，它是一个独立的微服务应用，用来连接配置服务器并为客户端提供获取配置信息、加密、解密信息等访问接口。
+
+**客户端**则是通过指定的配置中心来管理应用资源，以及与业务相关的配置内容，并在启动的时候从配置中心获取和加载配置信息。配置服务器默认采用git来存储配置信息，这样有助于对环境配置进行版本管理，并且可以通过git客户端工具来方便的管理和访问配置内容。
+
+##### 能做什么
+
+- 集中管理配置文件
+- 不同环境，不同配置，动态化的配置更新，分环境部署，比如dev、test、prod、releease
+- 运行期间动态调整配置，不再需要在每个服务部署的机器上编写配置文件，服务会向配置中心统一拉取配置自己的信息
+- 当配置发生变动时，服务不需要重启，即可感知到配置的变化，并应用新的配置
+- 将配置信息以REST接口的形式暴露
+
+##### SpringCloud Config分布式配置中心与Github整合
+
+由于SpringCloud Config默认使用Git来存储配置文件（也支持SVN和本地文件），但最推荐的还是Git，而且使用的是 http /https 访问的形式。
+
+#### 10.2 搭建Git环境
+
+1. 注册码云账号
+
+2. 创建一个 springcloud-config 项目
+
+3. 使用 git clone https://... 克隆到本地
+
+4. 创建 application.yml 文件，编写配置
+
+   ```yml
+   spring:
+     profiles:
+       active: dev
+   
+   ---
+   spring:
+     profiles: dev
+     application:
+       name: springcloud-config-dev
+   
+   ---
+   spring:
+     profiles: test
+     application:
+       name: springcloud-config-test
+   ```
+
+5. 将application.yml文件提交到git上
+
+   ```cmd
+   
+   ```
+
+6. w
+
+7. w
+
+8. w
+
 
 

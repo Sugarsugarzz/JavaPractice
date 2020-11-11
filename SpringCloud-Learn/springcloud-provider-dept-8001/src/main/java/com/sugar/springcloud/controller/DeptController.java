@@ -1,6 +1,7 @@
 package com.sugar.springcloud.controller;
 
 import com.netflix.discovery.converters.Auto;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import com.sugar.springcloud.pojo.Dept;
 import com.sugar.springcloud.service.DeptService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ public class DeptController {
     }
 
     @GetMapping("/dept/get/{id}")
+    @HystrixCommand
     public Dept get(@PathVariable("id") Long id) {
         return deptService.queryById(id);
     }
