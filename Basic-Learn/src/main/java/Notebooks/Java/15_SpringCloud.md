@@ -1308,14 +1308,401 @@ Spring Cloud Config 分为 **服务端** 和 **客户端** 两部分：
 5. 将application.yml文件提交到git上
 
    ```cmd
-   
+   cd path
+   git add .
+   git commit -m "first commit"
+   git push origin master
    ```
 
-6. w
 
-7. w
+#### 10.3 创建服务端连接Git配置
 
-8. w
+创建 **springcloud-config-server-3344** 项目
 
+1. 导入依赖
 
+   ```xml
+           <!--config-->
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-config-server</artifactId>
+           </dependency>
+           <!--Eureka-->
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-eureka</artifactId>
+               <version>1.4.6.RELEASE</version>
+           </dependency>
+           <dependency>
+               <groupId>org.springframework.boot</groupId>
+               <artifactId>spring-boot-starter-web</artifactId>
+           </dependency>
+   ```
 
+2. 编写 application.yml 配置
+
+   ```yml
+   server:
+     port: 3344
+   spring:
+     application:
+       name: springcloud-config-server
+     # 连接远程Git仓库
+     cloud:
+       config:
+         server:
+           git:
+             uri: https://gitee.com/sugarbabyzzz/springcloud-config.git  # https
+   
+   # 通过 config-server 可以连接到git，访问其中的资源以及配置
+   ```
+
+3. 主启动类开启 注解 @EnableConfigServer
+
+   ```java
+   @SpringBootApplication
+   @EnableConfigServer  // 开启
+   public class Config_Server_3344 {
+       public static void main(String[] args) {
+           SpringApplication.run(Config_Server_3344.class, args);
+       }
+   }
+   ```
+
+4. 访问 http://localhost:3344/application-dev.yml，得到 dev 的配置
+
+   通过以下几种方式来访问资源
+
+   label是分支
+
+   ```.
+   /{application}/{profile}/{label}   # /application/dev/master
+   /{application}-{profille}.yml     # /application-dev.yml
+   /{label}/{application}-{profile}.yml   # /master/application-dev.yml
+   /{application}-{profile}.properties   # 
+   /{label}/{application}-{profile}.properties
+   ```
+
+#### 10.4 创建客户端连接服务端，访问远程配置
+
+创建  项目。
+
+1. 先给 **springcloud-config** 项目添加配置文件 config-client.yml，push到git上
+
+   ```yml
+   spring:
+     profiles:
+       active: dev
+   
+   ---
+   server:
+     port: 8201
+   
+   # spring配置
+   spring:
+     profiles: dev
+     application:
+       name: springcloud-provider-dept
+   
+   # Eureka配置，配置服务注册到哪里
+   eureka:
+     client:
+       service-url:
+         defaultZone: http://localhost:7001/eureka/
+   
+   ---
+   server:
+     port: 8202
+   
+   # spring配置
+   spring:
+     profiles: test
+     application:
+       name: springcloud-provider-dept
+   
+   # Eureka配置，配置服务注册到哪里
+   eureka:
+     client:
+       service-url:
+         defaultZone: http://localhost:7001/eureka/
+   ```
+
+2. 创建 **springcloud-config-client-3355** 项目
+
+3. 导入依赖
+
+   ```xml
+           <!--config-->
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-config</artifactId>
+           </dependency>
+           <dependency>
+               <groupId>org.springframework.boot</groupId>
+               <artifactId>spring-boot-starter-web</artifactId>
+           </dependency>
+   ```
+
+4. 编写配置文件 application.yml
+
+   ```yml
+   # 用户级别的配置
+   spring:
+     application:
+       name: springcloud-config-client-3355
+   ```
+
+5. 编写配置文件 bootstrap.yml，连接 Config Server
+
+   ```yml
+   # application  项目级配置
+   # bootstrap  系统级配置
+   
+   # 连接 Config Server
+   spring:
+     cloud:
+       config:
+         name: config-client  # 从git上需要读取的资源名称，不需要后缀
+         uri: http://localhost:3344
+         profile: dev
+         label: master
+   ```
+
+6. 编写测试 Controller，查看配置文件信息
+
+   ```java
+   @RestController
+   public class ConfigClientController {
+   
+       @Value("${spring.application.name}")
+       private String applicationName;
+   
+       @Value("${eureka.client.service-url.defaultZone}")
+       private String eurekaServer;
+   
+       @Value("${server.port}")
+       private String port;
+   
+       @RequestMapping("/config")
+       public String getConfig() {
+           return "applicationName:" + applicationName + "\n" +
+                   "eurekaServer:" + eurekaServer + "\n" +
+                   "port:" + port;
+       }
+   }
+   ```
+
+7. 3355项目启动后，可以看到，其启动到了远程配置文件的 8201 端口，继承了远程配置文件。
+
+8. 修改 profile，可以换到对应的环境配置。
+
+#### 10.5 结论
+
+通过SpringCloud Config分布中心可以完成这样一个架构：
+
+- 写多个客户端，将配置文件统一放到GitHub上。
+- 通过 Config Server 去连接 GitHub。
+
+#### 10.6 Config整合实战
+
+1. 给 **springcloud-config** 项目添加配置文件 **config-eureka.yml**，放到Git上
+
+   ```yml
+   spring:
+     profiles:
+       active: dev
+   
+   ---
+   server:
+     port: 7001
+   
+   # spring配置
+   spring:
+     profiles: dev
+     application:
+       name: springcloud-provider-eureka
+   
+   # Eureka配置
+   eureka:
+     instance:
+       hostname: localhost  # Eureka服务端的实例名称
+     client:
+       register-with-eureka: false  # 表示是否向eureka注册中心注册自己
+       fetch-registry: false  # 如果为false，表示自己为注册中心
+       service-url:  # 监控页面，与eureka交互地址
+         defaultZone: http://localhost:7002/eureka,http://localhost:7003/eureka
+   
+   ---
+   server:
+     port: 7001
+   
+   # spring配置
+   spring:
+     profiles: dev
+     application:
+       name: springcloud-provider-eureka
+   
+   # Eureka配置
+   eureka:
+     instance:
+       hostname: localhost  # Eureka服务端的实例名称
+     client:
+       register-with-eureka: false  # 表示是否向eureka注册中心注册自己
+       fetch-registry: false  # 如果为false，表示自己为注册中心
+       service-url:  # 监控页面，与eureka交互地址
+         defaultZone: http://localhost:7002/eureka,http://localhost:7003/eureka
+   ```
+
+2. 再添加配置文件 config-dept.yml，放到Git上
+
+   ```yml
+   spring:
+     profiles:
+       active: dev
+   
+   ---
+   server:
+     port: 8001
+   
+   # mybatis配置
+   mybatis:
+     type-aliases-package: com.sugar.springcloud.pojo
+     mapper-locations: classpath:mapper/*.xml
+     config-location: classpath:mybatis-config.xml
+   
+   # spring配置
+   spring:
+     profiles: dev
+     application:
+       name: springcloud-config-dept
+     datasource:
+       type: com.alibaba.druid.pool.DruidDataSource
+       driver-class-name: com.mysql.cj.jdbc.Driver
+       url: jdbc:mysql://localhost:3306/db01?useUnicode=true&characterEncoding=utf-8
+       username: root
+       password: 123456
+   
+   # Eureka配置，配置服务注册到哪里
+   eureka:
+     client:
+       service-url:
+         defaultZone: http://localhost:7001/eureka/,http://localhost:7002/eureka/,http://localhost:7003/eureka/
+     instance:
+       instance-id: springcloud-provider-dept:8001 # 修改eureka上的默认描述信息
+   
+   # 配置监控信息
+   info:
+     app.name: sugar-springcloud
+     company.name: casia
+   
+   ---
+   server:
+     port: 8001
+   
+   # mybatis配置
+   mybatis:
+     type-aliases-package: com.sugar.springcloud.pojo
+     mapper-locations: classpath:mapper/*.xml
+     config-location: classpath:mybatis-config.xml
+   
+   # spring配置
+   spring:
+     profiles: test
+     application:
+       name: springcloud-config-dept
+     datasource:
+       type: com.alibaba.druid.pool.DruidDataSource
+       driver-class-name: com.mysql.cj.jdbc.Driver
+       url: jdbc:mysql://localhost:3306/db02?useUnicode=true&characterEncoding=utf-8
+       username: root
+       password: 123456
+   
+   # Eureka配置，配置服务注册到哪里
+   eureka:
+     client:
+       service-url:
+         defaultZone: http://localhost:7001/eureka/,http://localhost:7002/eureka/,http://localhost:7003/eureka/
+     instance:
+       instance-id: springcloud-provider-dept:8001 # 修改eureka上的默认描述信息
+   
+   # 配置监控信息
+   info:
+     app.name: sugar-springcloud
+     company.name: casia
+   ```
+
+3. 新建一个Eureka项目 **springcloud-eureka-config-7001**，不再需要本地的 application.yml
+
+4. 导入依赖
+
+   ```xml
+           <!--config-->
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-config</artifactId>
+           </dependency>
+           <dependency>
+               <groupId>org.springframework.cloud</groupId>
+               <artifactId>spring-cloud-starter-eureka-server</artifactId>
+               <version>1.4.6.RELEASE</version>
+           </dependency>
+           <dependency>
+               <groupId>org.springframework.boot</groupId>
+               <artifactId>spring-boot-devtools</artifactId>
+           </dependency>
+   ```
+
+5. 编写 bootstrap.yml，连接远程配置文件
+
+   ```yml
+   spring:
+     cloud:
+       config:
+         name: config-eureka
+         label: master
+         profile: dev
+         uri: http://localhost:3344
+   ```
+
+6. **测试：启动 Config Server（3344项目），再启动 eureka（config eureka 7001项目），如果能访问到 localhost:7001，则说明读取远程配置文件成功。**
+
+7. 新建一个 dept项目 **springcloud-provider-dept-config-80011** ，copy之前的dept-8001项目，不再需要本地的 application.yml。
+
+8. 同样需要导入config依赖，编写 bootstrap.yml，连接远程配置文件。
+
+   ```yml
+   spring:
+     cloud:
+       config:
+         name: config-dept
+         label: master
+         profile: dev
+         uri: http://localhost:3344
+   ```
+
+**注意：如果要实现编辑Git配置文件，程序同步更新配置，给配置加上热部署即可！**
+
+### 11. 总结
+
+- 微服务和微服务架构
+- 基础工程 RestTemplate
+- Eureka AP
+  - 集群配置
+  - 对比Zookeeper   CP
+- Ribbon
+  - IRule
+- Feign
+  - 接口，社区要求，更加面向接口编程
+- Hystrix
+  - 熔断
+  - 降级
+  - Dashboard
+- Zuul
+- Spring Cloud Config
+  - C  -  S  -  GIT
+
+**通用步骤**
+
+1. 导入依赖
+2. 编写配置
+3. @Enablexxx

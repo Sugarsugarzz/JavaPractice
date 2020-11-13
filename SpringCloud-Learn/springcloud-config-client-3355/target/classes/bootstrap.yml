@@ -1,0 +1,11 @@
+# application  项目级配置
+# bootstrap  系统级配置
+
+# 连接 Config Server
+spring:
+  cloud:
+    config:
+      name: config-client  # 从git上需要读取的资源名称，不需要后缀
+      uri: http://localhost:3344
+      profile: dev
+      label: master
