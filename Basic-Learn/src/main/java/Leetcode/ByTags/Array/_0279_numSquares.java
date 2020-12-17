@@ -1,5 +1,10 @@
 package Leetcode.ByTags.Array;
 
+/**
+ * 279. 完全平方数
+ * Medium
+ */
+
 public class _0279_numSquares {
 
     public static void main(String[] args) {
