@@ -28,6 +28,7 @@
         <module>Vue-Learn</module>
         <module>SpringCLoud-Learn</module>
         <module>Guide-Learn</module>
+        <module>MyBatisPlus-Learn</module>
     </modules>
 
     <!-- Package:项目的打包方式
