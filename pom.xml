@@ -29,6 +29,7 @@
         <module>SpringCLoud-Learn</module>
         <module>Guide-Learn</module>
         <module>MyBatisPlus-Learn</module>
+        <module>ElasticSearch-Learn</module>
     </modules>
 
     <!-- Package:项目的打包方式
