@@ -30,6 +30,7 @@
         <module>Guide-Learn</module>
         <module>MyBatisPlus-Learn</module>
         <module>ElasticSearch-Learn</module>
+        <module>Redis-Learn</module>
     </modules>
 
     <!-- Package:项目的打包方式
