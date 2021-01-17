@@ -323,6 +323,8 @@ Redis是C语言写的，达到100000+的QPS，不比Memcache差
 
 ### 3 五大数据类型
 
+**常用API在Redis官方文档中都有！**
+
 Redis 是一个开源的，内存中的数据结构存储系统，可以用作数据库、缓存和消息中间件。它支持多种类型的数据结构，如字符串、散列、列表、集合、有序集合和范围查询，bitmaps、hyperloglogs和geopatial索引半径查询。Redis内置了 replication、Lua scripting、LRU eviction、transactions 和不同级别的 persistence，并通过 Redis哨兵和自动分区提供高可用性。
 
 #### Redis-Key
@@ -352,23 +354,716 @@ OK
 string
 ```
 
-### String
+### String（字符串）
+
+String类似的使用场景：value除了是字符串，还可以是数字
+
+- 计数器
+- 统计数
+- 粉丝数
+- 对象缓存
+
+```bash
+127.0.0.1:6379> set key1 v1
+OK
+127.0.0.1:6379> get key1
+"v1"
+127.0.0.1:6379> append key1 "hello"  # 追加字符串，如果key不存在，则相当于set
+(integer) 7
+127.0.0.1:6379> get key1
+"v1hello"
+127.0.0.1:6379> strlen key1  # 获取字符串的长度
+(integer) 7
+127.0.0.1:6379> append key1 ",sugar"  
+(integer) 13
+127.0.0.1:6379> get key1
+"v1hello,sugar"
+#############################################################################  
+# 自增自减，步长
+127.0.0.1:6379> set views 0  # 初始浏览量为0
+OK
+127.0.0.1:6379> incr views  # 自增
+(integer) 1
+127.0.0.1:6379> incr views  # 自减
+(integer) 2
+127.0.0.1:6379> get views
+"2"
+127.0.0.1:6379> decr views
+(integer) 1
+127.0.0.1:6379> incrby views 10  # 自增，步长10
+(integer) 11
+127.0.0.1:6379> decrby views 5  # 自减，步长5
+(integer) 6
+#############################################################################  
+# 字符串范围 getrange
+127.0.0.1:6379> set key1 "hello,sugar"
+OK
+127.0.0.1:6379> get key1
+"hello,sugar"
+127.0.0.1:6379> getrange key1 0 3  # 字符串截取
+"hell"
+127.0.0.1:6379> getrange key1 0 -1
+"hello,sugar"
+# 替换
+127.0.0.1:6379> set key2 abcdefg
+OK
+127.0.0.1:6379> get key2
+"abcdefg"
+127.0.0.1:6379> setrange key2 1 xx  # 替换指定位置开始的字符串
+(integer) 7
+127.0.0.1:6379> get key2
+"axxdefg"
+#############################################################################  
+# setex (set with expire)  # 设置过期时间
+# setnx (set if not exist)  # 不存在时设置（在分布式锁中常用）
+127.0.0.1:6379> setex key3 30 "hello"  # 设置key3的值为hello，30秒后过期
+OK
+127.0.0.1:6379> ttl key3
+(integer) 28
+127.0.0.1:6379> setnx mykey "redis"  # mykey不存在则创建mykey
+(integer) 1
+127.0.0.1:6379> keys *
+1) "key1"
+2) "mykey"
+3) "key2"
+127.0.0.1:6379> setnx mykey "MongoDB"  # 存在则创建失败
+(integer) 0
+127.0.0.1:6379> get mykey
+"redis"
+#############################################################################  
+# mset  # 批量设置
+# msetnx  # 不存在时批量设置
+# mget  # 批量获取
+127.0.0.1:6379> mset k1 v1 k2 v2 k3 v3  # 批量设置
+OK
+127.0.0.1:6379> keys *
+1) "k2"
+2) "k3"
+3) "k1"
+127.0.0.1:6379> mget k1 k2 k3  # 批量后去
+1) "v1"
+2) "v2"
+3) "v3"
+127.0.0.1:6379> msetnx k1 v1 k4 v4  # msetnx院子操作，k1存在，则k4创建失败
+(integer) 0
+127.0.0.1:6379> get k4
+(nil)
+# 对象
+set user:1 {name:sugar, age:3}  # 设置一个user:1 对象，值为JSON字符串保存
+# 这里的key是巧妙设置：  user:{id}:{field}
+127.0.0.1:6379> mset user:1:name sugar user:1:age 2
+OK
+127.0.0.1:6379> mget user:1:name user:1:age
+1) "sugar"
+2) "2"
+#############################################################################  
+# getset  # 先get再set
+127.0.0.1:6379> getset db redis  # 如果不存在值，则返回nil
+(nil)
+127.0.0.1:6379> get db
+"redis"
+127.0.0.1:6379> getset db mongodb  # 如果存在值，获取原来的值，并设置新的值
+"redis"
+127.0.0.1:6379> get db
+"mongodb"
+```
 
 ### List
 
-#### Set
+基本的数据类型，列表。
 
-#### Hash
+在Redis中，可以将List实现为栈、队列、阻塞队列。
 
-#### Zset
+所有的List命令都是 `l` 开头的。
 
+**小结**
 
+- 列表实际上是一个链表，node的left和right都可以插入值
+- 如果 key 不存在，创建新的链表
+- 如果 key 存在，新增内容
+- 如果移除了所有值（空链表），也代表不存在
+- 在两边插入或者改动值，效率最高！中间元素，相对来说效率会低一点！
+
+消息排队！消息队列（Lpush  Rpop）、栈（Lpush  Lpop）
+
+```bash
+#############################################################################  
+# lpush 左添加
+# rpush 右添加
+127.0.0.1:6379> lpush list one  # 将一个或多个值插入列表的头部
+(integer) 1
+127.0.0.1:6379> lpush list two
+(integer) 2
+127.0.0.1:6379> lpush list three
+(integer) 3
+127.0.0.1:6379> lrange list 0 -1  # 获取List中所有值
+1) "three"
+2) "two"
+3) "one"
+127.0.0.1:6379> lrange list 0 1  # 获取List中具体的值
+1) "three"
+2) "two"
+127.0.0.1:6379> rpush list right  # 将一个或多个值插入列表的尾部
+(integer) 4
+127.0.0.1:6379> lrange list 0 -1
+1) "three"
+2) "two"
+3) "one"
+4) "right"
+#############################################################################  
+# lpop 左移除
+# rpop 右移除
+127.0.0.1:6379> lrange list 0 -1  
+1) "three"
+2) "two"
+3) "one"
+4) "right"
+127.0.0.1:6379> lpop list  # 移除列表头部元素
+"three"
+127.0.0.1:6379> rpop list  # 移除列表尾部元素 
+"right"
+127.0.0.1:6379> lrange list 0 -1
+1) "two"
+2) "one"
+#############################################################################  
+# lindex  # 通过下标获取值
+127.0.0.1:6379> lrange list 0 -1
+1) "two"
+2) "one"
+127.0.0.1:6379> lindex list 0  # 通过下标获取List中的某一个值
+"two"
+127.0.0.1:6379> lindex list 1
+"one"
+#############################################################################  
+# llen  # 获取长度
+127.0.0.1:6379> lpush list one
+(integer) 1
+127.0.0.1:6379> lpush list two
+(integer) 2
+127.0.0.1:6379> lpush list three
+(integer) 3
+127.0.0.1:6379> llen list  # 获取列表的长度
+(integer) 3
+#############################################################################  
+# lrem  # 移除指定的值，精确匹配
+127.0.0.1:6379> lrange list 0 -1
+1) "three"
+2) "three"
+3) "two"
+4) "one"
+127.0.0.1:6379> lrem list 1 one  # 移除List中指定个数的value，精确匹配
+(integer) 1
+127.0.0.1:6379> lrange list 0 -1
+1) "three"
+2) "three"
+3) "two"
+127.0.0.1:6379> lrem list 1 three
+(integer) 1
+127.0.0.1:6379> lrange list 0 -1
+1) "three"
+2) "two"
+127.0.0.1:6379> lpush list three
+(integer) 3
+127.0.0.1:6379> lrem list 2 three
+(integer) 2
+127.0.0.1:6379> lrange list 0 -1
+1) "two"
+#############################################################################  
+# trim # 截取List中的元素
+127.0.0.1:6379> rpush list "hello"
+(integer) 1
+127.0.0.1:6379> rpush list "hello1"
+(integer) 2
+127.0.0.1:6379> rpush list "hello2"
+(integer) 3
+127.0.0.1:6379> rpush list "hello3"
+(integer) 4
+127.0.0.1:6379> lrange list 0 -1  
+1) "hello"
+2) "hello1"
+3) "hello2"
+4) "hello3"
+127.0.0.1:6379> ltrim list 1 2  # 通过下标，截取指定长度的元素
+OK
+127.0.0.1:6379> lrange list 0 -1
+1) "hello1"
+2) "hello2"
+#############################################################################  
+# rpoplpush  # 移除列表的最后一个元素，到某个列表（可以是当前列表）
+127.0.0.1:6379> rpush list "hello"
+(integer) 1
+127.0.0.1:6379> rpush list "hello1"
+(integer) 2
+127.0.0.1:6379> rpush list "hello2"
+(integer) 3
+127.0.0.1:6379> lrange list 0 -1
+1) "hello"
+2) "hello1"
+3) "hello2"
+127.0.0.1:6379> rpoplpush list otherlist  # 右移除列表元素，左添加到另一列表中
+"hello2"
+127.0.0.1:6379> lrange list 0 -1  # 原列表元素已被移除
+1) "hello"
+2) "hello1"
+127.0.0.1:6379> lrange otherlist 0 -1  # 不存在的列表则会创建
+1) "hello2"
+#############################################################################
+# lset  # 将列表中指定下标的值替换为另一个值
+127.0.0.1:6379> exists list  # 判断列表是否存在
+(integer) 0
+127.0.0.1:6379> lset list 0 item  # 如果不存在列表，更新会报错
+(error) ERR no such key
+127.0.0.1:6379> lpush list value1
+(integer) 1
+127.0.0.1:6379> lrange list 0 -1
+1) "value1"
+127.0.0.1:6379> lset list 0 item  # 如果存在，更新当前下标的值
+OK
+127.0.0.1:6379> lrange list 0 -1
+1) "item"
+127.0.0.1:6379> lset list 1 other  # 如果不存在，则会报错
+(error) ERR index out of range
+#############################################################################
+# linsert  # 将某个具体的value插入到列表中某个元素的前面或者后面
+127.0.0.1:6379> rpush list "hello"
+(integer) 1
+127.0.0.1:6379> rpush list "world"
+(integer) 2
+127.0.0.1:6379> linsert list before "world" "other"  # 在某个元素前面插入值
+(integer) 3
+127.0.0.1:6379> lrange list 0 -1
+1) "hello"
+2) "other"
+3) "world"
+127.0.0.1:6379> linsert list after "world" new  # 在某个元素后面插入值
+(integer) 4
+127.0.0.1:6379> lrange list 0 -1
+1) "hello"
+2) "other"
+3) "world"
+4) "new"
+
+```
+
+#### Set（集合）
+
+Set是**无序不重复**集合。
+
+```bash
+#############################################################################
+127.0.0.1:6379> sadd myset "hello"  # 添加元素
+(integer) 1
+127.0.0.1:6379> sadd myset "sugar"  
+(integer) 1
+127.0.0.1:6379> sadd myset "heihei"
+(integer) 1
+127.0.0.1:6379> smembers myset  # 查看指定set的所有元素
+1) "sugar"
+2) "hello"
+3) "heihei"
+127.0.0.1:6379> sismember myset hello  # 判断某个元素是否在set中
+(integer) 1
+127.0.0.1:6379> sismember myset world
+(integer) 0
+#############################################################################
+# scard
+127.0.0.1:6379> scard myset  # 获取set集合中元素的个数
+(integer) 3
+#############################################################################
+# srem
+127.0.0.1:6379> srem myset hello  # 删除set中的指定个元素
+(integer) 1
+127.0.0.1:6379> scard myset
+(integer) 2
+127.0.0.1:6379> smembers myset
+1) "sugar"
+2) "heihei"
+#############################################################################
+# 随机抽取元素
+127.0.0.1:6379> srandmember myset  # 随机抽取一个元素
+"heihei"
+127.0.0.1:6379> srandmember myset 2  # 随机抽取指定个数元素
+1) "sugar"
+2) "heihei"
+#############################################################################
+# 随机删除key
+127.0.0.1:6379> smembers myset
+1) "sugar"
+2) "hello"
+3) "heihei"
+127.0.0.1:6379> spop myset  # 随机删除一个元素
+"sugar"
+127.0.0.1:6379> spop myset
+"heihei"
+127.0.0.1:6379> smembers myset
+1) "hello"
+#############################################################################
+# 将一个指定的key移动到另外一个set中
+127.0.0.1:6379> smove myset myset2 sugar  # 移动到另外一个set中
+(integer) 1
+127.0.0.1:6379> smembers myset
+1) "hello"
+2) "world"
+127.0.0.1:6379> smembers myset2
+1) "sugar"
+2) "set2"
+#############################################################################
+# 微博中共同关注、二度好友等功能的实现（并集）
+# 数字集合类：交集、并集、差集
+127.0.0.1:6379> sadd key1 a b c
+(integer) 3
+127.0.0.1:6379> sadd key2 c d e
+(integer) 3
+127.0.0.1:6379> sdiff key1 key2  # key1与key2不同的元素
+1) "a"
+2) "b"
+127.0.0.1:6379> sinter key1 key2  # 交集
+1) "c"
+127.0.0.1:6379> sunion key1 key2  # 并集
+1) "c"
+2) "e"
+3) "a"
+4) "b"
+5) "d"
+```
+
+#### Hash（哈希）
+
+Map集合，key-Map集合！本质和String类型没有太大区别，还是简单的 key-value。
+
+Hash可以存user对象的name、age，用户信息之类的，尤其是经常变动的信息。
+
+```bash
+#############################################################################
+127.0.0.1:6379> hset myhash field1 sugar  # 添加一个key-value
+(integer) 0
+127.0.0.1:6379> hget myhash field1  # 获取一个字段值
+"sugar"
+127.0.0.1:6379> hmset myhash field1 hello field2 world  # 添加多个key-value
+OK
+127.0.0.1:6379> hmget myhash field1 field2  # 获取多个字段值
+1) "hello"
+2) "world"
+127.0.0.1:6379> hgetall myhash  # 获取全部数据，以键值形式展示
+1) "field1"
+2) "hello"
+3) "field2"
+4) "world"
+127.0.0.1:6379> hdel myhash field1  # 删除指定字段
+(integer) 1
+127.0.0.1:6379> hgetall myhash
+1) "field2"
+2) "world"
+#############################################################################
+# hlen  # 获取长度
+127.0.0.1:6379> hlen myhash  # 获取哈希长度
+(integer) 1
+#############################################################################
+# hexists 
+127.0.0.1:6379> hexists myhash field1  # 判断指定字段是否存在
+(integer) 0
+127.0.0.1:6379> hexists myhash field2
+(integer) 1
+#############################################################################
+# 只获取所有field
+# 只获取所有vale
+127.0.0.1:6379> hkeys myhash  # 获取所有字段
+1) "field2"
+127.0.0.1:6379> hvals myhash  # 获取所有值
+1) "world"
+#############################################################################
+# incr  decr  setnx
+127.0.0.1:6379> hset myhash field3 5
+(integer) 1
+127.0.0.1:6379> hincrby myhash field3 1  # 自增
+(integer) 6
+127.0.0.1:6379> hincrby myhash field3 -1  # 自减
+(integer) 5
+127.0.0.1:6379> hsetnx myhash field4 hello  # 如果不存在则可以set
+(integer) 1
+127.0.0.1:6379> hsetnx myhash field4 hello
+(integer) 0
+```
+
+#### Zset（有序集合）
+
+在Set的基础上，增加了一个值，set k1 v1，zset k1 score1 v1
+
+案例思路：set 排序，存储班级成绩，工资表排序，带权重判断，排行榜应用实现，取TOP N...
+
+```bash
+#############################################################################
+127.0.0.1:6379> zadd myset 1 one  # 添加一个值
+(integer) 1
+127.0.0.1:6379> zadd myset 2 two 3 three  # 添加多个值
+(integer) 2
+127.0.0.1:6379> zrange myset 0 -1  # 
+1) "one"
+2) "two"
+3) "three"
+#############################################################################
+# 实现排序
+127.0.0.1:6379> zadd salary 2500 xiaoming  # 添加三个用户
+(integer) 1
+127.0.0.1:6379> zadd salary 5000 zhangsan
+(integer) 1
+127.0.0.1:6379> zadd salary 500 wangwu
+(integer) 1
+127.0.0.1:6379> zrangebyscore salary -inf +inf  # 显示全部的用户，从小到大排序
+1) "wangwu"
+2) "xiaoming"
+3) "zhangsan"
+127.0.0.1:6379> zrevrange salary 0 -1  # 从大到小排序
+1) "zhangsan"
+2) "wangwu"
+127.0.0.1:6379> zrangebyscore salary -inf +inf withscores  # 带成绩返回
+1) "wangwu"
+2) "500"
+3) "xiaoming"
+4) "2500"
+5) "zhangsan"
+6) "5000"
+127.0.0.1:6379> zrangebyscore salary -inf 2500 withscores  # 限定scores范围
+1) "wangwu"
+2) "500"
+3) "xiaoming"
+4) "2500"
+#############################################################################
+# zrem
+127.0.0.1:6379> zrange salary 0 -1
+1) "wangwu"
+2) "xiaoming"
+3) "zhangsan"
+127.0.0.1:6379> zrem salary xiaoming  # 移除指定元素
+(integer) 1
+127.0.0.1:6379> zrange salary 0 -1
+1) "wangwu"
+2) "zhangsan"
+#############################################################################
+# zcard
+127.0.0.1:6379> zcard salary  # 获取元素个数
+(integer) 2
+#############################################################################
+# 区间计算
+127.0.0.1:6379> zadd myset 1 hello 2 world 3 sugar
+(integer) 3
+127.0.0.1:6379> zcount myset 1 3  # 获取指定区间的元素数量
+(integer) 3
+```
 
 ### 4 三种特殊数据类型
 
-#### geospatial
+#### geospatial 地理位置
+
+案例：朋友定位、附近的人、打车距离计算
+
+Reids 的 GEO，可以推荐地理位置的信息、两地之间的距离、方圆几公里的人。
+
+可以查询一些测试数据：http://www.jsons.cn/lngcodeinfo/0706D99C19A781A3/
+
+只有六个命令：
+
+- GEOADD
+- GEODIST
+- GEOHASH
+- GEOPOS
+- GEORADIUS
+- GEORADIUSBYMEMBER
+
+> geoadd
+
+```bash
+# geoadd 添加地理位置
+# 规则：地球两极无法直接添加，一般会下载城市数据通过程序直接导入
+# 参数 key 值（纬度、经度、名称）
+# 有效的精度从-180度到180度，有效的纬度从-85度到85度。
+127.0.0.1:6379> geoadd china:city 116.40 39.90 beijing
+(integer) 1
+127.0.0.1:6379> geoadd china:city 121.47 31.23 shanghai
+(integer) 1
+127.0.0.1:6379> geoadd china:city 106.50 29.53 chognqing
+(integer) 1
+127.0.0.1:6379> geoadd china:city 114.05 22.52 shenzhen 120.16 30.24 hangzhou 108.96 34.26 xian
+(integer) 3
+```
+
+> geopos
+
+```bash
+127.0.0.1:6379> geopos china:city beijing  # 获取指定城市的精度和纬度
+1) 1) "116.39999896287918091"
+   2) "39.90000009167092543"
+```
+
+> geodist
+
+应用：计算两人之间的直线距离
+
+单位：
+
+- **m** 米
+- **km** 千米
+- **mi** 英里
+- **ft** 英尺
+
+```bash
+127.0.0.1:6379> geodist china:city beijing shanghai  # 默认单位米
+"1067378.7564"
+127.0.0.1:6379> geodist china:city beijing shanghai km  # 设定单位千米
+"1067.3788"
+```
+
+> georadius  以给定的经纬度为中心，找出某一半径内的元素
+
+应用：附近的人？获得所有附近的人的地址定位，通过半径来查询。
+
+```bash
+127.0.0.1:6379> georadius china:city 110 30 1000 km  # 获取 110 30 这个经纬度为中心，方圆1000km内的城市
+1) "chognqing"
+2) "xian"
+3) "shenzhen"
+4) "hangzhou"
+127.0.0.1:6379> georadius china:city 110 30 500 km  # 方圆500km内的城市
+1) "chognqing"
+2) "xian"
+127.0.0.1:6379> georadius china:city 110 30 500 km withdist  # 显示到中心的直线距离
+1) 1) "chognqing"
+   2) "341.9374"
+2) 1) "xian"
+   2) "483.8340"
+127.0.0.1:6379> georadius china:city 110 30 500 km withcoord  # 显示他人的定位信息
+1) 1) "chognqing"
+   2) 1) "106.49999767541885376"
+      2) "29.52999957900659211"
+2) 1) "xian"
+   2) 1) "108.96000176668167114"
+      2) "34.25999964418929977"
+127.0.0.1:6379> georadius china:city 110 30 500 km withdist withcoord count 1  # 显示指定数量的
+1) 1) "chognqing"
+   2) "341.9374"
+   3) 1) "106.49999767541885376"
+      2) "29.52999957900659211"
+```
+
+> georadiusbymember 以某个元素为中心做计算
+
+```bash
+# 找出位于指定元素周围的其他元素
+127.0.0.1:6379> georadiusbymember china:city beijing 1000 km
+1) "beijing"
+2) "xian"
+127.0.0.1:6379> georadiusbymember china:city shanghai 400 km
+1) "hangzhou"
+2) "shanghai"
+```
+
+> geohash 返回一个或多个位置元素的geohash表示
+
+该命名将返回11个字符的Geohash字符串。
+
+```bash
+# 将二维的经纬度转换为一维的字符串，如果两个字符串越接近，则距离越近
+127.0.0.1:6379> geohash china:city beijing chognqing  
+1) "wx4fbxxfke0"
+2) "wm5xzrybty0"
+```
+
+> 底层实现原理：Zset！可以使用Zset命令来操作geo
+
+```bash
+# zrem 移除元素
+127.0.0.1:6379> zrange china:city 0 -1
+1) "chognqing"
+2) "xian"
+3) "shenzhen"
+4) "hangzhou"
+5) "shanghai"
+6) "beijing"
+127.0.0.1:6379> zrem china:city beijing  # 移除指定元素
+(integer) 1
+127.0.0.1:6379> zrange china:city 0 -1
+1) "chognqing"
+2) "xian"
+3) "shenzhen"
+4) "hangzhou"
+5) "shanghai"
+```
 
 #### hyperloglog
 
+> 基数
+
+A {1, 3, 5, 7, 8, 9, 7}  
+
+B{1, 3, 5, 7, 8}
+
+基数（不重复的元素）：5，可以接收误差！
+
+> hyperloglog简介
+
+Hyperloglog数据结构：做基数统计的算法！
+
+优点：占用的内存是固定的。2^64 不同的元素的技术，只需要占用 12KB 内存。如果要从内存角度比较，Hyterlolog是首选！
+
+**网页的 UV（一个人多次访问一个网站，但还是算作一个人！）**
+
+传统的方式，set保存用户的id，然后就可以统计 set 中元素的数量作为标准判断！
+
+如果保存大量的用户id，就会占用大量内存！目的是为了计数，而不是保存用户id。
+
+0.81%的错误率！在UV统计任务中，可以忽略不计！
+
+如果不允许容错，就使用 set 或自己的数据类型即可！
+
+```bash
+127.0.0.1:6379> pfadd mykey a b c d e f g h i j  # 创建第一组元素
+(integer) 1
+127.0.0.1:6379> pfcount mykey  # 统计 mykey 元素的基数数量
+(integer) 10
+127.0.0.1:6379> pfadd mykey2 i j z x c v b n m  
+(integer) 1
+127.0.0.1:6379> pfcount mykey2
+(integer) 9
+127.0.0.1:6379> pfmerge mykey3 mykey mykey2  # 合并两组 mykey + mykey2 => mykey3 并集
+OK
+127.0.0.1:6379> pfcount mykey3  # 查看并集的数量
+(integer) 15
+```
+
 #### bitmaps
+
+> 位存储
+
+统计用户信息，活跃，不活跃！登录，未登录！打卡，未打卡！两个状态的，都可以使用 Bitmaps（位图）！
+
+都是操作二进制位来进行记录，就只有 0 和 1 两个状态！
+
+365天 = 365bit，1 字节 = 8 bit，46个字节左右！
+
+```bash
+# 使用 bitmap 来记录周一到周日的打卡
+# 构造一周的打卡记录
+127.0.0.1:6379> setbit sign 0 1
+(integer) 0
+127.0.0.1:6379> setbit sign 1 0
+(integer) 0
+127.0.0.1:6379> setbit sign 2 0
+(integer) 0
+127.0.0.1:6379> setbit sign 3 1
+(integer) 0
+127.0.0.1:6379> setbit sign 4 1
+(integer) 0
+127.0.0.1:6379> setbit sign 5 0
+(integer) 0
+127.0.0.1:6379> setbit sign 6 0
+(integer) 0
+# 查看某一天是否有打卡
+127.0.0.1:6379> getbit sign 3
+(integer) 1
+127.0.0.1:6379> getbit sign 6
+(integer) 0
+# 统计打卡的天数
+127.0.0.1:6379> bitcount sign
+(integer) 3
+```
 
