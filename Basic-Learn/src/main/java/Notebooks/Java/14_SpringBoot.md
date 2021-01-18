@@ -2750,7 +2750,9 @@ Apache Dubbo是一款高性能、轻量级的开源 Java RPC框架，提供三�
 
 官网：http://dubbo.apache.org/
 
-<img src="http://dubbo.apache.org/img/architecture.png" alt="img" style="zoom:50%;" />
+<img src="https://camo.githubusercontent.com/e11a2ff9575abc290657ba3fdbff5d36f1594e7add67a72e0eda32e449508eef/68747470733a2f2f647562626f2e6170616368652e6f72672f696d67732f6172636869746563747572652e706e67" alt="img" style="zoom:30%;" />
+
+
 
 **服务提供者（Provider）**：暴露服务的服务提供方，服务提供者在启动时，向注册中心注册自己提供的服务。
 
