@@ -2824,7 +2824,7 @@ Dubbo本身不是一个服务软件，而是一个jar包，能够帮助Java程�
 
 但为了更好的管理监控众多的dubbo服务，官方提供了一个可视化的监控程序 dubbo-admin。（不装也不影响使用）
 
-1. 下载dubbo-admin
+1. 下载dubbo-admin，已放在 /Library/Envircoments 下
 
    地址：https://github.com/apache/dubbo-admin/tree/master
 
@@ -2851,7 +2851,7 @@ Dubbo本身不是一个服务软件，而是一个jar包，能够帮助Java程�
    mvn clean package -Dmaven.test.skip=true
    ```
 
-4. 执行 dubbo-admin/target 下的 dubbo-admin-0.0.1-SNAPSHOT.jar
+4. java -jar 执行 dubbo-admin/target 下的 dubbo-admin-0.0.1-SNAPSHOT.jar
 
    **注意：**如果zookeeper服务未启动，就会报错连接失败，并处于监听状态，再次启动zookeeper即可。
 
@@ -3028,6 +3028,8 @@ Dubbo本身不是一个服务软件，而是一个jar包，能够帮助Java程�
    1. 导入依赖
    2. 配置注册中心的地址，配置自己的服务名
    3. 从远程注入服务 @Reference
+
+**注意：**提供者与消费者中的接口文件的包路径必须一致，否则调不通。一般公司中的方案是，将pojo类和service接口类放在一个maven项目中，在开发项目中集成该项目即可。
 
 
 
