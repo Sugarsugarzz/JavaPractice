@@ -660,4 +660,559 @@ passwd -d 用户名  # 清空密码，也无法登陆
 
 #### 用户组管理
 
-每个用户都有一个
+每个用户都有一个用户组，系统可以对一个用户组中的所有用户进行集中管理。不同Linux系统对用户组的规定有所不同，如**Linux下的用户属于与它同名的用户组**，这个用户组在创建用户时同时创建。
+
+用户组的管理涉及用户组的添加、删除和修改。**组的增加、删除和修改实质上就是对 `/etc/group` 文件的更新。**
+
+##### groupadd（创建用户组）
+
+```bash
+groupadd sugar
+cat /etc/group
+```
+
+创建完用户组，可以得到组的id，这个id可以指定！如果不指定，自增1.
+
+```bash
+groupadd -g 520 sugar2
+```
+
+##### groupdel（删除用户组）
+
+```bash
+groupdel sugar
+```
+
+##### groupmod（修改用户组的权限信息和名字）
+
+```bash
+# 修改ID为666，组名为sugarnew
+groupmod -g 666 -n sugarnew sugar
+```
+
+##### newgrp（切换用户的用户组）
+
+```bash
+# 登录当前用户 sugar
+$ newgrp root
+```
+
+#### 拓展：/etc/passwd、/etc/shadow、/etc/group
+
+> /etc/passwd
+
+完成用户管理的工作有许多种方法，但是每一种方法实际上都是对有关的系统文件进行修改。
+
+与用户和用户组相关的信息都存放在一些系统文件中，这些文件包括/etc/passwd, /etc/shadow, /etc/group等。
+
+**/etc/passwd文件是用户管理工作涉及的最重要的一个文件。**
+
+Linux系统中的每个用户都在/etc/passwd文件中有一个对应的记录行，它记录了这个用户的一些基本属性。
+
+这个文件对所有用户都是可读的。它的内容类似下面的例子：
+
+```
+＃ cat /etc/passwd
+
+root:x:0:0:Superuser:/:
+daemon:x:1:1:System daemons:/etc:
+bin:x:2:2:Owner of system commands:/bin:
+sys:x:3:3:Owner of system files:/usr/sys:
+adm:x:4:4:System accounting:/usr/adm:
+uucp:x:5:5:UUCP administrator:/usr/lib/uucp:
+auth:x:7:21:Authentication administrator:/tcb/files/auth:
+cron:x:9:16:Cron daemon:/usr/spool/cron:
+listen:x:37:4:Network daemon:/usr/net/nls:
+lp:x:71:18:Printer administrator:/usr/spool/lp:
+```
+
+从上面可以看到，/etc/passwd中一行记录对应着一个用户，每行记录又被冒号(:)分隔为7个字段，其格式和具体含义如下：
+
+```
+用户名:口令:用户标识号:组标识号:注释性描述:主目录:登录Shell
+```
+
+1）"用户名"是代表用户账号的字符串。
+
+通常长度不超过8个字符，并且由大小写字母和/或数字组成。登录名中不能有冒号(:)，因为冒号在这里是分隔符。
+
+为了兼容起见，登录名中最好不要包含点字符(.)，并且不使用连字符(-)和加号(+)打头。
+
+2）“口令”一些系统中，存放着加密后的用户口令字。
+
+虽然这个字段存放的只是用户口令的加密串，**不是明文**，但是由于/etc/passwd文件对所有用户都可读，所以这仍是一个安全隐患。因此，现在许多Linux 系统（如SVR4）都使用了shadow技术，把真正的加密后的用户口令字存放到/etc/shadow文件中，而在/etc/passwd文件的口令字段中只存放一个特殊的字符，例如“x”或者“*”。
+
+3）“用户标识号”是一个整数，系统内部用它来标识用户。
+
+一般情况下它与用户名是一一对应的。如果几个用户名对应的用户标识号是一样的，系统内部将把它们视为同一个用户，但是它们可以有不同的口令、不同的主目录以及不同的登录Shell等。
+
+通常用户标识号的取值范围是0～65 535。0是超级用户root的标识号，1～99由系统保留，作为管理账号，普通用户的标识号从100开始。在Linux系统中，这个界限是500。
+
+4）“组标识号”字段记录的是用户所属的用户组。
+
+它对应着/etc/group文件中的一条记录。
+
+5)“注释性描述”字段记录着用户的一些个人情况。
+
+例如用户的真实姓名、电话、地址等，这个字段并没有什么实际的用途。在不同的Linux 系统中，这个字段的格式并没有统一。在许多Linux系统中，这个字段存放的是一段任意的注释性描述文字，用作finger命令的输出。
+
+6)“主目录”，也就是用户的起始工作目录。
+
+它是用户在登录到系统之后所处的目录。在大多数系统中，各用户的主目录都被组织在同一个特定的目录下，而用户主目录的名称就是该用户的登录名。各用户对自己的主目录有读、写、执行（搜索）权限，其他用户对此目录的访问权限则根据具体情况设置。
+
+7)用户登录后，要启动一个进程，负责将用户的操作传给内核，这个进程是用户登录到系统后运行的命令解释器或某个特定的程序，即Shell。
+
+Shell是用户与Linux系统之间的接口。Linux的Shell有许多种，每种都有不同的特点。常用的有sh(Bourne Shell), csh(C Shell), ksh(Korn Shell), tcsh(TENEX/TOPS-20 type C Shell), bash(Bourne Again Shell)等。
+
+系统管理员可以根据系统情况和用户习惯为用户指定某个Shell。如果不指定Shell，那么系统使用sh为默认的登录Shell，即这个字段的值为/bin/sh。
+
+用户的登录Shell也可以指定为某个特定的程序（此程序不是一个命令解释器）。
+
+利用这一特点，我们可以限制用户只能运行指定的应用程序，在该应用程序运行结束后，用户就自动退出了系统。有些Linux 系统要求只有那些在系统中登记了的程序才能出现在这个字段中。
+
+8)系统中有一类用户称为伪用户（pseudo users）。
+
+这些用户在/etc/passwd文件中也占有一条记录，但是不能登录，因为它们的登录Shell为空。它们的存在主要是方便系统管理，满足相应的系统进程对文件属主的要求。
+
+常见的伪用户如下所示：
+
+```
+伪 用 户 含 义
+bin 拥有可执行的用户命令文件
+sys 拥有系统文件
+adm 拥有帐户文件
+uucp UUCP使用
+lp lp或lpd子系统使用
+nobody NFS使用
+```
+
+> /etc/shadow
+
+**1、除了上面列出的伪用户外，还有许多标准的伪用户，例如：audit, cron, mail, usenet等，它们也都各自为相关的进程和文件所需要。**
+
+由于/etc/passwd文件是所有用户都可读的，如果用户的密码太简单或规律比较明显的话，一台普通的计算机就能够很容易地将它破解，因此对安全性要求较高的Linux系统都把加密后的口令字分离出来，单独存放在一个文件中，这个文件是/etc/shadow文件。有超级用户才拥有该文件读权限，这就保证了用户密码的安全性。
+
+**2、/etc/shadow中的记录行与/etc/passwd中的一一对应，它由pwconv命令根据/etc/passwd中的数据自动产生**
+
+它的文件格式与/etc/passwd类似，由若干个字段组成，字段之间用":"隔开。这些字段是：
+
+```
+登录名:加密口令:最后一次修改时间:最小时间间隔:最大时间间隔:警告时间:不活动时间:失效时间:标志
+```
+
+1. "登录名"是与/etc/passwd文件中的登录名相一致的用户账号
+2. "口令"字段存放的是加密后的用户口令字，长度为13个字符。如果为空，则对应用户没有口令，登录时不需要口令；如果含有不属于集合 { ./0-9A-Za-z }中的字符，则对应的用户不能登录。
+3. "最后一次修改时间"表示的是从某个时刻起，到用户最后一次修改口令时的天数。时间起点对不同的系统可能不一样。例如在SCO Linux 中，这个时间起点是1970年1月1日。
+4. "最小时间间隔"指的是两次修改口令之间所需的最小天数。
+5. "最大时间间隔"指的是口令保持有效的最大天数。
+6. "警告时间"字段表示的是从系统开始警告用户到用户密码正式失效之间的天数。
+7. "不活动时间"表示的是用户没有登录活动但账号仍能保持有效的最大天数。
+8. "失效时间"字段给出的是一个绝对的天数，如果使用了这个字段，那么就给出相应账号的生存期。期满后，该账号就不再是一个合法的账号，也就不能再用来登录了。
+
+> /etc/group
+
+用户组的所有信息都存放在/etc/group文件中。
+
+将用户分组是Linux 系统中对用户进行管理及控制访问权限的一种手段。
+
+每个用户都属于某个用户组；一个组中可以有多个用户，一个用户也可以属于不同的组。
+
+当一个用户同时是多个组中的成员时，在/etc/passwd文件中记录的是用户所属的主组，也就是登录时所属的默认组，而其他组称为附加组。
+
+用户要访问属于附加组的文件时，必须首先使用newgrp命令使自己成为所要访问的组中的成员。
+
+用户组的所有信息都存放在/etc/group文件中。此文件的格式也类似于/etc/passwd文件，由冒号(:)隔开若干个字段，这些字段有：
+
+```
+组名:口令:组标识号:组内用户列表
+```
+
+1. "组名"是用户组的名称，由字母或数字构成。与/etc/passwd中的登录名一样，组名不应重复。
+2. "口令"字段存放的是用户组加密后的口令字。一般Linux 系统的用户组都没有口令，即这个字段一般为空，或者是*。
+3. "组标识号"与用户标识号类似，也是一个整数，被系统内部用来标识组。
+4. "组内用户列表"是属于这个组的所有用户的列表/b]，不同用户之间用逗号(,)分隔。这个用户组可能是用户的主组，也可能是附加组。
+
+
+
+#### 磁盘管理
+
+##### df（列出文件系统整体的磁盘使用量）
+
+df命令参数功能：检查文件系统的磁盘空间占用情况。可以利用该命令来获取硬盘被占用了多少空间，目前还剩下多少空间等信息。
+
+语法：
+
+```
+df [-ahikHTm] [目录或文件名]
+```
+
+选项与参数：
+
+- -a ：列出所有的文件系统，包括系统特有的 /proc 等文件系统；
+- -k ：以 KBytes 的容量显示各文件系统；
+- -m ：以 MBytes 的容量显示各文件系统；
+- -h ：以人们较易阅读的 GBytes, MBytes, KBytes 等格式自行显示；
+- -H ：以 M=1000K 取代 M=1024K 的进位方式；
+- -T ：显示文件系统类型, 连同该 partition 的 filesystem 名称 (例如 ext3) 也列出；
+- -i ：不用硬盘容量，而以 inode 的数量来显示
+
+测试：
+
+```bash
+# 将系统内所有的文件系统列出来！
+# 在 Linux 底下如果 df 没有加任何选项
+# 那么默认会将系统内所有的 (不含特殊内存内的文件系统与 swap) 都以 1 Kbytes 的容量来列出来！
+[root@sugar /]# df
+Filesystem     1K-blocks   Used Available Use% Mounted on
+devtmpfs          889100       0    889100   0% /dev
+tmpfs             899460     704    898756   1% /dev/shm
+tmpfs             899460     496    898964   1% /run
+tmpfs             899460       0    899460   0% /sys/fs/cgroup
+/dev/vda1       41152812 6586736  32662368  17% /
+tmpfs             179896       0    179896   0% /run/user/0
+
+# 将容量结果以易读的容量格式显示出来
+[root@sugar /]# df -h
+Filesystem     Size Used Avail Use% Mounted on
+devtmpfs       869M     0 869M   0% /dev
+tmpfs           879M 708K 878M   1% /dev/shm
+tmpfs           879M 496K 878M   1% /run
+tmpfs           879M     0 879M   0% /sys/fs/cgroup
+/dev/vda1       40G  6.3G   32G  17% /
+tmpfs           176M     0 176M   0% /run/user/0
+
+# 将系统内的所有特殊文件格式及名称都列出来
+[root@sugar /]# df -aT
+Filesystem     Type       1K-blocks   Used Available Use% Mounted on
+sysfs         sysfs               0       0         0    - /sys
+proc           proc                0       0         0    - /proc
+devtmpfs       devtmpfs       889100       0    889100   0% /dev
+securityfs     securityfs          0       0         0    - /sys/kernel/security
+tmpfs         tmpfs          899460     708    898752   1% /dev/shm
+devpts         devpts              0       0         0    - /dev/pts
+tmpfs         tmpfs          899460     496    898964   1% /run
+tmpfs         tmpfs          899460       0    899460   0% /sys/fs/cgroup
+cgroup         cgroup              0       0         0    - /sys/fs/cgroup/systemd
+pstore         pstore              0       0         0    - /sys/fs/pstore
+cgroup         cgroup              0       0         0    - /sys/fs/cgroup/freezer
+cgroup         cgroup              0       0         0    - /sys/fs/cgroup/cpuset
+cgroup         cgroup              0       0         0    - /sys/fs/cgroup/hugetlb
+cgroup         cgroup              0       0         0    - /sys/fs/cgroup/blkio
+cgroup         cgroup              0       0         0    - /sys/fs/cgroup/net_cls,net_prio
+cgroup         cgroup              0       0         0    - /sys/fs/cgroup/memory
+cgroup         cgroup              0       0         0    - /sys/fs/cgroup/pids
+cgroup         cgroup              0       0         0    - /sys/fs/cgroup/cpu,cpuacct
+cgroup         cgroup              0       0         0    - /sys/fs/cgroup/devices
+cgroup         cgroup              0       0         0    - /sys/fs/cgroup/perf_event
+configfs       configfs            0       0         0    - /sys/kernel/config
+/dev/vda1     ext4         41152812 6586748  32662356  17% /
+systemd-1      -                   -       -         -    - /proc/sys/fs/binfmt_misc
+mqueue         mqueue              0       0         0    - /dev/mqueue
+debugfs       debugfs             0       0         0    - /sys/kernel/debug
+hugetlbfs     hugetlbfs           0       0         0    - /dev/hugepages
+tmpfs         tmpfs          179896       0    179896   0% /run/user/0
+binfmt_misc   binfmt_misc         0       0         0    - /proc/sys/fs/binfmt_misc
+
+# 将 /etc 底下的可用的磁盘容量以易读的容量格式显示
+[root@sugar /]# df -h /etc
+Filesystem     Size Used Avail Use% Mounted on
+/dev/vda1       40G  6.3G   32G  17% /
+```
+
+##### du（检查当前磁盘空间使用量）
+
+Linux du命令也是查看使用空间的，但是与df命令不同的是Linux du命令是对文件和目录磁盘使用的空间的查看，还是和df命令有一些区别的，这里介绍Linux du命令。
+
+语法：
+
+```
+du [-ahskm] 文件或目录名称
+```
+
+选项与参数：
+
+- -a ：列出所有的文件与目录容量，因为默认仅统计目录底下的文件量而已。
+- -h ：以人们较易读的容量格式 (G/M) 显示；
+- -s ：列出总量而已，而不列出每个各别的目录占用容量；
+- -S ：不包括子目录下的总计，与 -s 有点差别。
+- -k ：以 KBytes 列出容量显示；
+- -m ：以 MBytes 列出容量显示；
+
+测试：
+
+```bash
+# 只列出当前目录下的所有文件夹容量（包括隐藏文件夹）:
+# 直接输入 du 没有加任何选项时，则 du 会分析当前所在目录的文件与目录所占用的硬盘空间。
+[root@sugar home]# du
+16./redis
+8./www/.oracle_jre_usage  # 包括隐藏文件的目录
+24./www
+48.                        # 这个目录(.)所占用的总量
+
+# 将文件的容量也列出来
+[root@sugar home]# du -a
+4./redis/.bash_profile
+4./redis/.bash_logout    
+....中间省略....
+4./kuangstudy.txt # 有文件的列表了
+48.
+
+# 检查根目录底下每个目录所占用的容量
+[root@sugar home]# du -sm /*
+0/bin
+146/boot
+.....中间省略....
+0/proc
+.....中间省略....
+1/tmp
+3026/usr  # 系统初期最大就是他了啦
+513/var
+```
+
+通配符 * 来代表每个目录。
+
+与 df 不一样的是，du 这个命令其实会直接到文件系统内去搜寻所有的文件数据。
+
+##### mount和umount（磁盘挂载与卸除）
+
+根文件系统之外的其他文件要想能够被访问，都必须通过“关联”至根文件系统上的某个目录来实现，此关联操作即为“挂载”，此目录即为“挂载点”,解除此关联关系的过程称之为“卸载”
+
+Linux 的磁盘挂载使用mount命令，卸载使用umount命令。
+
+磁盘挂载语法：
+
+```
+mount [-t 文件系统] [-L Label名] [-o 额外选项] [-n] 装置文件名 挂载点
+```
+
+测试：
+
+```bash
+# 将 /dev/hdc6 挂载到 /mnt/hdc6 上面！
+[root@www ~]# mkdir /mnt/hdc6
+[root@www ~]# mount /dev/hdc6 /mnt/hdc6
+[root@www ~]# df
+Filesystem           1K-blocks     Used Available Use% Mounted on
+/dev/hdc6              1976312     42072   1833836   3% /mnt/hdc6
+
+```
+
+磁盘卸载命令 umount 语法：
+
+```
+umount [-fn] 装置文件名或挂载点
+```
+
+选项与参数：
+
+- -f ：强制卸除！可用在类似网络文件系统 (NFS) 无法读取到的情况下；
+- -n ：不升级 /etc/mtab 情况下卸除。
+
+卸载/dev/hdc6
+
+```
+[root@www ~]# umount /dev/hdc6
+```
+
+
+
+#### 进程管理
+
+> What is 进程
+
+1. 在Linux中，每一个程序都有自己的一个进程，每个进程都有一个 pid 号。
+2. 每一个进程，都有一个父进程。
+3. 进程可以有两种存在方式：前台和后台。
+4. 一般服务都是在后台运行的，基本的程序都是前台运行的。
+
+> 命令
+
+##### ps（查看当前系统中正在执行的各种进程信息）
+
+ps -参数：
+
+- -a：显示当前终端运行的所有进程信息（当前的进程）
+- -u：以用户的信息显示进程
+- -x：显示后台运行进程的参数
+
+```bash
+# Linux中，|叫做管道符，如A|B，就是B将A的结果作为输入
+
+# ps -aux
+# grap 查找文件中符合条件的字符串
+ps -aux|grep mysql
+```
+
+一般只需要记住：ps -xx|grep 进程名，过滤进程信息
+
+##### ps -ef（查看到父进程的信息）
+
+```bash
+ps -ef|grep mysql
+# 看父进程，一般通过目录树结构来查看
+pstree
+	-p：显示父id
+	-u：显示用户组
+```
+
+##### kill（结束进程）
+
+kill -9 pid
+
+
+
+### 5 环境安装
+
+三种方式：rpm、压缩包、yum在线安装！
+
+#### JDK安装（RPM）
+
+1. 下载JDK（*.rpm)
+
+2. 安装Java环境
+
+   ```bash
+   # 检查当前系统是否存在Java环境 java -version
+   # 卸载
+   # rpm -qa|grep jdk  # 检查JDK版本信息
+   # rpm -e --nodeps 查出来的jdk名  # 强制卸载
+   
+   # 安装JDK
+   # rpm -ivk rpm包
+   
+   # 配置环境变量
+   ```
+
+3. 配置环境变量  `/etc/profile`，对所有用户生效（RPM安装的不需要配置环境）`~/.bashrc`是某个用户的环境变量，只对该用户生效。
+
+   ```shell
+   JAVA_HOME=/usr/java/jdk1.8.0_221-amd64
+   CLASSPATH=$JAVA_HOME%/lib;%JAVA_HOME%/jre/lib
+   PATH=$JAVA_HOME$/bin;%JAVA_HOME%/jre/bin
+   export PATH CLASSPATH JAVA_HOME
+   ```
+
+4. 使配置文件生效  `source /etc/profile`
+
+5. 部署项目，防火墙相关命令
+
+   ```shell
+   # 查看防火墙服务状态
+   systemctl status firewalld
+   
+   # 开启
+   service firewalld start
+   # 重启
+   service firewalld restart
+   # 关闭
+   service firewalld stop
+   
+   # 查看防火墙规则
+   firewall-cmd --list-all  # 查看全部信息
+   firewall-cmd --list-ports # 只看端口信息
+   
+   # 开启端口
+   firewall-cmd --zone=public --add-port=9000/tcp --permanent
+   # 重启防火墙才生效
+   systemctl restart firewalld.service
+   
+   # 阿里云需要配置安全组规则
+   
+   # 命令含义
+   --zone  # 作用域
+   --add-port=80/tcp  # 添加端口，格式为：端口/通讯协议
+   --permanent  # 永久生效，没有此参数重启后失效
+   ```
+
+#### Tomcat安装（压缩包）
+
+ssm war需要放到 tomcat 中运行。
+
+1. 下载tomcat。`apache-tomcat-9.0.22.tar.gz`
+
+2. 解压压缩包。 `tar -zxvf apache-tomcat-9.0.22.tar.gz`
+
+3. 启动 tomcat 测试。
+
+   ```shell
+   cd bin
+   # 执行 ./startup.sh
+   # 停止 ./shutdown.sh
+   ```
+
+#### Docker安装（yum）
+
+官方安装手册：https://docs.docker.com/install/linux/docker-ce/centos/
+
+yum安装，需要联网。
+
+> 安装
+
+1. 检测CentOS版本。 `cat /etc/redhat-release`
+
+2. 安装准备环境。
+
+   ```shell
+   yum -y install 包名  # yum install 在线安装，-y自动确定所有提示
+   yum -y install gcc
+   yum -y install gcc-c++
+   ```
+
+3. 清除以前的Docker版本
+
+   ```shell
+   yum remove docker \
+   	docker-client \
+   	docker-client-latest \
+   	docker-common \
+   	docker-latest-logrotate \
+   	docker-logrotate \
+   	docker-engine 
+   ```
+
+4. 安装基本工具包
+
+   ```shell
+   yum install -y yum-utils \
+   	device-mapper-persistent-data \
+   	lvm2
+   ```
+
+5. 下载Docker（阿里云镜像）
+
+   ```shell
+   yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+   ```
+
+6. 更新yum软件包索引
+
+   ```shell
+   yum makecache fast
+   ```
+
+7. 安装Docker CE
+
+   ```shell
+   yum -y install docker-ce docker-ce-cli containerd.io
+   ```
+
+8. 启动Docker
+
+   ```shell
+   systemctl start docker
+   ```
+
+9. 测试
+
+   ```shell
+   docker version
+   
+   docker run hello-world
+   
+   docker images
+   ```
+
+#### 宝塔面板（懒人式安装）
+
+
+
