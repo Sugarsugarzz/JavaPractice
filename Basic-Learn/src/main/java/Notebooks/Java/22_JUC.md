@@ -1296,6 +1296,8 @@ class MyCache {
 
 ### 10 阻塞队列
 
+阻塞队列是典型的生产者消费者问题。
+
 <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217171346246.png" alt="image-20210217171346246" style="zoom:40%;" />
 
 <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217171537346.png" alt="image-20210217171537346" style="zoom:40%;" />
@@ -1303,6 +1305,8 @@ class MyCache {
 Queue：
 
 <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217172445905.png" alt="image-20210217172445905" style="zoom:40%;" />
+
+Queue家族关系：
 
 <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217172452373.png" alt="image-20210217172452373" style="zoom:40%;" />
 
@@ -1414,4 +1418,411 @@ public class Test {
     }
 }
 ```
+
+> Synchronized ueue 同步队列（属于BlockingQueue的实现）
+
+没有容量
+
+进去一个元素，必须等待取出来之后，才能再往里面放一个元素！（容量 1）
+
+```java
+package com.sugar.block_queue;
+
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 同步队列
+ * 和其他的BlockingQueue不一样，SynchronousQueue不存储元素
+ * put一个元素后，必须从里面先take出来，否则不能再put进去值
+ */
+public class SynchronousQueueDemo {
+    public static void main(String[] args) {
+        SynchronousQueue<String> queue = new SynchronousQueue<>();  // 同步队列
+
+        new Thread(() -> {
+            try {
+                System.out.println(Thread.currentThread().getName() + " put 1");
+                queue.put("1");
+                System.out.println(Thread.currentThread().getName() + " put 2");
+                queue.put("2");
+                System.out.println(Thread.currentThread().getName() + " put 3");
+                queue.put("3");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }, "T1").start();
+
+        new Thread(() -> {
+            try {
+                TimeUnit.SECONDS.sleep(3);
+                System.out.println(Thread.currentThread().getName() + " take " + queue.take());
+                TimeUnit.SECONDS.sleep(3);
+                System.out.println(Thread.currentThread().getName() + " take " + queue.take());
+                TimeUnit.SECONDS.sleep(3);
+                System.out.println(Thread.currentThread().getName() + " take " + queue.take());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }, "T2").start();
+    }
+}
+```
+
+
+
+### 11 线程池（重点）
+
+线程池：三大方法、七大参数、四种拒绝策略
+
+> 池化技术
+
+程序的运行，本质：占用系统资源！优化资源的使用！  ==>  池化技术
+
+线程池、连接池、内存池、对象池......创建、销毁，十分浪费资源。
+
+优化技术：事先准备好一些资源，用的时候直接拿，用完以后归还。
+
+
+
+**线程池的好处：**
+
+1. 降低资源消耗
+2. 提高响应的速度
+3. 方便管理
+
+==线程复用，可以控制最大并发数，管理线程==
+
+> 线程池：三大方法
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217193742237.png" alt="image-20210217193742237" style="zoom:40%;" />
+
+```java
+package com.sugar.pool;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+// Executors 工具类，三大方法
+// 使用了线程池之后，要使用线程池创建线程
+public class Demo01 {
+    public static void main(String[] args) {
+        // Method 1：单个线程
+//        ExecutorService threadPool = Executors.newSingleThreadExecutor();
+        // Method 2：创建一个固定的线程池大小
+//        ExecutorService threadPool = Executors.newFixedThreadPool(5);
+        // Method 3：可伸缩的，遇强则强，遇弱则弱
+        ExecutorService threadPool = Executors.newCachedThreadPool();
+
+        try {
+            for (int i = 0; i < 10; i++) {
+                threadPool.execute(() -> {
+                    System.out.println(Thread.currentThread().getName() + " ok");
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // 线程池用完，需要关闭线程池
+            threadPool.shutdown();
+        }
+    }
+}
+```
+
+> 七大参数
+
+源码分析：
+
+```java
+public static ExecutorService newSingleThreadExecutor() {
+  return new FinalizableDelegatedExecutorService
+    (new ThreadPoolExecutor(1, 1,
+                            0L, TimeUnit.MILLISECONDS,
+                            new LinkedBlockingQueue<Runnable>()));
+}
+
+public static ExecutorService newFixedThreadPool(int nThreads) {
+  return new ThreadPoolExecutor(nThreads, nThreads,
+                                0L, TimeUnit.MILLISECONDS,
+                                new LinkedBlockingQueue<Runnable>());
+}
+
+public static ExecutorService newCachedThreadPool() {
+  return new ThreadPoolExecutor(0, Integer.MAX_VALUE,  // 约等于21亿
+                                60L, TimeUnit.SECONDS,
+                                new SynchronousQueue<Runnable>());
+}
+
+====>>>>>  其本质上都是 ThreadPoolExecutor()
+  
+  public ThreadPoolExecutor(int corePoolSize,  // 核心线程池大小
+                            int maximumPoolSize,  // 最大核心线程池大小
+                            long keepAliveTime,  // 超时没人调用就会释放
+                            TimeUnit unit,  // 超时单位
+                            BlockingQueue<Runnable> workQueue,  // 阻塞队列
+                            ThreadFactory threadFactory,  // 线程工厂，创建线程的，一般不用动
+                            RejectedExecutionHandler handler  // 拒绝策略
+                           ) {
+  if (corePoolSize < 0 ||
+      maximumPoolSize <= 0 ||
+      maximumPoolSize < corePoolSize ||
+      keepAliveTime < 0)
+    throw new IllegalArgumentException();
+  if (workQueue == null || threadFactory == null || handler == null)
+    throw new NullPointerException();
+  this.acc = System.getSecurityManager() == null ?
+    null :
+  AccessController.getContext();
+  this.corePoolSize = corePoolSize;
+  this.maximumPoolSize = maximumPoolSize;
+  this.workQueue = workQueue;
+  this.keepAliveTime = unit.toNanos(keepAliveTime);
+  this.threadFactory = threadFactory;
+  this.handler = handler;
+}
+```
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217201734330.png" alt="image-20210217201734330" style="zoom:40%;" />
+
+> 手动创建线程池
+
+```java
+package com.sugar.pool;
+
+import java.util.concurrent.*;
+
+// 自定义线程池
+// 银行取款场景复现
+/*
+四大拒绝策略：
+    - AbortPolicy()：直接拒绝，抛出异常
+    - CallerRunsPolicy()：哪来的回哪去，main线程调用的，就由main线程来执行
+    - DiscardPolicy()：队列满了，丢掉任务，不会抛出异常
+    - DiscardOldestPolicy()：队列满了，试探最早的是否结束，如果结束就跟进，没结束就不处理，不抛出异常
+ */
+public class Demo02 {
+    public static void main(String[] args) {
+        // 工作中，使用 ThreadPoolExecutor() 创建线程池
+        ExecutorService threadPool = new ThreadPoolExecutor(
+                2,
+                5,
+                3,
+                TimeUnit.SECONDS,
+                new LinkedBlockingDeque<>(3),  // 候客区
+                Executors.defaultThreadFactory(),  // 线程工厂
+                new ThreadPoolExecutor.DiscardOldestPolicy()  // 拒绝策略！
+        );
+
+        try {
+            // 人数 > 核心线程数 + 阻塞队列大小，则触发最大核心线程数
+            /*
+            0 <= n <= 5（core + queue），只需2个核心线程
+            6 <= n <= 8（max + queue），需要5个最大核心线程，理论上是<=8，受执行速度影响
+            8 <= n，拒绝策略，java.util.concurrent.RejectedExecutionException
+             */
+            for (int i = 0; i < 20; i++) {
+                threadPool.execute(() -> {
+                    System.out.println(Thread.currentThread().getName() + " ok");
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            threadPool.shutdown();
+        }
+    }
+}
+
+```
+
+> 拒绝策略
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217205334222.png" alt="image-20210217205334222" style="zoom:40%;" />
+
+```java
+/*
+四大拒绝策略：
+    - AbortPolicy()：直接拒绝，抛出异常
+    - CallerRunsPolicy()：哪来的回哪去，main线程调用的，就由main线程来执行
+    - DiscardPolicy()：队列满了，丢掉任务，不会抛出异常
+    - DiscardOldestPolicy()：队列满了，试探最早的是否结束，如果结束就跟进，没结束就不处理，不抛出异常
+ */
+```
+
+> 小结和扩展
+
+**最大核心线程数量（池的大小）如何定义？**
+
+IO密集型、CPU密集型（调优）
+
+```java
+/*
+最大线程该如何定义？
+  1. CPU密集型，CPU几核，就定义几，保证CPU的效率最高
+  2. IO密集型：判断程序中十分耗IO的线程数量，定义大于该数量即可，一般两倍
+*/
+// 获取系统CPU核心数
+System.out.println(Runtime.getRuntime().availableProcessors());
+```
+
+
+
+### 12 四大函数式接口（重点必掌握）
+
+基础掌握：泛型、枚举、反射
+
+新时代需掌握：lambda表达式、链式编程、函数式接口、Stream流式计算
+
+> 函数式接口：只有一个方法的接口
+
+```java
+// 举例，Runnable
+@FunctionalInterface
+public interface Runnable {
+    public abstract void run();
+}
+
+// Java中有超级多的函数式接口
+// 简化编程模型，在新版本的框架底层大量应用
+// forEach()消费者类的函数式接口
+```
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217210733532.png" alt="image-20210217210733532" style="zoom:40%;" />
+
+##### 代码测试
+
+> Function  函数型接口
+
+```java
+package com.sugar.function_interface;
+
+import java.util.function.Function;
+
+/**
+ * Function 函数型接口：有一个输入参数，有一个输出
+ *  只要是函数式接口，都可以用lambda表达式简化
+ */
+public class Demo01 {
+    public static void main(String[] args) {
+        // 工具类：输出输入的值
+//        Function<String, String> function = new Function<String, String>() {
+//            @Override
+//            public String apply(String o) {
+//                return o;
+//            }
+//        };
+
+        // lambda简化写法
+        Function function = (o) -> {return o;};
+
+        System.out.println(function.apply("aaa"));
+    }
+}
+```
+
+> Predicate  断定型接口
+
+```java
+package com.sugar.function_interface;
+
+import java.util.function.Predicate;
+
+/**
+ * Predicate 断定型接口：有一个输入参数，返回值只能是布尔值。
+ */
+public class PredicateDemo {
+    public static void main(String[] args) {
+        // 判断字符串是否为空
+//        Predicate<String> predicate = new Predicate<String>() {
+//            @Override
+//            public boolean test(String o) {
+//                return o.isEmpty();
+//            }
+//        };
+
+        Predicate<String> predicate = String::isEmpty;
+
+        System.out.println(predicate.test("haha"));
+    }
+}
+```
+
+> Consumer  消费型接口
+
+```java
+package com.sugar.function_interface;
+
+import java.util.function.Consumer;
+
+/**
+ * Consumer 消费型接口：只有输入，没有返回值
+ */
+public class ConsumerDemo {
+    public static void main(String[] args) {
+//        Consumer<String> consumer = new Consumer<String>() {
+//            @Override
+//            public void accept(String o) {
+//                System.out.println(o);
+//            }
+//        };
+
+        Consumer<String> consumer = System.out::println;
+
+        consumer.accept("haha");
+    }
+}
+```
+
+> Supplier  供给型接口
+
+```java
+package com.sugar.function_interface;
+
+import java.util.function.Supplier;
+
+/**
+ * Supplier 供给型接口：没有参数，只有返回值
+ */
+public class SupplierDemo {
+    public static void main(String[] args) {
+//        Supplier<String> supplier = new Supplier<String>() {
+//            @Override
+//            public String get() {
+//                return "haha";
+//            }
+//        };
+
+        Supplier<String> supplier = () -> "hahaa";
+
+        System.out.println(supplier.get());
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
