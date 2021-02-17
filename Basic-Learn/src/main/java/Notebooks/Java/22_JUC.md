@@ -12,6 +12,8 @@ java.util工具包
 
 **Runnable：没有返回值，效率相比 Callable较低，功能没有Callable强大。**
 
+
+
 ### 2 线程和进程
 
 进程：执行程序的执行过程。
@@ -126,6 +128,8 @@ public enum State {
    wait 要捕获异常，但不必须，被中断会抛出异常。
 
    sleep 必须要捕获异常。
+
+
 
 ### 3 Lock锁（重点）
 
@@ -251,8 +255,6 @@ class Ticket2 {
 6、Synchronized 适合锁少量的代码同步问题，Lock 适合锁大量的同步代码。 
 
 > 锁是什么，如果判断锁的是谁？
-
-
 
 
 
@@ -618,6 +620,8 @@ class Data3 {
 
 ```
 
+
+
 ### 5 八锁现象
 
 如何判断锁的是谁？
@@ -830,4 +834,584 @@ class Phone4 {
 
 new  this  具体的一个对象
 
-static  Class  唯一的一个模板
+static  Class  唯一的一个模板类
+
+
+
+### 6 集合类不安全
+
+> List 不安全
+
+```java
+package com.sugar.unsafe_collection;
+
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+// java.util.ConcurrentModificationException  并发修改异常。
+public class ListTest {
+    public static void main(String[] args) {
+        // 并发情况下，ArrayList是不安全的
+        /**
+         * 解决方案：
+         * 1. List<String> list = new Vector<>();
+         *    Vector与ArrayList的add方法，区别在于Vector加了synchronized
+         *    但事实上，Vector在1.1提出，而ArrayList在1.2提出，去掉锁提升了效率，所以Vector不是很好的解决方案
+         *
+         * 2. List<String> list = Collections.synchronizedList(new ArrayList<>());
+         *    Collections集合类提供的方法，转换为synchronized
+         *
+         * 3. List<String> list = new CopyOnWriteArrayList<>();
+         *    JUC解决方案
+         *      private transient volatile Object[] array;
+         *    底层同样是使用了数组，用到了 volatile 关键字
+         *    CopyOnWrite 写入时复制，COW  计算机程序设计领域的一种优化策略
+         *    多个线程调用的时候，List，读取的时候是固定的，写入（存在覆盖操作）
+         *    在写入的时候避免覆盖，造成数据问题
+         *    
+         *    CopyOnWriteArrayList 比 Vector 的优势：
+         *    - 使用lock锁，效率更高
+         */
+//        List<String> list = new ArrayList<>();
+//        List<String> list = new Vector<>();
+//        List<String> list = Collections.synchronizedList(new ArrayList<>());
+        List<String> list = new CopyOnWriteArrayList<>();
+
+        for (int i = 0; i < 1000; i++) {
+            new Thread(() -> {
+                list.add(UUID.randomUUID().toString().substring(0, 5));
+                System.out.println(list);
+            }, String.valueOf(i)).start();
+        }
+    }
+}
+```
+
+> Set 不安全
+
+```java
+package com.sugar.unsafe_collection;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArraySet;
+
+/**
+ * java.util.ConcurrentModificationException
+ * 解决方案：
+ * 1. Set<String> set = Collections.synchronizedSet(new HashSet<>());
+ * 2. Set<String> set = new CopyOnWriteArraySet<>();
+ */
+public class SetTest {
+    public static void main(String[] args) {
+//        Set<String> set = new HashSet<>();
+//        Set<String> set = Collections.synchronizedSet(new HashSet<>());
+        Set<String> set = new CopyOnWriteArraySet<>();
+
+        for (int i = 0; i < 1000; i++) {
+            new Thread(() -> {
+                set.add(UUID.randomUUID().toString().substring(0, 5));
+                System.out.println(set);
+            }, String.valueOf(i)).start();
+        }
+    }
+}
+```
+
+补充：HashSet的底层？
+
+```java
+public HashSet() {
+  map = new HashMap<>();
+}
+
+// add set的本质，就是map的key
+public boolean add(E e) {
+  return map.put(e, PRESENT)==null;
+}
+
+private static final Object PRESENT = new Object();  // 不变的值
+```
+
+> Map 不安全
+
+HashMap基本参数
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217143025578.png" alt="image-20210217143025578" style="zoom:40%;" />
+
+```java
+package com.sugar.unsafe_collection;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * java.util.ConcurrentModificationException
+ * 1. Map<String, String> map = Collections.synchronizedMap(new HashMap<>());
+ * 2. Map<String, String> map = new ConcurrentHashMap<>();
+ */
+public class MapTest {
+    public static void main(String[] args) {
+        /**
+         * map 是这样用的吗？
+         *   no，工作中不用HashMap
+         * 默认等价于什么？
+         *   new HashMap<>(16, 0.75);  默认初始容量、加载因子
+         */
+//        Map<String, String> map = new HashMap<>();
+//        Map<String, String> map = Collections.synchronizedMap(new HashMap<>());
+        Map<String, String> map = new ConcurrentHashMap<>();
+
+        for (int i = 0; i < 1000; i++) {
+            new Thread(() -> {
+                map.put(Thread.currentThread().getName(), UUID.randomUUID().toString().substring(0, 5));
+                System.out.println(map);
+            }, String.valueOf(i)).start();
+        }
+    }
+}
+```
+
+
+
+### 7 Callable
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217143419584.png" alt="image-20210217143419584" style="zoom:40%;" />
+
+1、可以有返回值
+
+2、 可以抛出异常
+
+3、 方法不同，run() / call()
+
+> 代码测试
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217143735896.png" alt="image-20210217143735896" style="zoom:40%;" />
+
+如何启动 Callable？
+
+Thread的构造方法中，只能丢入 Runnable 接口。
+
+Runnable 只是一个函数式接口，里面有个 run() 方法而已，但其有两个重要的实现类：
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217150537311.png" alt="image-20210217150537311" style="zoom:40%;" />
+
+进入 FutureTask，可以看到可以丢入 Callable接口的构造器，成功将 Callable 通过 FutureTask实现类和 Thread类 挂上关系。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217150654082.png" alt="image-20210217150654082" style="zoom:40%;" />
+
+==在很多高并发的环境下，某些任务只需要执行一次，这种场景正适合FutreTask==
+
+```java
+package com.sugar.callable;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+
+public class CallableTest {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        // 传统方式 Runnable
+//        new Thread(new Runnable()).start();
+
+        new Thread().start(); // 如何启动Callable？
+//        new Thread(new FutureTask<V>()).start();
+//        new Thread(new FutureTask<V>(Callable)).start();
+
+        MyThread callableThread = new MyThread();
+        FutureTask futureTask = new FutureTask(callableThread);
+        new Thread(futureTask, "A").start();
+        new Thread(futureTask, "B").start();  // 事实上，只打印一个call()，结果被缓存
+
+        // get方法可能会产生阻塞，把它放到最后，或者使用异步通信来处理
+        Integer res = (Integer) futureTask.get();  // 获取Callable的返回结果
+        System.out.println(res);
+    }
+}
+
+class MyThread implements Callable<Integer> {
+    @Override
+    public Integer call() {
+        System.out.println("call()");
+        return 1;
+    }
+}
+```
+
+##### 细节问题：
+
+1. 有缓存（一个FutureTask对象只能够被run一次，不会重复执行）
+2. 返回结果可能需要等待，有阻塞
+
+
+
+### 8 常用的辅助类
+
+#### 8.1 CountDownLatch（减法计数器）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217153550322.png" alt="image-20210217153550322" style="zoom:40%;" />
+
+```java
+package com.sugar.assist_util;
+
+import java.util.concurrent.CountDownLatch;
+
+// 减法计数器
+public class CountDownLatchDemo {
+    public static void main(String[] args) throws InterruptedException {
+        // 在必须要执行的任务中使用
+        CountDownLatch countDownLatch = new CountDownLatch(6);  // 总数设为6
+
+        for (int i = 0; i < 6; i++) {
+            new Thread(() -> {
+                System.out.println(Thread.currentThread().getName() + " Go Out!");
+                countDownLatch.countDown(); // 数量-1
+            }, String.valueOf(i)).start();
+        }
+
+        countDownLatch.await();  // 等待计数器归零（即指定数量线程运行结束），然后再向下执行
+
+        System.out.println("Close Door");
+    }
+}
+```
+
+**原理：**
+
+`countDownLatch.countDown();`  // 数量-1
+
+`countDownLatch.await();`  // 等待计数器归零（即指定数量线程运行结束），然后再向下执行
+
+每次有线程调用 countDown()方法，则数量-1，假设计数器变为0，await() 就会被唤醒，继续执行。
+
+#### 8.2 CyclicBarrier（加法计数器）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217155005778.png" alt="image-20210217155005778" style="zoom:40%;" />
+
+如果设置的计数大于启动的线程数，则设定的将无法执行。
+
+```java
+package com.sugar.assist_util;
+
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+
+// 加法计数器
+public class CyclicBarrierDemo {
+    public static void main(String[] args) {
+        /*
+        集齐7颗龙珠版
+         */
+        // 召唤神龙的线程
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(7, () -> {
+            System.out.println("召唤成功！");
+        });
+        for (int i = 0; i < 7; i++) {
+            // lambda能直接操作i么？ 否，可以操作final定义的常量
+            final int temp = i;
+            new Thread(() -> {
+                System.out.println(Thread.currentThread().getName() + " 收集了 " + temp + " 个龙珠");
+
+                try {
+                    cyclicBarrier.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+            }, String.valueOf(i)).start();
+        }
+    }
+}
+```
+
+#### 8.3 Semaphore（信号量）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217160230668.png" alt="image-20210217160230668" style="zoom:40%;" />
+
+抢车位！
+
+```java
+package com.sugar.assist_util;
+
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
+// 抢车位，限流！
+public class SemaphoreDemo {
+    public static void main(String[] args) {
+        // 设置线程数量（车位数量）
+        Semaphore semaphore = new Semaphore(3);
+
+        for (int i = 0; i < 6; i++) {
+            new Thread(() -> {
+                try {
+                    // acquire() 得到
+                    semaphore.acquire();
+                    System.out.println(Thread.currentThread().getName() + " 抢到车位。");
+                    TimeUnit.SECONDS.sleep(2);
+                    System.out.println(Thread.currentThread().getName() + " 离开车位。");
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    // release() 释放
+                    semaphore.release();
+                }
+
+            }, String.valueOf(i)).start();
+        }
+    }
+}
+```
+
+**原理：**
+
+`semaphore.acquire();`  获得，如果已经满了，等待直至有释放为止
+
+`semaphore.release();`  释放，会将当前的信号量释放 + 1，然后唤醒等待的线程
+
+**作用：**
+
+- 多个共享资源互斥使用
+- 并发限流，控制最大的线程数
+
+
+
+### 9 读写锁
+
+ReadWriteLock，唯一实现类 ReentranReadWriteLock
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217161840020.png" alt="image-20210217161840020" style="zoom:40%;" />
+
+```java
+package com.sugar.read_write_lock;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+/**
+ * ReadWriteLock
+ * 读-读：可以共存
+ * 读-写：不能共存
+ * 写-写：不能共存
+ *
+ * 独占锁（写锁）：一次只能被一个线程占有
+ * 共享锁（读锁）：多个线程可以同时占有
+ */
+public class ReadWriteLockDemo {
+    public static void main(String[] args) {
+        MyCacheLock myCache = new MyCacheLock();
+
+        // 写入
+        for (int i = 1; i <= 5; i++) {
+            final int temp = i;
+            new Thread(() -> {
+                myCache.put(temp+"", temp+"");
+            }, String.valueOf(i)).start();
+        }
+
+        // 读取
+        for (int i = 1; i <= 5; i++) {
+            final int temp = i;
+            new Thread(() -> {
+                myCache.get(temp+"");
+            }, String.valueOf(i)).start();
+        }
+    }
+}
+
+/**
+ * 加锁的自定义缓存
+ * 写的时候，只能一个线程写
+ * 读的时候，可以多个线程读
+ */
+class MyCacheLock {
+
+    private volatile Map<String, Object> map = new HashMap<>();
+    // 读写锁，相比ReentrantLock，能够更加细粒度的控制
+    private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+
+    // 存，写入的时候，只希望同时只有一个线程写
+    public void put(String key, Object value) {
+        readWriteLock.writeLock().lock();
+        try {
+            System.out.println(Thread.currentThread().getName() + " 写入 " + key);
+            map.put(key, value);
+            System.out.println(Thread.currentThread().getName() + " 写入完毕");
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            readWriteLock.writeLock().unlock();
+        }
+    }
+
+    // 取，所有线程都可以读
+    // 读的时候必须加锁，否则无法保证数据一致性，导致出现幻读
+    // 读加锁就是为了防止读在写的前面
+    public void get(String key) {
+        readWriteLock.readLock().lock();
+        try {
+            System.out.println(Thread.currentThread().getName() + " 读取 " + key);
+            Object o = map.get(key);
+            System.out.println(Thread.currentThread().getName() + " 读取完毕");
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+}
+
+/**
+ * 自定义缓存
+ */
+class MyCache {
+
+    private volatile Map<String, Object> map = new HashMap<>();
+
+    // 存，写
+    public void put(String key, Object value) {
+        System.out.println(Thread.currentThread().getName() + " 写入 " + key);
+        map.put(key, value);
+        System.out.println(Thread.currentThread().getName() + " 写入完毕");
+    }
+
+    // 取，读
+    public void get(String key) {
+        System.out.println(Thread.currentThread().getName() + " 读取 " + key);
+        Object o = map.get(key);
+        System.out.println(Thread.currentThread().getName() + " 读取完毕");
+    }
+}
+```
+
+
+
+### 10 阻塞队列
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217171346246.png" alt="image-20210217171346246" style="zoom:40%;" />
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217171537346.png" alt="image-20210217171537346" style="zoom:40%;" />
+
+Queue：
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217172445905.png" alt="image-20210217172445905" style="zoom:40%;" />
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217172452373.png" alt="image-20210217172452373" style="zoom:40%;" />
+
+==什么情况下使用阻塞队列：多线程并发处理，线程池！==
+
+**使用队列**
+
+添加、移除
+
+**四组API**
+
+| 方式         | 抛出异常 | 不会抛出异常，有返回值 | 阻塞等待 | 超时等待          |
+| ------------ | -------- | ---------------------- | -------- | ----------------- |
+| 添加         | add      | offer                  | put      | offer(, TimeUnit) |
+| 移除         | remove   | poll                   | take     | poll(, TimeUnit)  |
+| 检测队列首部 | element  | peek                   | -        | -                 |
+
+```java
+package com.sugar.block_queue;
+
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+//        test1();
+//        test2();
+//        test3();
+        test4();
+    }
+
+    /**
+     * 1. 抛出异常
+     */
+    public static void test1() {
+        // 队列的大小
+        ArrayBlockingQueue blockingQueue = new ArrayBlockingQueue<>(3);
+        System.out.println(blockingQueue.add("a"));
+        System.out.println(blockingQueue.add("b"));
+        System.out.println(blockingQueue.add("c"));
+        // 队列满，添加抛出异常
+        // java.lang.IllegalStateException: Queue full
+//        System.out.println(blockingQueue.add("d"));
+
+        System.out.println(blockingQueue.remove());
+        System.out.println(blockingQueue.remove());
+        System.out.println(blockingQueue.remove());
+        // 队列空，取队首抛出异常
+        // java.util.NoSuchElementException
+        System.out.println(blockingQueue.element());
+        // 队列空，移除抛出异常
+        // java.util.NoSuchElementException
+        System.out.println(blockingQueue.remove());
+    }
+
+    /**
+     * 2. 有返回值
+     */
+    public static void test2() {
+        // 队列的大小
+        ArrayBlockingQueue blockingQueue = new ArrayBlockingQueue<>(3);
+
+        System.out.println(blockingQueue.offer("a"));
+        System.out.println(blockingQueue.offer("b"));
+        System.out.println(blockingQueue.offer("c"));
+        System.out.println(blockingQueue.offer("d"));  // false，不抛出异常
+
+        System.out.println(blockingQueue.poll());
+        System.out.println(blockingQueue.poll());
+        System.out.println(blockingQueue.poll());
+        System.out.println(blockingQueue.peek());  // null，队首为空
+        System.out.println(blockingQueue.poll());  // null，没有值了
+    }
+
+    /**
+     * 3. 阻塞等待（一直阻塞）
+     */
+    public static void test3() throws InterruptedException {
+        // 队列的大小
+        ArrayBlockingQueue blockingQueue = new ArrayBlockingQueue<>(3);
+
+        blockingQueue.put("a");
+        blockingQueue.put("b");
+        blockingQueue.put("c");
+//        blockingQueue.put("d");  // 队列没有位置，一直阻塞
+
+        System.out.println(blockingQueue.take());
+        System.out.println(blockingQueue.take());
+        System.out.println(blockingQueue.take());
+        System.out.println(blockingQueue.take());  // 队列中没有这个元素，一直阻塞
+    }
+
+    /**
+     * 4. 阻塞等待（等待超时）
+     */
+    public static void test4() throws InterruptedException {
+        // 队列的大小
+        ArrayBlockingQueue blockingQueue = new ArrayBlockingQueue<>(3);
+
+        blockingQueue.offer("a");
+        blockingQueue.offer("b");
+        blockingQueue.offer("c");
+//        blockingQueue.offer("d", 2, TimeUnit.SECONDS);  // 等待超过2秒就退出
+
+        blockingQueue.poll();
+        blockingQueue.poll();
+        blockingQueue.poll();
+        blockingQueue.poll(2, TimeUnit.SECONDS);  // 等待超过2秒就退出
+    }
+}
+```
+
