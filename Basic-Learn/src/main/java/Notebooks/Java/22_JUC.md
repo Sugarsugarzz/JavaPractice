@@ -1802,15 +1802,201 @@ public class SupplierDemo {
 
 
 
+### 13 Stream流式计算
+
+> What
+
+大数据：存储 + 计算
+
+集合、MySQL本质是存储，计算应该交给流来操作！
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210222210750471.png" alt="image-20210222210750471" style="zoom:30%;" />
+
+```java
+package com.sugar.stream;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+
+    private int id;
+    private String name;
+    private int age;
+}
+```
+
+```java
+package com.sugar.stream;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * 题目要求：一行代码实现！
+ * 现有5个用户！筛选条件：
+ * 1、ID必须是偶数
+ * 2、年龄必须大于23岁
+ * 3、用户名转为大写字母
+ * 4、用户名字母倒着排序
+ * 5、只输出一个用户
+ */
+public class Test {
+    public static void main(String[] args) {
+        User u1 = new User(1, "a", 21);
+        User u2 = new User(2, "b", 22);
+        User u3 = new User(3, "c", 23);
+        User u4 = new User(4, "d", 24);
+        User u5 = new User(6, "e", 25);
+
+        // 集合就是存储
+        List<User> list = Arrays.asList(u1, u2, u3, u4, u5);
+        // 计算交给Stream流
+        list.stream()
+                .filter(u -> {return u.getId() % 2 == 0;})
+                .filter(u -> {return u.getAge() > 23;})
+                .map(u -> {return u.getName().toUpperCase();})
+                .sorted((uu1, uu2) -> {return uu2.compareTo(uu1);})
+                .limit(1)
+                .forEach(System.out::println);
+
+
+    }
+}
+```
 
 
 
+### 14 ForkJoin
+
+> What is ForkJoin
+
+JDK 1.7提出，并行执行任务！提高效率，大数据量！
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210222212610701.png" alt="image-20210222212610701" style="zoom:30%;" />
+
+>  ForkJoin特点：工作窃取
+
+这里维护的都是双端队列。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210222212716411.png" alt="image-20210222212716411" style="zoom:30%;" />
+
+> ForkJoin 用法
+
+必须大数据量使用。
 
 
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210222213437377.png" alt="image-20210222213437377" style="zoom:30%;" />
 
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210222213446438.png" alt="image-20210222213446438" style="zoom:30%;" />
 
+```java
+package com.sugar.forkjoin;
 
+import java.util.concurrent.RecursiveTask;
+
+/**
+ * 求和计算的任务！
+ * 如何使用ForkJoin？
+ * 1、ForkJoinPool  通过它来执行
+ * 2、计算任务 forkjoinpool.execute(ForkJoinTask task)
+ * 3、计算类要继承 RecursiveTask
+ */
+public class ForkJoinDemo  extends RecursiveTask<Long> {
+
+    private Long start;
+    private Long end;
+
+    // 临界值
+    private Long temp = 10000L;
+
+    public ForkJoinDemo(Long start, Long end) {
+        this.start = start;
+        this.end = end;
+    }
+
+    // 计算方法
+    @Override
+    protected Long compute() {
+        if ((end - start) < temp) {
+            long sum = 0L;
+            for (Long i = start; i < end; i++) {
+                sum += i;
+            }
+            return sum;
+        } else {
+            // forkjoin
+            long mid = (start + end) / 2;  // 中间值
+            ForkJoinDemo task1 = new ForkJoinDemo(start, mid);
+            task1.fork();  // 拆分，把任务压入线程队列
+            ForkJoinDemo task2 = new ForkJoinDemo(mid + 1, end);
+            task2.fork();
+
+            return task1.join() + task2.join();
+
+        }
+    }
+}
+```
+
+```java
+package com.sugar.forkjoin;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+import java.util.stream.LongStream;
+
+public class Test {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+//        test1();
+//        test2();
+        test3();
+    }
+
+    // normal（Level 1）
+    public static void test1() {
+        long start = System.currentTimeMillis();
+
+        long sum = 0L;
+        for (long i = 0; i < 10_0000_0000; i++) {
+            sum += i;
+        }
+
+        long end = System.currentTimeMillis();
+        System.out.println("sum = " + sum + " 时间：" + (end - start));
+    }
+
+    // ForkJoin（Level 2）
+    public static void test2() throws ExecutionException, InterruptedException {
+        long start = System.currentTimeMillis();
+
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
+        ForkJoinTask<Long> task = new ForkJoinDemo(0L, 10_0000_0000L);
+        ForkJoinTask<Long> submit = forkJoinPool.submit(task);// 提交任务，得到结果。  execute() 无结果
+        Long sum = submit.get();
+
+        long end = System.currentTimeMillis();
+        System.out.println("sum = " + sum + " 时间：" + (end - start));
+    }
+
+    // Stream（Level 3）
+    public static void test3() {
+        long start = System.currentTimeMillis();
+
+        long sum = LongStream.rangeClosed(0L, 10_0000_0000L).parallel().reduce(0, Long::sum);
+
+        long end = System.currentTimeMillis();
+        System.out.println("sum = " + sum + " 时间：" + (end - start));
+    }
+}
+```
 
 
 
