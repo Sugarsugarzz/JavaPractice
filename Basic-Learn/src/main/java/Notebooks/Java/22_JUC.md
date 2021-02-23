@@ -2000,15 +2000,499 @@ public class Test {
 
 
 
+### 15 异步回调
+
+> Future 设计的初衷：对将来的某个事件的结果进行建模
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210223195615473.png" alt="image-20210223195615473" style="zoom:30%;" />
+
+```java
+package com.sugar.future;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 异步调用：CompletableFuture
+ * 1. 异步执行
+ * 2. 成功回调
+ * 3. 失败回调
+ */
+public class Demo01 {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        // 没有返回值的 runAsync 异步回调
+//        CompletableFuture<Void> completableFuture = CompletableFuture.runAsync(() -> {
+//            try {
+//                TimeUnit.SECONDS.sleep(2);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//            System.out.println(Thread.currentThread().getName() + " runAsync=>Void");
+//        });
+//
+//        System.out.println("1111");
+//
+//        completableFuture.get();  // 获取阻塞执行的结果
+
+        // 有返回值的
+        // ajax，成功和失败的回调
+        // 返回的是错误信息
+        CompletableFuture<Integer> completableFuture = CompletableFuture.supplyAsync(() -> {
+            System.out.println(Thread.currentThread().getName() + " supplyAsync => Integer");
+            return 1024;
+        });
+
+        completableFuture.whenComplete((t, u) -> {
+            System.out.println("t==>" + t);  // t 是正常返回结果
+            System.out.println("u==>" + u);  // u 是错误信息
+        }).exceptionally((e) -> {
+            e.getMessage();
+            return 233;  // 可以获取到错误的返回结果
+        }).get();
+    }
+}
+```
 
 
 
+### 16 JMM
+
+> 谈谈对 Volatile 的理解
+
+Volatile 是 Java 虚拟机提供的轻量级的同步机制（Synchronized）。
+
+特点：
+
+1. 保证可见性
+2. 不保证原子性
+3. 禁止指令重排
+
+> What is JMM
+
+JMM：Java 内存模型，不存在的东西，约定。
+
+**关于JMM的一些同步的约定：**
+
+1. 线程解锁前，必须把共享变量==立刻==刷回主存
+2. 线程加锁前，必须读取主存中的最新值到工作内存中！
+3. 加锁和解锁是同一把锁
+
+线程 **工作内存** **主内存**
+
+**8种操作：**
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210223202622531.png" alt="image-20210223202622531" style="zoom:30%;" />
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210223203037633.png" alt="image-20210223203037633" style="zoom:40%;" />
 
 
 
+内存交互操作有8种，虚拟机实现必须保证每一个操作都是原子的，不可在分的（对于double和long类型的变量来说，load、store、read和write操作在某些平台上允许例外
+
+- lock   （锁定）：作用于主内存的变量，把一个变量标识为线程独占状态
+- unlock （解锁）：作用于主内存的变量，它把一个处于锁定状态的变量释放出来，释放后的变量才可以被其他线程锁定
+- read  （读取）：作用于主内存变量，它把一个变量的值从主内存传输到线程的工作内存中，以便随后的load动作使用
+- load   （载入）：作用于工作内存的变量，它把read操作从主存中变量放入工作内存中
+- use   （使用）：作用于工作内存中的变量，它把工作内存中的变量传输给执行引擎，每当虚拟机遇到一个需要使用到变量的值，就会使用到这个指令
+- assign （赋值）：作用于工作内存中的变量，它把一个从执行引擎中接受到的值放入工作内存的变量副本中
+- store  （存储）：作用于主内存中的变量，它把一个从工作内存中一个变量的值传送到主内存中，以便后续的write使用
+- write 　（写入）：作用于主内存中的变量，它把store操作从工作内存中得到的变量的值放入主内存的变量中
+
+　　JMM对这八种指令的使用，制定了如下规则：
+
+- 不允许read和load、store和write操作之一单独出现。即使用了read必须load，使用了store必须write
+- 不允许线程丢弃他最近的assign操作，即工作变量的数据改变了之后，必须告知主存
+- 不允许一个线程将没有assign的数据从工作内存同步回主内存
+- 一个新的变量必须在主内存中诞生，不允许工作内存直接使用一个未被初始化的变量。就是怼变量实施use、store操作之前，必须经过assign和load操作
+- 一个变量同一时间只有一个线程能对其进行lock。多次lock后，必须执行相同次数的unlock才能解锁
+- 如果对一个变量进行lock操作，会清空所有工作内存中此变量的值，在执行引擎使用这个变量前，必须重新load或assign操作初始化变量的值
+- 如果一个变量没有被lock，就不能对其进行unlock操作。也不能unlock一个被其他线程锁住的变量
+- 对一个变量进行unlock操作之前，必须把此变量同步回主内存
+
+　　JMM对这八种操作规则和对[volatile的一些特殊规则](https://www.cnblogs.com/null-qige/p/8569131.html)就能确定哪里操作是线程安全，哪些操作是线程不安全的了。但是这些规则实在复杂，很难在实践中直接分析。所以一般我们也不会通过上述规则进行分析。更多的时候，使用java的happen-before规则来进行分析。
+
+```java
+ package com.sugar.volatile_test;
+
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Thread 1不知道主内存的值已经被修改了，所以即使 num = 1，Thread 1中的循环依然不会停止。
+ * 引入 Volatile 解决该问题，保证可见性。
+ */
+public class JMMDemo {
+
+    private static int num = 0;
+
+    public static void main(String[] args) { // main
+
+        new Thread(() -> {  // Thread 1 对主内存的变化不知道
+            while (num == 0) {
+
+            }
+        }).start();
+
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        num = 1;
+
+        System.out.println(num);
+    }
+}
+
+```
 
 
 
+### 17 Volatile
+
+> 1、保证可见性
+
+上述代码变量 num 加上 `volatile`
+
+```java
+// 不加 volatile 程序就会死循环
+// 加 volatile 可以保证可见性
+private volatile static int num = 0;
+```
+
+> 2、不保证原子性
+
+原子性：不可分割
+
+线程A在执行任务的时候，是不能被打扰的，也不能被分割。要么同时成功，要么同时失败。
+
+```java
+package com.sugar.volatile_test;
+
+/**
+ * 2、不保证原子性
+ * 加了 volatile，num 依然达不到 20000，只有加 synchronized 或 lock锁
+ */
+public class VDemo02 {
+
+    private volatile static int num = 0;
+
+    public static void add() {
+        num++;
+    }
+
+    public static void main(String[] args) {
+        // 理论上 num 为 20000
+        for (int i = 0; i < 20; i++) {
+            new Thread(() -> {
+                for (int j = 0; j < 1000; j++) {
+                    add();
+                }
+            }).start();
+        };
+
+        while (Thread.activeCount() > 2) {
+            Thread.yield();
+        }
+
+        System.out.println(Thread.currentThread().getName() + " num = " + num);
+    }
+}
+```
+
+**如果不加 lock 和 synchronized，如何保证原子性？**
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210223204922677.png" alt="image-20210223204922677" style="zoom:30%;" />
+
+**使用原子类，解决原子性问题！**
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210223205043519.png" alt="image-20210223205043519" style="zoom:30%;" />
+
+```java
+package com.sugar.volatile_test;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * 2、不保证原子性
+ * 加了 volatile，num 依然达不到 20000，只有加 synchronized 或 lock锁
+ */
+public class VDemo02 {
+
+    // volatile 不保证原子性
+    // 使用原子类！
+//    private volatile static int num = 0;
+    private volatile static AtomicInteger num = new AtomicInteger();
+
+    public static void add() {
+//        num++;  // 不是一个原子性操作
+        num.getAndIncrement();  // AtomicInteger + 1 方法  CAS
+
+    }
+
+    public static void main(String[] args) {
+        // 理论上 num 为 20000
+        for (int i = 0; i < 20; i++) {
+            new Thread(() -> {
+                for (int j = 0; j < 1000; j++) {
+                    add();
+                }
+            }).start();
+        };
+
+        while (Thread.activeCount() > 2) {
+            Thread.yield();
+        }
+
+        System.out.println(Thread.currentThread().getName() + " num = " + num);
+    }
+}
+```
+
+这些类的底层原理都和操作系统挂钩！在内存中修改值！Unsafe类是一个特殊的存在！
+
+> 3、禁止指令重排
+
+什么是指令重排：**你写的程序，计算机并不是按照写的那样去执行的。**
+
+源代码  -->  编译器优化的重排  -->  指令并行也可能会重排  -->  内存系统也会重排  -->  执行
+
+==处理器在进行指令重排的时候，考虑：数据之间的依赖性！==
+
+```java
+int x = 1; // 1
+int y = 2; // 2
+x = x + 5; // 3
+y = x * x; // 4
+
+期望的是：1234，但可能执行的时候变成：2134 1324
+不可能是4123！
+```
+
+可能造成影响的结果：假设 a b x y 这四个值默认都是 0
+
+| 线程A | 线程B |
+| ----- | ----- |
+| x=a   | y=b   |
+| b=1   | a=2   |
+
+期望的正常结果： x = 0； y = 0
+
+| 线程A | 线程B |
+| ----- | ----- |
+| b=1   | a=2   |
+| x=a   | y=b   |
+
+但是可能由于指令重排，导致诡异结果：x = 2，b = 1
+
+**加了 `volatile` 可以避免指令重排**
+
+内存屏障、CPU指令。作用：
+
+1. 保证特定的操作的执行顺序
+2. 可以保证某些变量的内存可见性（利用这些特定，volatile实现了可见性）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210223211433899.png" alt="image-20210223211433899" style="zoom:30%;" />
+
+> 总结
+
+Volatile 可以保证可见性，不能保证原子性，由于内存屏障，可以避免指令重排现象产生！
 
 
+
+### 18 单例模式
+
+饿汉式、DCL懒汉式
+
+> 饿汉式
+
+```java
+package com.sugar.singleton;
+
+/**
+ * 饿汉式单例
+ * 一上来就加载所有资源，会造成空间浪费 -> 懒汉式，需要时再加载
+ */
+public class Hungry {
+
+    // 可能会浪费空间
+    private byte[] data1 = new byte[1024*1024];
+    private byte[] data2 = new byte[1024*1024];
+    private byte[] data3 = new byte[1024*1024];
+    private byte[] data4 = new byte[1024*1024];
+
+
+    private Hungry() {
+
+    }
+
+    private final static Hungry HUNGRY = new Hungry();
+
+    public static Hungry getInstance() {
+        return HUNGRY;
+    }
+}
+```
+
+> DCL懒汉式
+
+```java
+package com.sugar.singleton;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+
+/**
+ * 懒汉式单例
+ */
+public class LazyMan {
+
+    // 信号量，防止未调用getInstance，直接用两个反射破坏单例
+    private static boolean sugar = false;
+
+    private LazyMan() {
+        // 三重，防止反射
+//        synchronized (LazyMan.class) {
+//            if (lazyMan != null) {
+//                throw new RuntimeException("不要试图使用反射破坏单例！");
+//            }
+//        }
+
+        // 更进一步，用信号量
+        synchronized (LazyMan.class) {
+            if (sugar == false) {
+                sugar = true;
+            } else {
+                throw new RuntimeException("不要试图使用反射破坏单例！");
+            }
+        }
+    }
+
+    private volatile static LazyMan lazyMan;
+
+    // 双重检测锁模式的 懒汉式单例 DCL懒汉式
+    public static LazyMan getInstance() {
+        if (lazyMan == null) {
+            synchronized (LazyMan.class) {
+                if (lazyMan == null) {
+                    lazyMan = new LazyMan();  // 不是一个原子性操作
+                }
+            }
+        }
+        return lazyMan;
+    }
+
+    /**
+     * 1. 分配内存空间
+     * 2. 执行构造方法，初始化对象
+     * 3. 把这个对象指向这个空间
+     *
+     * 123
+     * 132  A
+     *      B  // 此时LazyMan还没有完成构造
+     */
+    // 单线程可以，多线程并发存在问题
+//    public static void main(String[] args) {
+//        for (int i = 0; i < 10; i++) {
+//            new Thread(() -> {
+//                LazyMan.getInstance();
+//            }).start();
+//        }
+//    }
+
+    /**
+     * 利用反射破坏单例！
+     */
+    public static void main(String[] args) throws Exception {
+        // 三重
+//        LazyMan instance = LazyMan.getInstance();
+
+        // final 修改 sugar 属性  ==>>  枚举 ENUM
+        Field sugar = LazyMan.class.getDeclaredField("sugar");
+        sugar.setAccessible(true);
+
+        Constructor<LazyMan> declaredConstructor = LazyMan.class.getDeclaredConstructor(null);
+        declaredConstructor.setAccessible(true);
+        // 更进一步
+        LazyMan instance = declaredConstructor.newInstance();
+
+        sugar.set(instance, false);
+        LazyMan instance2 = declaredConstructor.newInstance();
+
+
+
+        System.out.println(instance);  // instance不同
+        System.out.println(instance2);
+
+
+    }
+}
+```
+
+> 静态内部类
+
+```java
+package com.sugar.singleton;
+
+/**
+ * 静态内部类实现单例
+ */
+public class Holder {
+
+    private Holder() {
+
+    }
+
+    public static Holder getInstance() {
+        return InnerClass.HOLDER;
+    }
+
+    public static class InnerClass {
+        private  static final Holder HOLDER = new Holder();
+    }
+}
+```
+
+##### 因为反射的存在，单例并不安全，因此枚举上场。
+
+**枚举类型的最终反编译源码，两个参数的有参构造**
+
+```java
+package com.sugar.singleton;
+
+import java.lang.reflect.Constructor;
+
+/**
+ * 枚举单例
+ * enum 是什么？本身也是一个 Class 类
+ */
+public enum EnumSingle {
+
+    INSTANCE;
+
+    public EnumSingle getInstance() {
+        return INSTANCE;
+    }
+}
+
+class Test {
+    public static void main(String[] args) throws Exception {
+        EnumSingle instance1 = EnumSingle.INSTANCE;
+        EnumSingle instance2 = EnumSingle.INSTANCE;
+
+        System.out.println(instance1);
+        System.out.println(instance2);
+
+        // NoSuchMethodException 没有无参构造方法
+//        Constructor<EnumSingle> declaredConstructor = EnumSingle.class.getDeclaredConstructor(null);
+        // 经过反编译后，发现Enum 构造器有两个参数
+        // 运行后，彻底说明，反射不能破坏枚举的单例  Cannot reflectively create enum objects
+        Constructor<EnumSingle> declaredConstructor = EnumSingle.class.getDeclaredConstructor(String.class, int.class);
+        declaredConstructor.setAccessible(true);
+        EnumSingle instance3 = declaredConstructor.newInstance();
+        System.out.println(instance3);
+    }
+}
+```
 
