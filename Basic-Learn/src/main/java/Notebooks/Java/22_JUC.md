@@ -2496,3 +2496,409 @@ class Test {
 }
 ```
 
+
+
+### 19 深入理解CAS
+
+> 什么是CAS
+
+```java
+package com.sugar.cas;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class CASDemo {
+
+    // CAS  compareAndSet：比较并交换
+    // CAS 是 CPU 的并发原语。
+    public static void main(String[] args) {
+        AtomicInteger atomicInteger = new AtomicInteger(2020);
+
+        // public final boolean compareAndSet(int expect, int update)
+        // 如果达到期望值，则更新；否则不更新
+        System.out.println(atomicInteger.compareAndSet(2020, 2021));
+        System.out.println(atomicInteger.get());
+//        atomicInteger.getAndIncrement();
+
+        // 不再更新，false
+        System.out.println(atomicInteger.compareAndSet(2020, 2021));
+        System.out.println(atomicInteger.get());
+    }
+}
+```
+
+> Unsafe 类
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210224094033595.png" alt="image-20210224094033595" style="zoom: 50%;" />
+
+> AtomicInteger -> getAndIncrement()
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210224094314086.png" alt="image-20210224094314086" style="zoom:40%;" />
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210224094444308.png" alt="image-20210224094444308" style="zoom:40%;" />
+
+> CAS 总结
+
+CAS（compareAndSet）：比较当前工作内存中的值和主内存中的值，如果这个值是期望的，则执行操作！如果不是就一直循环！（自旋锁）
+
+**缺点：**
+
+1. 循环会耗时
+2. 一次性只能保证一个共享变量的原子性
+3. 存在ABA问题
+
+> CAS：ABA问题（狸猫换太子）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210224094947899.png" alt="image-20210224094947899" style="zoom:40%;" />
+
+```java
+package com.sugar.cas;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class CAS_ABA_Demo {
+    public static void main(String[] args) {
+        AtomicInteger atomicInteger = new AtomicInteger(2020);
+
+        // 对于平时写的SQL：乐观锁！
+        // Java  ==>>  原子引用！
+        // ============  捣乱的线程  ============
+        System.out.println(atomicInteger.compareAndSet(2020, 2021));
+        System.out.println(atomicInteger.get());
+
+        System.out.println(atomicInteger.compareAndSet(2021, 2020));
+        System.out.println(atomicInteger.get());
+
+        // ============  捣乱的线程  ============
+        System.out.println(atomicInteger.compareAndSet(2020, 6666));
+        System.out.println(atomicInteger.get());
+    }
+}
+```
+
+
+
+### 20 原子引用
+
+> 解决ABA问题，引入原子引用
+
+带版本号（AtomicStampedReference<Object>）的原子操作！
+
+**Integer 使用了对象缓存机制，默认范围是 -128 ~ 127，推荐使用静态工厂方法 ValueOf 获取对象实例，而不是 new，因为 ValueOf 使用了缓存，而 new 一定会创建新的对象分配新的内存空间**
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210224122735582.png" alt="image-20210224122735582" style="zoom:50%;" />
+
+```java
+package com.sugar.cas;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicStampedReference;
+
+public class CAS_ABA_Demo {
+    public static void main(String[] args) {
+//        AtomicInteger atomicInteger = new AtomicInteger(2020);
+
+        // 对于平时写的SQL：乐观锁！
+        // Java  ==>>  原子引用！
+        // ============  捣乱的线程  ============
+//        System.out.println(atomicInteger.compareAndSet(2020, 2021));
+//        System.out.println(atomicInteger.get());
+//
+//        System.out.println(atomicInteger.compareAndSet(2021, 2020));
+//        System.out.println(atomicInteger.get());
+
+        // ============  捣乱的线程  ============
+//        System.out.println(atomicInteger.compareAndSet(2020, 6666));
+//        System.out.println(atomicInteger.get());
+
+        // 原子引用版
+        // 同时验证期望值和版本号
+        // 注：如果泛型是包装类，注意对象的引用问题
+        AtomicStampedReference<Integer> atomicInteger = new AtomicStampedReference<>(1, 1);
+
+        new Thread(() -> {
+            int stamp = atomicInteger.getStamp();  // 获取版本号
+            System.out.println("A1=> " + stamp);
+
+            try {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            // Version + 1
+            System.out.println(atomicInteger.compareAndSet(1, 2,
+                    atomicInteger.getStamp(), atomicInteger.getStamp() + 1));
+            System.out.println("A2=> " + atomicInteger.getStamp());
+
+            System.out.println(atomicInteger.compareAndSet(2, 1,
+                    atomicInteger.getStamp(), atomicInteger.getStamp() + 1));
+            System.out.println("A3=> " + atomicInteger.getStamp());
+        }, "A").start();
+
+        // 和乐观锁的原理相同
+        new Thread(() -> {
+            int stamp = atomicInteger.getStamp();  // 获取版本号
+            System.out.println("B1=> " + stamp);
+
+            try {
+                TimeUnit.SECONDS.sleep(2);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println(atomicInteger.compareAndSet(1, 5,
+                    stamp, stamp + 1));
+            System.out.println("B2=> " + atomicInteger.getStamp());
+        }, "B").start();
+    }
+}
+```
+
+
+
+### 21 各种锁的理解
+
+#### 21.1 公平锁、非公平锁
+
+公平锁：不能插队，必须先来后到！
+
+非公平锁：可以插队（默认都是非公平）
+
+```java
+public ReentrantLock() {
+  sync = new NonfairSync();
+}
+// 重载方法
+public ReentrantLock(boolean fair) {
+  sync = fair ? new FairSync() : new NonfairSync();
+}
+```
+
+#### 21.2 可重入锁（递归锁）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210224123418808.png" alt="image-20210224123418808" style="zoom:50%;" />
+
+> Synchronized版
+
+```java
+package com.sugar.lock;
+
+// Synchronized
+public class Demo01 {
+    public static void main(String[] args) {
+        Phone phone = new Phone();
+
+        new Thread(() -> {
+            phone.sms();
+        }, "A").start();
+
+        new Thread(() -> {
+            phone.sms();
+        }, "B").start();
+    }
+}
+
+class Phone {
+    // 使用一把锁
+    public synchronized void sms() {
+        System.out.println(Thread.currentThread().getName() + " sms");
+        call();
+    }
+
+    public synchronized  void call() {
+        System.out.println(Thread.currentThread().getName() + " call");
+    }
+}
+```
+
+> Lock 版
+
+```java
+package com.sugar.lock;
+
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+// Lock
+public class Demo02 {
+    public static void main(String[] args) {
+        Phone2 phone = new Phone2();
+
+        new Thread(() -> {
+            phone.sms();
+        }, "A").start();
+
+        new Thread(() -> {
+            phone.sms();
+        }, "B").start();
+    }
+}
+
+class Phone2 {
+    Lock lock = new ReentrantLock();
+
+    public void sms() {
+        lock.lock();  // 细节问题，成对的锁
+        // Lock 锁必须配对，否则就会死锁
+        try {
+            System.out.println(Thread.currentThread().getName() + " sms");
+            call();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void call() {
+        lock.lock();
+        try {
+            System.out.println(Thread.currentThread().getName() + " call");
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+```
+
+#### 21.3 自旋锁
+
+会不断的尝试，直到成功为止。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210224124251636.png" alt="image-20210224124251636" style="zoom:50%;" />
+
+```java
+package com.sugar.lock;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+/**
+ * 自旋锁
+ */
+// 使用CAS实现一个锁
+public class SpinlockDemo {
+
+    // int      0
+    // Thread null
+    AtomicReference<Thread> atomicReference = new AtomicReference<>();
+
+    // 加锁
+    public void myLock() {
+        Thread thread = Thread.currentThread();
+        System.out.println(Thread.currentThread().getName() + " ==>  myLock");
+
+        // 自旋锁
+        while (!atomicReference.compareAndSet(null, thread)) {
+        }
+    }
+
+    // 解锁
+    public void myUnLock() {
+        Thread thread = Thread.currentThread();
+        System.out.println(Thread.currentThread().getName() + " ==>  myUnLock");
+        atomicReference.compareAndSet(thread, null);
+    }
+}
+
+class TestSpinLock {
+    public static void main(String[] args) throws InterruptedException {
+        // 底层使用的自旋锁CAS
+        SpinlockDemo lock = new SpinlockDemo();
+
+        new Thread(() -> {
+            lock.myLock();
+
+            try {
+                TimeUnit.SECONDS.sleep(3);
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                lock.myUnLock();
+            }
+        }, "T1").start();
+
+        TimeUnit.SECONDS.sleep(1);
+
+        new Thread(() -> {
+            lock.myLock();
+
+            try {
+                TimeUnit.SECONDS.sleep(3);
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                lock.myUnLock();
+            }
+        }, "T2").start();
+
+    }
+}
+```
+
+#### 21.4 死锁
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210224125620470.png" alt="image-20210224125620470" style="zoom:50%;" />
+
+```java
+package com.sugar.lock;
+
+import java.util.concurrent.TimeUnit;
+
+public class DeadLockDemo {
+    public static void main(String[] args) {
+        String lockA = "lockA";
+        String lockB = "lockB";
+        // 锁的是字符串对象地址
+        new Thread(new MyThread(lockA, lockB), "T1").start();
+        new Thread(new MyThread(lockB, lockA), "T2").start();
+    }
+}
+
+class MyThread implements Runnable {
+
+    private String lockA;
+    private String lockB;
+
+    public MyThread(String lockA, String lockB) {
+        this.lockA = lockA;
+        this.lockB = lockB;
+    }
+    
+    @Override
+    public void run() {
+        synchronized (lockA) {
+            System.out.println(Thread.currentThread().getName() + " lock:" + lockA + " => get " + lockB);
+
+            try {
+                TimeUnit.SECONDS.sleep(2);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            synchronized (lockB) {
+                System.out.println(Thread.currentThread().getName() + " lock:" + lockB + " => get " + lockA);
+            }
+        }
+    }
+}
+```
+
+> 解决问题
+
+1. 使用 `jps -l` 定位进程号
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210224130400325.png" alt="image-20210224130400325" style="zoom:33%;" />
+
+2. 使用 `jstack 进程号` 查看进程信息，找到死锁问题
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210224130608763.png" alt="image-20210224130608763" style="zoom:50%;" />
+
+> 面试排查问题
+
+1. 日志
+2. 查看堆栈信息
