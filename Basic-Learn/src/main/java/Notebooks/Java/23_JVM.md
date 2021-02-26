@@ -379,6 +379,8 @@ public class Demo {
 
 **永久区**：这个区域常驻内存。用来存放 JDK 自身携带的 Class 对象。Interface元数据，存储的是Java运行时的一些环境或类信息，该区域不存在垃圾回收！关闭虚拟机就会释放该区域的内存。
 
+分配总内存 = 新生区 + 老年区，所以元空间在逻辑上存在，物理上不存在。
+
 ​		该区域出现 OOM 的情况：一个启动类，加载了大量的第三方jar包、Tomcat部署了太多的应用、大量动态生成的反射类。不断的被加载，直到内存满，就会出现OOM。		
 
 - jdk1.6之前：永久代，常量池是在方法区中。
@@ -416,14 +418,216 @@ public class Demo02 {
 
 ### 14 堆内存调优
 
+##### 在项目中，突然出现 OOM（OutOfMemory） 故障，该如何排除？研究为什么出错
+
+- 最快：能够看到代码第几行出错：内存快照分析工具，MAT，JProfiler
+- 慢：Debug，一行行分析代码
+
+JProfiler11注册码：S-J11-JakeyLee#jakey-2erk3fd34anrnq#39b4b8
+
+MAT，JProfiler的作用：
+
+- 分析Dump内存文件，快速定位内存泄漏
+- 获得堆中的数据
+- 获得大的对象
+- ...
+
+```java
+package com.sugar.heap;
+
+import java.util.ArrayList;
+import java.util.List;
+
+// -Xms 设置初始化内存分配大小，默认电脑内存的 1/64
+// -Xmx 设置最大分配内存，默认电脑内存的 1/4
+// -XX:+PrintGCDetails，打印GC垃圾回收信息
+// -XX:+HeapDumpOnOutOfMemoryError，OOM生成Dump文件
+
+// -Xms1m -Xmx8m -XX:+HeapDumpOnOutOfMemoryError
+//  Dumping heap to java_pid99986.hprof ...
+//  Heap dump file created [12801156 bytes in 0.042 secs]
+public class OOMDemo {
+    public static void main(String[] args) {
+        byte[] array = new byte[1*1024*1024];  // 1m
+
+        List<OOMDemo> list = new ArrayList<>();
+        int count = 0;
+
+        try {
+            while (true) {
+                list.add(new OOMDemo());
+                count++;
+            }
+        } catch (Exception e) {
+            System.out.println("count:" + count);
+            e.printStackTrace();
+        }
+    }
+}
+
+```
+
+**使用 -XX:+HeapDumpOnOutOfMemoryError 命令，在堆内存溢出时生成 `.hprof` 文件，利用 JProfiler 工具对该文件进行分析。**
+
+​		由下图可见 ArrayList 大小占用94%，主要是因为存入过多的 OOMDemo 导致溢出。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210226095344092.png" alt="image-20210226095344092" style="zoom:50%;" />![image-20210226095351864](/Users/sugar/Library/Application Support/typora-user-images/image-20210226095351864.png)
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210226095438628.png" alt="image-20210226095438628" style="zoom:50%;" />
+
+​		在 Thread Dump 中的 main 线程，查看 OOM 的代码位置。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210226101042918.png" alt="image-20210226101042918" style="zoom:50%;" />
 
 
 
+### 15 GC（Garbage Collection）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210226121508850.png" alt="image-20210226121508850" style="zoom:50%;" />
+
+JVM 在进行 GC 时，并不是对着三个区域统一回收。大部分时候，回收都是新生代。
+
+- 新生代
+- 幸存区（from，to）
+- 老年区
+
+GC两种类型：轻GC（普通GC）、重GC（全局GC）
 
 
 
-### 15 GC
+GC题目：
+
+- JVM的内存模型和分区，每个区放什么？
+- 堆里面的分区有哪些？eden、from、to、old，说说它们的特点？
+- GC的算法有哪些？`标记清除法`、`标记压缩法`、`标记复制算法`、`引用计数法`，怎么用？
+- 轻GC 和 重GC 分别在什么时候发生？
 
 
 
-### 16 JMM
+**引用计数法（使用较少）**
+
+死循环问题
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210226122221475.png" alt="image-20210226122221475" style="zoom:70%;" />
+
+
+
+**标记复制算法**
+
+1. 每次GC，都会将Eden活的对象移到幸存区中；一旦Eden区被GC后，就会是空的。
+2. 幸存区谁空谁是 to
+3. 当一个对象经历了15次GC，都还没有死，则移到老年区（ `-XX:MaxTenuringThreshold=15`，通过这个参数可以设定进入老年区的时间）
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210226123011779.png" alt="image-20210226123011779" style="zoom:70%;" />
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210226123350053.png" alt="image-20210226123350053" style="zoom:70%;" />
+
+
+
+- 优点：没有内存的碎片
+- 缺点：浪费了内存空间，幸存区to永远是空的。假设对象 100% 存活（极端情况），可能会导致 OOM。
+
+复制算法最佳使用场景：对象存活度较低的时候，新生区。
+
+
+
+##### 标记清除算法
+
+1. 每次GC，首先一轮扫描，对活着的对象进行标记
+2. 再一轮扫描，清除没有标记的对象
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210226123928913.png" alt="image-20210226123928913" style="zoom:50%;" />
+
+- 优点：不需要额外的内存空间。
+- 缺点：两次扫描严重浪费时间，会产生内存碎片。
+
+
+
+**标记压缩算法**
+
+对标记清除算法在优化。
+
+1. 每次GC，首先一轮扫描，对活着的对象进行标记
+2. 再一轮扫描，清除没有标记的对象
+3. 再一轮扫描，向一段移动存活的对象，防止内存碎片产生
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210226124322260.png" alt="image-20210226124322260" style="zoom:50%;" />
+
+- 优点：不需要额外的内存空间，避免内存碎片。
+- 缺点：需要三次扫描。
+
+进一步优化，先进行几轮标记清除，然后再压缩。
+
+
+
+#### GC算法总结
+
+内存效率：复制算法 > 标记清除算法 > 标记压缩算法（时间复杂度）
+
+内存整齐度：复制算法 = 标记压缩算法 > 标记清除算法
+
+内存利用率：标记压缩算法 = 标记清除算法 > 复制算法
+
+**没有最优的GC算法，只有最适合场景的算法。  ==>>  GC：分代收集算法**
+
+
+
+##### 分代收集算法
+
+新生区
+
+- 存活率低
+- 复制算法！
+
+老年区
+
+- 区域大，存活率高
+- 标记压缩 + 标记清除（内存碎片不是太多）混合实现！
+
+
+
+### 16 JMM（Java Memory Model）
+
+1. 什么是 JMM
+
+   Java 内存模型
+
+2. 干嘛的？
+
+   作用：缓存一致性协议，用于定义数据读写的规则（遵守）。
+
+   线程与主线程，数据之间操作的一种规则
+
+   
+
+   JMM 定义了线程工作内存和主内存之间的抽象关系：线程之间的共享变量存储在主内存（Main Memory）中，每个线程都有一个私有的本地内存（Local Memory）。
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210226130115442.png" alt="image-20210226130115442" style="zoom:50%;" />
+
+   解决共享对象可见性这个问题：`volatile`关键字，子线程中修改的字段，能够即时刷新到主内存中。
+
+3. 如何学习？
+
+   JMM：抽象的概念，理论
+
+   
+
+   JMM对这八种指令的使用，制定了如下规则：
+
+   - 不允许read和load、store和write操作之一单独出现。即使用了read必须load，使用了store必须write
+   - 不允许线程丢弃他最近的assign操作，即工作变量的数据改变了之后，必须告知主存
+   - 不允许一个线程将没有assign的数据从工作内存同步回主内存
+   - 一个新的变量必须在主内存中诞生，不允许工作内存直接使用一个未被初始化的变量。就是怼变量实施use、store操作之前，必须经过assign和load操作
+   - 一个变量同一时间只有一个线程能对其进行lock。多次lock后，必须执行相同次数的unlock才能解锁
+   - 如果对一个变量进行lock操作，会清空所有工作内存中此变量的值，在执行引擎使用这个变量前，必须重新load或assign操作初始化变量的值
+   - 如果一个变量没有被lock，就不能对其进行unlock操作。也不能unlock一个被其他线程锁住的变量
+   - 对一个变量进行unlock操作之前，必须把此变量同步回主内存
+
+   　　JMM对这八种操作规则和对[volatile的一些特殊规则](https://www.cnblogs.com/null-qige/p/8569131.html)就能确定哪里操作是线程安全，哪些操作是线程不安全的了。但是这些规则实在复杂，很难在实践中直接分析。所以一般我们也不会通过上述规则进行分析。更多的时候，使用java的happen-before规则来进行分析。
+   
+    
+   
+   解决方案：1. `volatile`      2. `synchronized`
+
+
+
