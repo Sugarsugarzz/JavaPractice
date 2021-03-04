@@ -1,7 +1,6 @@
 package Leetcode.ByTags.Array;
 
-import java.util.Arrays;
-import java.util.Random;
+import java.util.*;
 
 /**
  * 215. 数组中的第K个最大元素
@@ -30,12 +29,19 @@ public class _0215_findKthLargest {
         // 快排每轮都会确定一个数的最终位置，所以只要某次划分的数的下标为倒数第k个的时候，就已经找到了答案
         // 在划分过程中，如果该 q 为需要的下标，则直接返回；如果 q 比目标下标小，则递归右子区间；否则递归左子区间
         // time complex O(n), space complex O(log n)
-        int target_index = nums.length - k;
-        return quickSelect(nums, 0, nums.length - 1, target_index);
+//        int target_index = nums.length - k;
+//        return quickSelect(nums, 0, nums.length - 1, target_index);
 
         // 三、优先队列
+        Queue<Integer> queue = new PriorityQueue<>();
+        for (int num : nums) {
+            queue.offer(num);
+            if (queue.size() > k) {
+                queue.poll();
+            }
+        }
 
-
+        return queue.peek();
     }
 
     public static int quickSelect(int[] nums, int left, int right, int target_index) {
