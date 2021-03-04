@@ -33,6 +33,7 @@
         <module>Redis-Learn</module>
         <module>JUC-Learn</module>
         <module>JVM-Learn</module>
+        <module>DesignPatterns-Learn</module>
     </modules>
 
     <!-- Package:项目的打包方式
