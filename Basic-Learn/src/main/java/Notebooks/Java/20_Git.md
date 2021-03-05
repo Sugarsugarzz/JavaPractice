@@ -334,7 +334,7 @@ master主分支应该非常稳定，用来发布新版本，一般情况下不�
 
 ---
 
-### 10 新建分支合并
+### 10 Git实例
 
 #### 1 从master新建出dev分支，然后合并回master
 
@@ -352,3 +352,59 @@ master主分支应该非常稳定，用来发布新版本，一般情况下不�
 1. 切换到所在分支dev：`git checkout dev`
 2. 合并：`git merge master`
 3. 将本地内容push到dev分支：`git push`
+
+#### 3 模拟线上本地代码冲突
+
+```bash
+git init
+git config --global user.name = 'xxx'
+git config --global user.email = 'xxx@qq.com'
+
+# commit后才显示分支名
+git add a.txt
+git commit -m "modify a.txt to master"
+git branch
+
+# 创建模拟本地分支  local
+git checkout -b local
+# 修改 a.txt 内容为 aaaaalocal
+git commit -am "modify local"
+
+# 创建模拟远程分支 remote
+git checkout -b remote  
+# 修改 a.txt 内容为 aaaaaremote
+git commit -am "modify remote"
+
+# 切换回本地分支，并将远程分支pull到本地
+git checkout local
+git merge remote
+
+# 出现以下报错：
+Auto-merging a.txt
+CONFLICT (content): Merge conflict in a.txt
+Automatic merge failed; fix conflicts and then commit the result.
+
+# a.txt 内容被修改为：
+<<<<<<< HEAD
+aaaaalocal
+=======
+aaaaaremote
+>>>>>>> remote
+
+# 修改 a.txt 冲突内容后再提交
+git commit -am "update"
+# 此时再次merge，不会冲突，提示：
+Already up to date.
+
+# 此时 remote 端的代码依然依旧，需要remote与本地再次merge，此次合并不会报错。会更新为版本号较新的本地代码。
+git checkout remote
+git merge local
+# 提示：
+Updating 441e8d0..3046471
+Fast-forward
+ a.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ 
+# 冲突与否主要取决于提交版本号时间的前后
+```
+
