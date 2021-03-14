@@ -1,0 +1,7 @@
+server:
+  port: 8180
+
+# 服务负载均衡
+provider:
+  ribbon:
+    NFLoadBalancerRuleClassName: com.sugar.config.NacosWeightRule
