@@ -3,9 +3,23 @@ spring:
     nacos:
       discovery:
         server-addr: localhost:8848
+    # 配置sentinel的dashboard
+    sentinel:
+      transport:
+        dashboard: localhost:8080
+      # 使链路限流生效
+      filter:
+        enabled: false
 
   application:
     name: provider
 
 server:
-  port: 8083
+  port: 8081
+
+# 将所有请求开放出来
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'

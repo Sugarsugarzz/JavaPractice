@@ -470,3 +470,332 @@ provider:
 
 
 #### 4.1 Sentinel 流控规则
+
+在 `provider` 项目测试
+
+1. 在 pom.xml 导入 sentinel依赖
+
+   把provider中的服务开放出来，让actuator进行接收，接收到后让sentinel进行流量控制
+
+   ```xml
+   <!--Sentinel-->
+   <dependency>
+       <groupId>org.springframework.cloud</groupId>
+       <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+       <version>2.2.1.RELEASE</version>
+   </dependency>
+   <!--Actuator-->
+   <dependency>
+       <groupId>org.springframework.boot</groupId>
+       <artifactId>spring-boot-starter-actuator</artifactId>
+   </dependency>
+   ```
+
+2. 修改 application.yml
+
+   ```yml
+   spring:
+     cloud:
+       nacos:
+         discovery:
+           server-addr: localhost:8848
+       # 配置sentinel的dashboard
+       sentinel:
+         transport:
+           dashboard: localhost:8080
+   
+     application:
+       name: provider
+   
+   server:
+     port: 8083
+   
+   # 将所有请求开放出来
+   management:
+     endpoints:
+       web:
+         exposure:
+           include: '*'
+   ```
+
+3. 启动 sentinel-dashboard（java -jar /Library/Enviroments/sentinel-dashboard/sentinel-dashboard-1.7.2.jar）
+
+4. 访问 http://localhost:8080，默认登录账号/密码：sentinel/sentinel
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210314231552663.png" alt="image-20210314231552663" style="zoom:20%;" />
+
+5. 在 `簇点链路` 下点击 `流控`，设置QPS阈值，并点击新增
+
+   高级选项中
+
+   流控模式：直接（直接对index限流），关联（比如设置关联资源 /list，如果 /list超过阈值，则 /index 不可用），
+
+   流控效果：
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210314231920689.png" alt="image-20210314231920689" style="zoom:20%;" />
+
+6. 超过阈值的请求将返回如下
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210314232001640.png" alt="image-20210314232001640" style="zoom:30%;" />
+
+
+
+**流控规则中的高级选项**
+
+流控模式：直接、关联、链路
+
+> 直接模式（默认）
+
+就是直接对 /index 限流
+
+> 关联模式
+
+比如设置关联资源 /list，当 /list 的 QPS超过阈值时，则 /index 不可用
+
+> 链路模式
+
+对某一个资源进行限流，能够更细粒度的限流。
+
+坑：版本问题，当前版本高，1.6.3是默认收敛所有的URL入口的，这样链路限流是不生效的，需要手动关闭。
+
+1. 导入依赖
+
+   ```xml
+   <dependency>
+       <groupId>com.alibaba.csp</groupId>
+       <artifactId>sentinel-core</artifactId>
+       <version>1.7.1</version>
+   </dependency>
+   <dependency>
+       <groupId>com.alibaba.csp</groupId>
+       <artifactId>sentinel-web-servlet</artifactId>
+       <version>1.7.1</version>
+   </dependency>
+   ```
+
+2. 修改 application.yml
+
+   ```yml
+   spring:
+     cloud:
+       sentinel:
+         filter:
+           enabled: false
+   ```
+
+3. 新增过滤器类 FilterConfiguration
+
+   ```java
+   package com.sugar.config;
+   
+   import com.alibaba.csp.sentinel.adapter.servlet.CommonFilter;
+   import org.springframework.boot.web.servlet.FilterRegistrationBean;
+   import org.springframework.context.annotation.Bean;
+   import org.springframework.context.annotation.Configuration;
+   
+   @Configuration
+   public class FilterConfig {
+       
+       @Bean
+       public FilterRegistrationBean registrationBean() {
+           FilterRegistrationBean registrationBean = new FilterRegistrationBean();
+           registrationBean.setFilter(new CommonFilter());
+           registrationBean.addUrlPatterns("/*");
+           registrationBean.addInitParameter(CommonFilter.WEB_CONTEXT_UNIFY, "false");
+           registrationBean.setName("sentinelFilter");
+           return registrationBean;
+       }
+   }
+   ```
+
+4. 新增 ProviderService，对需要监控的方法加上 `@SentinelResource`注释
+
+   ```java
+   package com.sugar.service;
+   
+   import com.alibaba.csp.sentinel.annotation.SentinelResource;
+   import org.springframework.stereotype.Service;
+   
+   @Service
+   public class ProviderService {
+   
+       // sentinel一般只能入侵到controller，加了注解后，能够对service进行保护
+       @SentinelResource("test")
+       public void test() {
+           System.out.println("test");
+       }
+   }
+   ```
+
+5. 在 Controller 调用 Service
+
+   ```java
+   @Autowired
+   private ProviderService providerService;
+   
+   @GetMapping("/test1")
+   public String test1() {
+       this.providerService.test();
+       return "test1";
+   }
+   
+   @GetMapping("/test2")
+   public String test2() {
+       this.providerService.test();
+       return "test2";
+   }
+   ```
+
+6. 在 Sentinel 中，显示了到 Service 层的完整链路
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210314233832734.png" alt="image-20210314233832734" style="zoom:30%;" />
+
+7. 这里对 Service层的 test限流，**入口资源**就是调用其的 Controller层入口。
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210314233928146.png" alt="image-20210314233928146" style="zoom:30%;" />
+
+8. 并发请求 /test1 出现异常，但 /test2 正常。
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210314234019520.png" alt="image-20210314234019520" style="zoom:30%;" />
+
+**流控规则中的流控效果**
+
+流控效果：快速失败、Warm Up、排队等待
+
+> 快速失败
+
+直接抛出异常
+
+> Warm Up
+
+预热期流量较少，即 QPS阈值为设定阈值的**三分之一**，预热时间一到，就恢复到设定的阈值。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210314234615363.png" alt="image-20210314234615363" style="zoom:20%;" />
+
+
+
+> 排队等待
+
+请求调用失败后，不会立刻抛异常，等待后会再次调一下，如果还是不通则报异常。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210314235206586.png" alt="image-20210314235206586" style="zoom:20%;" />
+
+#### 4.2 Sentinel 降级规则
+
+降级策略：RT、异常比例、异常数
+
+> RT
+
+单个请求的响应事件超过阈值，则进入准降级状态，接下来 **1秒** 内连续 **5个** 请求响应事件均超过**RT阈值**，则进行降级，持续事件为**时间窗口的值**。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210314235600641.png" alt="image-20210314235600641" style="zoom:20%;" />
+
+如下图测试，前五个请求正常，但都超过了设定的阈值 0.1，所以对后续请求进行了降级，在时间窗口内，所有请求都会降级，在时间窗口后恢复。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315000213898.png" alt="image-20210315000213898" style="zoom:20%;" />
+
+> 异常比例
+
+**每秒**异常数量占通过量的比例**大于阈值**，就进行降级处理，持续事件为**时间窗口的值**。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315000505165.png" alt="image-20210315000505165" style="zoom:20%;" />
+
+
+
+> 异常数
+
+**1分钟内**的异常数超过阈值就进行降级处理，**时间窗口的值要大于 60秒**，否则刚结束熔断又进入下一次熔断了。
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315000729385.png" alt="image-20210315000729385" style="zoom:20%;" />
+
+#### 4.3 Sentinel 热点规则
+
+热点规则是流控规则的耕细粒度操作，可以具体到对某个热点参数的限流，设置限流之后，如果带着限流参数的请求量超过阈值，则进行限流，时间为统计窗口时长。
+
+必须要添加 `@SentinelResource`，即对资源进行流控。
+
+```java
+@GetMapping("/hot")
+@SentinelResource("hot")
+public String hot(
+        @RequestParam(value = "num1", required = false) Integer num1,
+        @RequestParam(value = "num2", required = false) Integer num2) {
+    return num1 + "-" + num2;
+}
+```
+
+这里对 num1 进行限流
+
+如果带 num1 的请求，超过阈值则限流，不带 num1 则不限流
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315001304539.png" alt="image-20210315001304539" style="zoom:20%;" />
+
+高级选项：但如果 num1 为 int类型，则数值为10，则限流阈值为 1000
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315001454788.png" alt="image-20210315001454788" style="zoom:20%;" />
+
+
+
+#### 4.4 Sentinel 授权规则
+
+给指定的资源设置流控应用（追加参数），可以对流控应用进行访问权限的设置，具体就是添加白名单和黑名单。
+
+如何给请求指定流控应用，通过实现  RequestOriginParser 接口来完成，代码如下。
+
+```java
+package com.sugar.config;
+
+import com.alibaba.csp.sentinel.adapter.servlet.callback.RequestOriginParser;
+import org.apache.commons.lang.StringUtils;
+
+import javax.servlet.http.HttpServletRequest;
+
+public class RequestOriginParserDefinition implements RequestOriginParser {
+
+    @Override
+    public String parseOrigin(HttpServletRequest httpServletRequest) {
+        // 请求中，需要带 name 参数
+        String name = httpServletRequest.getParameter("name");
+        if (StringUtils.isEmpty(name)) {
+            throw new RuntimeException("name is null");
+        }
+        return name;
+    }
+}
+```
+
+要让 RequestOriginParserDefinition 生效，需要在配置类中进行配置
+
+```java
+package com.sugar.config;
+
+import com.alibaba.csp.sentinel.adapter.servlet.callback.WebCallbackManager;
+import org.springframework.context.annotation.Configuration;
+
+import javax.annotation.PostConstruct;
+
+@Configuration
+public class SentinelConfig {
+    
+    @PostConstruct
+    public void init() {
+        WebCallbackManager.setRequestOriginParser(new RequestOriginParserDefinition());
+    }
+}
+```
+
+设置白名单
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315002304978.png" alt="image-20210315002304978" style="zoom:20%;" />
+
+请求测试，admin可访问，b不行
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315002403178.png" alt="image-20210315002403178" style="zoom:40%;" />
+
+<img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315002351907.png" alt="image-20210315002351907" style="zoom:40%;" />
+
+
+
+### 5 整合 RocketMQ
+
+##### 5.1 安装 RocketMQ
