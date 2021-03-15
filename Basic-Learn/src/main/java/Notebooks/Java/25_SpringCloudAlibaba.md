@@ -798,4 +798,384 @@ public class SentinelConfig {
 
 ### 5 整合 RocketMQ
 
-##### 5.1 安装 RocketMQ
+#### 5.1 安装 RocketMQ
+
+1. 解压 `rocketmq-all-4.7.1-bin-release.zip`
+
+   `unzip rocketmq-all-4.7.1-bin-release.zip`
+
+2. 启动 NameServer
+
+   `nohup ./bin/mqnamesrv &`
+
+3. 检查是否启动成功
+
+   `netstat -an | grep 9876`
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315193648281.png" alt="image-20210315193648281" style="zoom:70%;" />
+
+4. 启动 Broker（相当于 MQ 的引擎）
+
+   启动之前需要配置编辑文件，修改 JVM 内存设置，默认给的内存 4GB，超过了 JVM
+
+   `cd bin`
+
+   `vim runserver.sh`
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315193928541.png" alt="image-20210315193928541" style="zoom:40%;" />
+
+   `vim runbroker.sh`
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315193950495.png" alt="image-20210315193950495" style="zoom:60%;" />
+
+   启动 Broker
+
+   `nohup ./mqbroker -n localhost:9876 -c ../conf/broker.conf &`
+
+   可以查看日志
+
+   `tail -f ~/logs/rocketmqlogs/broker.log`
+
+   出现 boot success 即启动成功.
+
+   **注意**：这里 Broker 是将自己的内网地址给了 NameSrv，某些情况下会出错，需要显式配置.
+
+   Broker 配置文件：conf/broker.conf
+
+   相关博文：https://blog.csdn.net/jpf254/article/details/80748021
+
+   ```xml
+   brokerClusterName = DefaultCluster
+   brokerName = broker-a
+   brokerId = 0
+   deleteWhen = 04
+   fileReservedTime = 48
+   brokerRole = ASYNC_MASTER
+   flushDiskType = ASYNC_FLUSH
+   #  ======添加的部分======
+   # brokerIP1和brokerIP2默认获取本地ip地址，在云服务器上会获取内网ip地址，因此必须显式设置
+   brokerIP1=127.0.0.1
+   brokerIP2=127.0.0.1
+   # 显式配置 NameSrvAddr
+   namesrvAddr=127.0.0.1:9876
+   ```
+
+5. 测试 RocketMQ
+
+   消息发送
+
+   ```
+   cd bin
+   export NAMESRV_ADDR=localhost:9876
+   ./tools.sh org.apache.rocketmq.example.quickstart.Producer
+   ```
+
+   消息接收
+
+   ```
+   cd bin
+   export NAMESRV_ADDR=localhost:9876
+   ./tools.sh org.apache.rocketmq.example.quickstart.Consumer
+   ```
+
+6. 关闭 RocketMQ
+
+   ```
+   cd bin
+   ./myshutdown broker
+   ./mqshutdown namesrv
+   ```
+
+#### 5.2 安装 RocketMQ 控制台
+
+1. 解压 `rocketmq-externals-rocketmq-console-1.0.0.zip`，修改启动端口和NameSrv地址，打包
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315200850151.png" alt="image-20210315200850151" style="zoom:90%;" />
+
+   打包命令：`mvn clean package -Dmaven.test.skip=true`
+
+   在 target 目录下得到 jar 包
+
+   启动：`java -jar rocketmq-console-ng-1.0.0.jar`
+
+   访问控制台：http://localhost:9877/
+
+   **注意**：Caused by: org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to <2.0.1.20:10909> failed
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315201720047.png" alt="image-20210315201720047" style="zoom:50%;" />
+
+   RocketMQ 和 控制台 没有安装在同一台机子上，Linux端需要开放端口才能访问。
+
+   开放 10909 、10911 和 9876 端口
+
+   ```shell
+   firewall-cmd --zone=public --add-port=10909/tcp --permanent
+   firewall-cmd --zone=public --add-port=10911/tcp --permanent
+   firewall-cmd --zone=public --add-port=9876/tcp --permanent
+   systemctl restart firewalld.service
+   firewall-cmd --reload
+   ```
+
+   重新启动控制台项目
+
+#### 5.3 Java 实现消息发送
+
+1. 引入依赖
+
+   ```xml
+   <!--rocketmq-->
+   <dependency>
+     <groupId>org.apache.rocketmq</groupId>
+     <artifactId>rocketmq-spring-boot-starter</artifactId>
+     <version>2.1.0</version>
+   </dependency>
+   ```
+
+2. 生产消息
+
+   ```java
+   package com.sugar.mq;
+   
+   import org.apache.rocketmq.client.producer.DefaultMQProducer;
+   import org.apache.rocketmq.client.producer.SendResult;
+   import org.apache.rocketmq.common.message.Message;
+   
+   /**
+    * MQ 原生调用
+    * Producer
+    */
+   public class Test {
+       public static void main(String[] args) throws Exception{
+           // 创建消费生产者
+           DefaultMQProducer producer = new DefaultMQProducer("myproducer-group");
+           // 设置NameServer
+           producer.setNamesrvAddr("localhost:9876");
+           // 启动生产者
+           producer.start();
+           // 构建消息对象
+           Message message = new Message("myTopic", "myTag", ("Test MQ").getBytes());
+           // 发送消息
+           SendResult result = producer.send(message, 1000);
+           System.out.println(result);
+           // 关闭生产者
+           producer.shutdown();
+       }
+   }
+   ```
+
+3. 执行后，在控制台查看到该消息
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210315204848249.png" alt="image-20210315204848249" style="zoom:50%;" />
+
+4. 如果报错 `sendDefaultImpl call timeout`，需要开放10911 端口
+
+#### 5.4 Java 实现消息消费
+
+`Provider`是非阻塞的，运行结束即停止；`Consumer`是阻塞执行的，运行不会停止，当消息队列中有新的消息，会立刻消费。
+
+基本功能：实现流量解耦、异步削峰
+
+A需要调用B，但A要做高并发处理，B不需要。可以在A和B之间加一个MQ，将A的消息存入MQ，B从MQ取出，实现解耦过程。
+
+```java
+package com.sugar.mq;
+
+import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.common.message.MessageExt;
+
+import java.util.List;
+
+/**
+ * MQ 原生调用
+ * Consumer
+ */
+@Slf4j
+public class ConsumerTest {
+    public static void main(String[] args) throws Exception{
+        // 创建消息消费者
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("myconsumer-group");
+        // 设置NameServer
+        consumer.setNamesrvAddr("127.0.0.1:9876");
+        // 指定订阅的主题和标签
+        consumer.subscribe("myTopic", "*");
+        // 回调函数
+        consumer.registerMessageListener(new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> list, ConsumeConcurrentlyContext consumeConcurrentlyContext) {
+                log.info("Message=>{}", list);
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        });
+        // 启动消费者
+        consumer.start();
+    }
+}
+```
+
+#### 5.5 SpringBoot 整合 RocketMQ
+
+> Provider
+
+在 `provider` 项目
+
+1. 引入依赖
+
+   ```xml
+   <!--rocketmq-->
+   <dependency>
+     <groupId>org.apache.rocketmq</groupId>
+     <artifactId>rocketmq-spring-boot-starter</artifactId>
+     <version>2.1.0</version>
+   </dependency>
+   <!--rocketmq-client-->
+   <dependency>
+     <groupId>org.apache.rocketmq</groupId>
+     <artifactId>rocketmq-client</artifactId>
+     <version>4.7.0</version>
+   </dependency>
+   ```
+
+2. application.yml
+
+   ```yml
+   # RocketMQ
+   rocketmq:
+     name-server: 127.0.0.1:9876
+     producer:
+       group: myprovider
+   ```
+
+3. Order（生产订单）
+
+   ```java
+   package com.sugar.entity;
+   
+   import lombok.AllArgsConstructor;
+   import lombok.Data;
+   import lombok.NoArgsConstructor;
+   
+   import java.util.Date;
+   
+   /**
+    * 订单类
+    */
+   @Data
+   @AllArgsConstructor
+   @NoArgsConstructor
+   public class Order {
+       private Integer id;
+       private String buyerName;
+       private String buyerTel;
+       private String address;
+       private Date createDate;
+   }
+   ```
+
+4. Controller
+
+   ```java
+   package com.sugar.controller;
+   
+   import com.sugar.entity.Order;
+   import lombok.extern.slf4j.Slf4j;
+   import org.apache.rocketmq.spring.core.RocketMQTemplate;
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.web.bind.annotation.GetMapping;
+   import org.springframework.web.bind.annotation.RestController;
+   
+   import java.util.Date;
+   
+   /**
+    * RocketMQ Provider
+    */
+   @RestController
+   @Slf4j
+   public class MqController {
+   
+       @Autowired
+       private RocketMQTemplate rocketMQTemplate;
+   
+       @GetMapping("/create")
+       public Order create() {
+           Order order = new Order(1, "张三", "1300123", "软件园", new Date());
+           this.rocketMQTemplate.convertAndSend("orderTopic", order);
+           return order;
+       }
+   }
+   ```
+
+> Consumer
+
+在 `consumer` 项目
+
+1. 引入依赖
+
+   ```xml
+   <!--rocketmq-->
+   <dependency>
+     <groupId>org.apache.rocketmq</groupId>
+     <artifactId>rocketmq-spring-boot-starter</artifactId>
+     <version>2.1.0</version>
+   </dependency>
+   <!--rocketmq-client-->
+   <dependency>
+     <groupId>org.apache.rocketmq</groupId>
+     <artifactId>rocketmq-client</artifactId>
+     <version>4.7.0</version>
+   </dependency>
+   ```
+
+2. application.yml
+
+   ```yml
+   # RocketMQ
+   rocketmq:
+     name-server: 127.0.0.1:9876
+   ```
+
+3. Service
+
+   ```java
+   package com.sugar.service;
+   
+   import com.sugar.entity.Order;
+   import lombok.extern.slf4j.Slf4j;
+   import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
+   import org.apache.rocketmq.spring.core.RocketMQListener;
+   import org.springframework.stereotype.Service;
+   
+   /**
+    * RocketMQ Consumer
+    * 由于IOC自动注入，项目启动后就会自动监听执行
+    */
+   @Slf4j
+   @Service
+   @RocketMQMessageListener(consumerGroup = "myConsuer", topic = "orderTopic")
+   public class SmsService implements RocketMQListener<Order> {
+       @Override
+       public void onMessage(Order order) {
+           log.info("新订单{}, 发短信", order);
+       }
+   }
+   ```
+
+效果：只要调用 Provider create接口，Consumer就能即时从 MQ 获取消息。
+
+
+
+### 6 Gateway 服务网关
+
+分布式架构下，会对服务进行拆分，不同的服务负责各自的功能，实现架构层面的解耦合。
+
+拆分后，如果微服务过多，是不利于开发的。比如每个服务都有自己的URL，此时另有一个服务需要调用这些服务，就需要记这所有的URL。 ==>> API网关！
+
+第一代网关是 Zuul，由 Netfilx 开发。
+
+Gateway 性能更加强大，是 Spring Cloud 官方提供的网关。
+
+**Gateway 是基于 Netty，而不是 Servlet，所以与 Servlet 不兼容，工程中不能出现 Servlet 组件！**
+
