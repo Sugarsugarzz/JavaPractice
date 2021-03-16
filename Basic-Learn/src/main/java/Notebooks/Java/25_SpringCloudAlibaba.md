@@ -1179,3 +1179,442 @@ Gateway 性能更加强大，是 Spring Cloud 官方提供的网关。
 
 **Gateway 是基于 Netty，而不是 Servlet，所以与 Servlet 不兼容，工程中不能出现 Servlet 组件！**
 
+网关中不需要写业务，只需要写网关映射。
+
+#### 6.1 Gateway 原生
+
+1. pom.xml
+
+   **注意**：一定不能出现 spring web 的依赖，因为 Gateway 与 Servlet 不兼容。
+
+   ```xml
+   # 一定不能出现的依赖！
+   <dependency>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-web</artifactId>
+   </dependency>
+   ```
+
+   ```xml
+   # Gateway的依赖
+   <dependency>
+     <groupId>org.springframework.cloud</groupId>
+     <artifactId>spring-cloud-starter-gateway</artifactId>
+     <version>2.2.5.RELEASE</version>
+   </dependency>
+   ```
+
+2. application.yml
+
+   ```yml
+   server:
+     port: 8181
+   spring:
+     application:
+       name: gateway
+     # Gateway 配置
+     cloud:
+       gateway:
+         discovery:
+           locator:
+             enabled: true
+         # 原生写法，与Nacos无关
+         routes:
+           - id: provider_route  # 后续限流需要用，自定义id
+             uri: http://localhost:8081  # 网关需要映射的地址
+             predicates:  # 如何去映射
+               - Path=/provider/**
+             # 去掉第一个前缀 provider，否则映射的地址为 http://localhost:8081/provider/list，实际需要 http://localhost:8081/list
+             filters:
+               - StripPrefix=1
+               
+        # 去Nacos发现服务，只要将以上原生写法注释掉即可
+   ```
+
+   此时，访问 http://localhost:8181/provider/list 相当于访问 http://localhost:8081/list
+
+   出现 404 记得检查是否设置 filters.
+
+#### 6.2 Gateway 配合 Nacos
+
+以上的配置其实没有用到 nacos，现在让 Gateway 直接去 nacos 中发现服务
+
+1. pom.xml 引入 nacos
+
+   ```xml
+   <!--Nacos-->
+   <dependency>
+     <groupId>com.alibaba.cloud</groupId>
+     <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+     <version>2.2.1.RELEASE</version>
+   </dependency>
+   ```
+
+2. application.yml
+
+   ```yml
+   server:
+     port: 8181
+   spring:
+     application:
+       name: gateway
+     # Gateway 配置
+     cloud:
+       gateway:
+         discovery:
+           locator:
+             enabled: true
+     # 自动从Nacos发现服务，无需配置routes
+   ```
+
+3. 启动项目后，查看 Nacos 中 gateway 是否注册成功
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210316123010606.png" alt="image-20210316123010606" style="zoom:50%;" />
+
+4. 访问：http://localhost:8181/provider/list，依然能够访问通。 
+
+   格式：http://GatewayHost:Port/NacosServiceName/*
+
+#### 6.3 Gateway 限流（使用 Sentinel Gateway Adater，不使用 Nacos）
+
+> 基于 路由 限流
+
+1. 先去掉 pom.xml 中的 Nacos依赖，取消 application.yml 中的注释。
+
+2. pom.xml 加入 Sentinel Gateway Adapter 依赖
+
+   ```xml
+   <!--Sentinel + Gateway Adapter-->
+   <dependency>
+     <groupId>com.alibaba.csp</groupId>
+     <artifactId>sentinel-spring-cloud-gateway-adapter</artifactId>
+     <version>1.8.0</version>
+   </dependency>
+   <!--Gateway-->
+   <dependency>
+     <groupId>org.springframework.cloud</groupId>
+     <artifactId>spring-cloud-starter-gateway</artifactId>
+     <version>2.2.5.RELEASE</version>
+   </dependency>
+   ```
+
+3. application.yml
+
+   ```yml
+   server:
+     port: 8181
+   spring:
+     application:
+       name: gateway
+     # Gateway 配置
+     cloud:
+       gateway:
+         discovery:
+           locator:
+             enabled: true
+         # 原生写法，与Nacos无关
+         routes:
+           - id: provider_route  # 后续限流需要用，自定义id
+             uri: http://localhost:8081  # 网关需要映射的地址
+             predicates:  # 如何去映射
+               - Path=/provider/**
+             filters:
+               - StripPrefix=1
+   ```
+
+4. 路由限流配置类
+
+   ```java
+   package com.sugar.config;
+   
+   import com.alibaba.csp.sentinel.adapter.gateway.common.rule.GatewayFlowRule;
+   import com.alibaba.csp.sentinel.adapter.gateway.common.rule.GatewayRuleManager;
+   import com.alibaba.csp.sentinel.adapter.gateway.sc.SentinelGatewayFilter;
+   import com.alibaba.csp.sentinel.adapter.gateway.sc.callback.BlockRequestHandler;
+   import com.alibaba.csp.sentinel.adapter.gateway.sc.callback.GatewayCallbackManager;
+   import com.alibaba.csp.sentinel.adapter.gateway.sc.exception.SentinelGatewayBlockExceptionHandler;
+   import org.springframework.beans.factory.ObjectProvider;
+   import org.springframework.cloud.gateway.filter.GlobalFilter;
+   import org.springframework.context.annotation.Bean;
+   import org.springframework.context.annotation.Configuration;
+   import org.springframework.core.Ordered;
+   import org.springframework.core.annotation.Order;
+   import org.springframework.http.HttpStatus;
+   import org.springframework.http.MediaType;
+   import org.springframework.http.codec.ServerCodecConfigurer;
+   import org.springframework.web.reactive.function.BodyInserters;
+   import org.springframework.web.reactive.function.server.ServerResponse;
+   import org.springframework.web.reactive.result.view.ViewResolver;
+   import org.springframework.web.server.ServerWebExchange;
+   import reactor.core.publisher.Mono;
+   
+   import javax.annotation.PostConstruct;
+   import java.util.*;
+   
+   @Configuration
+   public class GatewayConfig {
+   
+       private final List<ViewResolver> viewResolvers;
+       private final ServerCodecConfigurer serverCodecConfigurer;
+   
+       public GatewayConfig(ObjectProvider<List<ViewResolver>> viewResolversProvider, ServerCodecConfigurer serverCodecConfigurer) {
+           this.viewResolvers = viewResolversProvider.getIfAvailable(Collections::emptyList);
+           this.serverCodecConfigurer = serverCodecConfigurer;
+       }
+   
+       // 配置限流的异常处理
+       @Bean
+       @Order(Ordered.HIGHEST_PRECEDENCE)
+       public SentinelGatewayBlockExceptionHandler sentinelGatewayBlockExceptionHandler() {
+           return new SentinelGatewayBlockExceptionHandler(viewResolvers, serverCodecConfigurer);
+       }
+   
+       // 配置初始化的限流参数（重要）
+       // 基于路由限流
+       @PostConstruct
+       public void initGatewayRules() {
+           Set<GatewayFlowRule> rules = new HashSet<>();
+           rules.add(
+                   new GatewayFlowRule("provider_route")  // 与需要限流的 ${spring.cloud.routes.id} 一致
+                           .setCount(1)  // 阈值（个）
+                           .setIntervalSec(1)  // 时间窗口（秒）
+           );
+           GatewayRuleManager.loadRules(rules);
+       }
+   
+       // 初始化限流过滤器
+       @Bean
+       @Order(Ordered.HIGHEST_PRECEDENCE)
+       public GlobalFilter sentinelGatewayFilter() {
+           return new SentinelGatewayFilter();
+       }
+   
+       // 自定义限流异常页面（重点）
+       // 客户端限流后返回的内容
+       @PostConstruct
+       public void initBlockHandlers() {
+           BlockRequestHandler blockRequestHandler = new BlockRequestHandler() {
+               @Override
+               public Mono<ServerResponse> handleRequest(ServerWebExchange serverWebExchange, Throwable throwable) {
+                   Map<String, Object> map = new HashMap<>();
+                   map.put("code", 0);
+                   map.put("msg", "被限流了");
+                   return ServerResponse.status(HttpStatus.OK)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .body(BodyInserters.fromObject(map));
+               }
+           };
+           GatewayCallbackManager.setBlockHandler(blockRequestHandler);
+       }
+   }
+   ```
+
+5. 启动测试，请求超过设定 QPS 后，返回数据
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210316125321656.png" alt="image-20210316125321656" style="zoom:60%;" />
+
+6. 目前配置的限流是针对网关的，如果直接访问 http://localhost:8081/list 是不限流的。
+
+
+
+> 基于 API 分组限流
+>
+> ​	对 API 进行分组，分组配置限流，提高效率
+
+1. 修改限流配置类，添加基于 API 分组限流的方法，修改初始化限流参数。
+
+2. 在 `provider` 项目中，添加 GatewayController，分组
+
+   ```java
+   package com.sugar.controller;
+   
+   import org.springframework.web.bind.annotation.GetMapping;
+   import org.springframework.web.bind.annotation.RestController;
+   
+   @RestController
+   public class GatewayController {
+   
+       @GetMapping("/api1/demo1")
+       public String demo1() {
+           return "demo";
+       }
+   
+       @GetMapping("/api1/demo2")
+       public String demo2() {
+           return "demo";
+       }
+   
+       @GetMapping("/api2/demo1")
+       public String demo3() {
+           return "demo";
+       }
+   
+       @GetMapping("/api2/demo2")
+       public String demo4() {
+           return "demo";
+       }
+   }
+   ```
+
+3. 在 `gateway` 项目中，定义 API分支配置类
+
+   ```java
+   package com.sugar.config;
+   
+   import com.alibaba.csp.sentinel.adapter.gateway.common.SentinelGatewayConstants;
+   import com.alibaba.csp.sentinel.adapter.gateway.common.api.ApiDefinition;
+   import com.alibaba.csp.sentinel.adapter.gateway.common.api.ApiPathPredicateItem;
+   import com.alibaba.csp.sentinel.adapter.gateway.common.api.ApiPredicateItem;
+   import com.alibaba.csp.sentinel.adapter.gateway.common.api.GatewayApiDefinitionManager;
+   import com.alibaba.csp.sentinel.adapter.gateway.common.rule.GatewayFlowRule;
+   import com.alibaba.csp.sentinel.adapter.gateway.common.rule.GatewayRuleManager;
+   import com.alibaba.csp.sentinel.adapter.gateway.sc.SentinelGatewayFilter;
+   import com.alibaba.csp.sentinel.adapter.gateway.sc.callback.BlockRequestHandler;
+   import com.alibaba.csp.sentinel.adapter.gateway.sc.callback.GatewayCallbackManager;
+   import com.alibaba.csp.sentinel.adapter.gateway.sc.exception.SentinelGatewayBlockExceptionHandler;
+   import org.springframework.beans.factory.ObjectProvider;
+   import org.springframework.cloud.gateway.filter.GlobalFilter;
+   import org.springframework.context.annotation.Bean;
+   import org.springframework.context.annotation.Configuration;
+   import org.springframework.core.Ordered;
+   import org.springframework.core.annotation.Order;
+   import org.springframework.http.HttpStatus;
+   import org.springframework.http.MediaType;
+   import org.springframework.http.codec.ServerCodecConfigurer;
+   import org.springframework.web.reactive.function.BodyInserters;
+   import org.springframework.web.reactive.function.server.ServerResponse;
+   import org.springframework.web.reactive.result.view.ViewResolver;
+   import org.springframework.web.server.ServerWebExchange;
+   import reactor.core.publisher.Mono;
+   
+   import javax.annotation.PostConstruct;
+   import java.util.*;
+   
+   @Configuration
+   public class GatewayConfigFenzu {
+   
+       private final List<ViewResolver> viewResolvers;
+       private final ServerCodecConfigurer serverCodecConfigurer;
+   
+       public GatewayConfigFenzu(ObjectProvider<List<ViewResolver>> viewResolversProvider, ServerCodecConfigurer serverCodecConfigurer) {
+           this.viewResolvers = viewResolversProvider.getIfAvailable(Collections::emptyList);
+           this.serverCodecConfigurer = serverCodecConfigurer;
+       }
+   
+       // 配置限流的异常处理
+       @Bean
+       @Order(Ordered.HIGHEST_PRECEDENCE)
+       public SentinelGatewayBlockExceptionHandler sentinelGatewayBlockExceptionHandler() {
+           return new SentinelGatewayBlockExceptionHandler(viewResolvers, serverCodecConfigurer);
+       }
+   
+       // 配置初始化的限流参数（重要）
+       // 基于 API分组 限流
+       @PostConstruct
+       public void initGatewayRules() {
+           Set<GatewayFlowRule> rules = new HashSet<>();
+           rules.add(new GatewayFlowRule("provider_api1").setCount(1).setIntervalSec(1));
+           rules.add(new GatewayFlowRule("provider_api2").setCount(1).setIntervalSec(1));
+           GatewayRuleManager.loadRules(rules);
+       }
+   
+       // 初始化限流过滤器
+       @Bean
+       @Order(Ordered.HIGHEST_PRECEDENCE)
+       public GlobalFilter sentinelGatewayFilter() {
+           return new SentinelGatewayFilter();
+       }
+   
+       // 自定义限流异常页面（重点）
+       // 客户端限流后返回的内容
+       @PostConstruct
+       public void initBlockHandlers() {
+           BlockRequestHandler blockRequestHandler = new BlockRequestHandler() {
+               @Override
+               public Mono<ServerResponse> handleRequest(ServerWebExchange serverWebExchange, Throwable throwable) {
+                   Map<String, Object> map = new HashMap<>();
+                   map.put("code", 0);
+                   map.put("msg", "被限流了");
+                   return ServerResponse.status(HttpStatus.OK)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .body(BodyInserters.fromObject(map));
+               }
+           };
+           GatewayCallbackManager.setBlockHandler(blockRequestHandler);
+       }
+       
+       // 自定义API分组
+       @PostConstruct
+       private void initCustomizedApis() {
+           Set<ApiDefinition> definitions = new HashSet<>();
+           ApiDefinition api1 = new ApiDefinition("provider_api1")
+                   .setPredicateItems(new HashSet<ApiPredicateItem>() {{
+                       add(new ApiPathPredicateItem().setPattern("/provider/api1/**")
+                               .setMatchStrategy(SentinelGatewayConstants.URL_MATCH_STRATEGY_PREFIX));
+                   }});
+           ApiDefinition api2 = new ApiDefinition("provider_api2")
+                   .setPredicateItems(new HashSet<ApiPredicateItem>() {{
+                       add(new ApiPathPredicateItem().setPattern("/provider/api2/demo1"));
+                   }});
+           definitions.add(api1);
+           definitions.add(api2);
+           GatewayApiDefinitionManager.loadApiDefinitions(definitions);
+       }
+   }
+   ```
+
+4. 对 http://localhost:8181/provider/api1/** 和 http://localhost:8181/provider/api2/demo1 限流！
+
+#### 6.4 Gateway 限流（使用 Sentinel Gateway Adapter 和 Nacos）
+
+1. 开启 Nacos 依赖
+
+   ```xml
+   <dependency>
+     <groupId>com.alibaba.cloud</groupId>
+     <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+     <version>2.2.1.RELEASE</version>
+   </dependency>
+   ```
+
+2. 去掉 application.yml 的 routes
+
+   ```yml
+   server:
+     port: 8181
+   spring:
+     application:
+       name: gateway
+     # Gateway 配置
+     cloud:
+       gateway:
+         discovery:
+           locator:
+             enabled: true
+         # 原生写法，与Nacos无关
+   #      routes:
+   #        - id: provider_route  # 后续限流需要用，自定义id
+   #          uri: http://localhost:8081  # 网关需要映射的地址
+   #          predicates:  # 如何去映射
+   #            - Path=/provider/**
+   #          # 去掉第一个前缀 provider，否则映射的地址为 http://localhost:8081/provider/list，实际需要 http://localhost:8081/list
+   #          filters:
+   #            - StripPrefix=1
+   ```
+
+3. API 分组配置类中，**需要将 provider 改为 nacos discovery 中的服务名**
+
+   ```java
+   ApiDefinition api2 = new ApiDefinition("provider_api2")
+     .setPredicateItems(new HashSet<ApiPredicateItem>() {{
+       add(new ApiPathPredicateItem().setPattern("/provider/api2/demo1"));
+     }});
+   ```
+
+4. w
+
+5. w
+
+6. ww
+
+7. 

@@ -1,0 +1,23 @@
+server:
+  port: 8181
+spring:
+  application:
+    name: gateway
+  # Gateway 配置
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      # 原生写法，与Nacos无关
+#      routes:
+#        - id: provider_route  # 后续限流需要用，自定义id
+#          uri: http://localhost:8081  # 网关需要映射的地址
+#          predicates:  # 如何去映射
+#            - Path=/provider/**
+#          # 去掉第一个前缀 provider，否则映射的地址为 http://localhost:8081/provider/list，实际需要 http://localhost:8081/list
+#          filters:
+#            - StripPrefix=1
+
+
+      # 配合Nacos，只要将以上原生写法注释掉即可，会自动去Nacos发现服务，自动配置路由
