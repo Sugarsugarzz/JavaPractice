@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: pay  # 一定要与 nacos-config.txt 中配置的相对应
+  cloud:
+    nacos:
+      config:
+        server-addr: localhost
+        namespace: public
+        group: SEATA_GROUP
+    alibaba:
+      seata:
+        tx-service-group: pay

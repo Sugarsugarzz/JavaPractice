@@ -1611,10 +1611,447 @@ Gateway 性能更加强大，是 Spring Cloud 官方提供的网关。
      }});
    ```
 
-4. w
 
-5. w
 
-6. ww
+### 7 分布式事务
 
-7. 
+#### 7.1 模拟分布式事务异常
+
+多个服务对应不同的数据库。
+
+Seata 对业务零入侵，高性能解决分布式事务问题。
+
+**三个组件：**
+
+- 事务协调器：维护全局事务的运行状态，负责全局事务的提交和回滚
+- 事务管理器（TransactionManager）：负责开启、发起全局事务的提交和回滚
+- 资源管理器（ResourceManager）：本地事务
+
+由全局事务通知本地事务进行回滚。全局事务都会写在Log中，由Log生成事务回滚指令。
+
+**两段式提交：**
+
+- 第一阶段：使用 Seata JDBC 的代理数据源通过对业务的 SQL 解析，利用本地事务的特性，将业务数据更新、回滚的日志写到同一个本地事务中进行提交，同时把每次的业务操作进行存储，分支的本地事务可以在全局事务的第一阶段进行提交，并且马上释放本地事务锁定的资源。
+- 第二阶段：最后操作全局事务，分支事务已完成提交，不需要协同处理了，只需要异步请求回滚日志即可，如果操作的是全局回滚，采用协调器来进行回滚操作，生成相应的SQL，完成
+
+**小结：**
+
+Seata 就是将各个微服务事务进行统一管理，在注册中心 Nacos 注册一个全局事务的服务，如果分布式调用需要回滚，由全局事务分别通知每个微服务的事务进行本地回滚。
+
+> 代码模拟分布式事务异常
+
+创建两个项目 `order`，`pay`
+
+1. 引入依赖 pom.xml
+
+   ```xml
+   <dependency>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-jdbc</artifactId>
+   </dependency>
+   <dependency>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-web</artifactId>
+   </dependency>
+   
+   <dependency>
+     <groupId>mysql</groupId>
+     <artifactId>mysql-connector-java</artifactId>
+     <scope>runtime</scope>
+   </dependency>
+   <dependency>
+     <groupId>org.projectlombok</groupId>
+     <artifactId>lombok</artifactId>
+     <optional>true</optional>
+   </dependency>
+   ```
+
+2. 建两个数据库 `order`、`pay`，供两个微服务进行访问
+
+   创建 同名数据库同名表，添加 `id`和`username`两个字段
+
+3. 两个服务的 application.yml
+
+   ```yml
+   server:
+     port: 8010
+   spring:
+     application:
+       name: order
+     datasource:
+       driver-class-name: com.mysql.cj.jdbc.Driver
+       username: root
+       password: 123456
+       url: jdbc:mysql://localhost:3306/order
+   ```
+
+   ```yml
+   server:
+     port: 8020
+   spring:
+     application:
+       name: order
+     datasource:
+       driver-class-name: com.mysql.cj.jdbc.Driver
+       username: root
+       password: 123456
+       url: jdbc:mysql://localhost:3306/pay
+   ```
+
+4. 两个服务的 Service
+
+   ```java
+   package com.sugar.service;
+   
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.jdbc.core.JdbcTemplate;
+   import org.springframework.stereotype.Service;
+   
+   @Service
+   public class OrderService {
+       
+       @Autowired
+       private JdbcTemplate jdbcTemplate;
+       
+       public void save() {
+           this.jdbcTemplate.update("insert into order(username) values ('张三')");
+       }
+   }
+   ```
+
+   ```java
+   package com.sugar.service;
+   
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.jdbc.core.JdbcTemplate;
+   import org.springframework.stereotype.Service;
+   
+   @Service
+   public class PayService {
+       
+       @Autowired
+       JdbcTemplate jdbcTemplate;
+       
+       public void save() {
+           this.jdbcTemplate.update("insert into pay(username) values ('张三')");
+       }
+   }
+   ```
+
+5. 由 Order 调用 Pay，将两个数据同步存入
+
+   由 Order 通过 RestTemplate 调用 Pay 的服务
+
+6. 两个服务的 Controller
+
+   ```java
+   package com.sugar.controller;
+   
+   import com.sugar.service.OrderService;
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.web.bind.annotation.GetMapping;
+   import org.springframework.web.bind.annotation.RestController;
+   import org.springframework.web.client.RestTemplate;
+   
+   @RestController
+   public class OrderController {
+   
+       @Autowired
+       private OrderService orderService;
+       @Autowired
+       private RestTemplate restTemplate;
+   
+       @GetMapping("/save")
+       public String save() {
+           // 定案
+           this.orderService.save();
+         	int i = 10/0;  // 人为设置异常，模拟分布式事务异常
+           // 支付
+           this.restTemplate.getForObject("http://localhost:8020/save", String.class);
+           return "success";
+       }
+   }
+   ```
+
+   ```java
+   package com.sugar.controller;
+   
+   import com.sugar.service.PayService;
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.web.bind.annotation.GetMapping;
+   import org.springframework.web.bind.annotation.RestController;
+   
+   @RestController
+   public class PayController {
+   
+       @Autowired
+       private PayService payService;
+   
+       @GetMapping("/save")
+       public String save() {
+           this.payService.save();
+           return "success";
+       }
+   }
+   ```
+
+7. 测试调用 http://localhost:8081/save，order 存入了数据，但 pay 中没有存入。
+
+#### 7.2 Seata 解决分布式事务异常
+
+配置 Seata
+
+1. 下载解压 `seata-server-0.9.0.zip`
+
+2. 修改两个文件 `conf/register.conf` 和 `nacos-config.txt`
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210316192426551.png" alt="image-20210316192426551" style="zoom:50%;" />
+
+   register.conf
+
+   修改 `register - type` 和 `config - type`，选择 Seata 的注册方式，保留一个即可。
+
+   ```conf
+   registry {
+     # file 、nacos 、eureka、redis、zk、consul、etcd3、sofa
+     type = "nacos"
+     nacos {
+       serverAddr = "localhost"
+       namespace = "public"
+       cluster = "default"
+     }
+   }
+   
+   config {
+     # file、nacos 、apollo、zk、consul、etcd3
+     type = "nacos"
+     nacos {
+       serverAddr = "localhost"
+       namespace = "public"
+       cluster = "default"
+     }
+   }
+   ```
+
+   nacos-config.txt
+
+   删除一行，添加两行。即删除默认的测试服务，添加两个需要同步事务的新服务。
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210316192849595.png" alt="image-20210316192849595" style="zoom:50%;" />
+
+3. 启动 Nacos，运行 nacos-config.sh 将 Seata 配置导入 Nacos
+
+   进入 conf 目录，终端输入以下，实质上是将 Seata 配置（nacos-config.txt）写入到 Nacos 配置管理中
+
+   ```shell
+   cd conf
+   sh nacos-config.sh 127.0.0.1
+   ```
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210316193536921.png" alt="image-20210316193536921" style="zoom:80%;" />
+
+   执行成功，刷新 Nacos 配置列表
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210316193832553.png" alt="image-20210316193832553" style="zoom:30%;" />
+
+   自定义 nacos-confgi.txt 配置生效
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210316194010747.png" alt="image-20210316194010747" style="zoom:50%;" />
+
+4. 启动 Seata Server   **JDK 8 以上环境无法启动！**
+
+   ```shell
+   cd bin
+   seata-server.sh -p 8090 -m file  # -m file 通过文件模式启动
+   ```
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210316194613415.png" alt="image-20210316194613415" style="zoom:40%;" />
+
+   
+
+5. 检查是否启动成功
+
+   在 Nacos 服务列表中存在 serverAddr，则启动成功.
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210316202255458.png" alt="image-20210316202255458" style="zoom:40%;" />
+
+Seata 服务环境搭建完毕，接下来去应用中添加。
+
+1. 初始化数据库，在两个数据库中添加事务记录表，SQL Seata在 Seata 安装包中已经提供。
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210316202557031.png" alt="image-20210316202557031" style="zoom:50%;" />
+
+2. 直接在两个数据库`order`和`pay`运行脚本。
+
+   ```sql
+   -- the table to store seata xid data
+   -- 0.7.0+ add context
+   -- you must to init this sql for you business databese. the seata server not need it.
+   -- 此脚本必须初始化在你当前的业务数据库中，用于AT 模式XID记录。与server端无关（注：业务数据库）
+   -- 注意此处0.3.0+ 增加唯一索引 ux_undo_log
+   drop table `undo_log`;
+   CREATE TABLE `undo_log` (
+     `id` bigint(20) NOT NULL AUTO_INCREMENT,
+     `branch_id` bigint(20) NOT NULL,
+     `xid` varchar(100) NOT NULL,
+     `context` varchar(128) NOT NULL,
+     `rollback_info` longblob NOT NULL,
+     `log_status` int(11) NOT NULL,
+     `log_created` datetime NOT NULL,
+     `log_modified` datetime NOT NULL,
+     `ext` varchar(100) DEFAULT NULL,
+     PRIMARY KEY (`id`),
+     UNIQUE KEY `ux_undo_log` (`xid`,`branch_id`)
+   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+   ```
+
+3. `pay`和`order`项目的 pom.xml 添加 Seata 组件和 Nacos Config 组件
+
+   ```xml
+   <!--Seata-->
+   <dependency>
+     <groupId>com.alibaba.cloud</groupId>
+     <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+     <version>2.1.1.RELEASE</version>
+   </dependency>
+   <!--Nacos Config-->
+   <dependency>
+     <groupId>com.alibaba.cloud</groupId>
+     <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+     <version>2.2.1.RELEASE</version>
+   </dependency>
+   ```
+
+4. 给 JDBCTemplate 添加代理数据源
+
+   **注意：**这里 DataSourceProxy 用 seata 包的，而不是 druid 的。
+
+   ```java
+   package com.sugar;
+   
+   import io.seata.rm.datasource.DataSourceProxy;
+   import org.springframework.boot.SpringApplication;
+   import org.springframework.boot.autoconfigure.SpringBootApplication;
+   import org.springframework.context.annotation.Bean;
+   import org.springframework.jdbc.core.JdbcTemplate;
+   import org.springframework.web.client.RestTemplate;
+   
+   import javax.sql.DataSource;
+   
+   @SpringBootApplication
+   public class OrderApplication {
+   
+       public static void main(String[] args) {
+           SpringApplication.run(OrderApplication.class, args);
+       }
+   
+       @Bean
+       public RestTemplate restTemplate() {
+           return new RestTemplate();
+       }
+   
+       @Bean
+       public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+           return new JdbcTemplate(new DataSourceProxy(dataSource));
+       }
+   }
+   ```
+
+   ```java
+   package com.sugar;
+   
+   import io.seata.rm.datasource.DataSourceProxy;
+   import org.springframework.boot.SpringApplication;
+   import org.springframework.boot.autoconfigure.SpringBootApplication;
+   import org.springframework.context.annotation.Bean;
+   import org.springframework.jdbc.core.JdbcTemplate;
+   
+   import javax.sql.DataSource;
+   
+   @SpringBootApplication
+   public class PayApplication {
+   
+       public static void main(String[] args) {
+           SpringApplication.run(PayApplication.class, args);
+       }
+   
+       @Bean
+       public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+           return new JdbcTemplate(new DataSourceProxy(dataSource));
+       }
+   }
+   ```
+
+5. 将 `conf/register.conf` 复制到两个项目的 `resources`目录下
+
+6. 给两个项目添加 `bootstrap.yml` 读取 Nacos 配置
+
+   ```yml
+   spring:
+     application:
+       name: order  # 一定要与 nacos-config.txt 中配置的相对应
+     cloud:
+       nacos:
+         config:
+           server-addr: localhost:8848
+           namespace: public
+           group: SEATA_GROUP
+       alibaba:
+         seata:
+           tx-service-group: ${spring.application.name}
+   ```
+
+   ```yml
+   spring:
+     application:
+       name: pay  # 一定要与 nacos-config.txt 中配置的相对应
+     cloud:
+       nacos:
+         config:
+           server-addr: localhost:8848
+           namespace: public
+           group: SEATA_GROUP
+       alibaba:
+         seata:
+           tx-service-group: ${spring.application.name}
+   ```
+
+   tx-service-group 需要和 Nacos 配置中的名称一致
+
+   <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210316205742898.png" alt="image-20210316205742898" style="zoom:80%;" />
+
+7. 在 Order 调用 Pay 处添加注解 `@GlobalTransactional`
+
+   ```java
+   package com.sugar.controller;
+   
+   import com.sugar.service.OrderService;
+   import io.seata.spring.annotation.GlobalTransactional;
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.web.bind.annotation.GetMapping;
+   import org.springframework.web.bind.annotation.RestController;
+   import org.springframework.web.client.RestTemplate;
+   
+   @RestController
+   public class OrderController {
+   
+       @Autowired
+       private OrderService orderService;
+       @Autowired
+       private RestTemplate restTemplate;
+   
+       @GetMapping("/save")
+       @GlobalTransactional
+       public String save() {
+           // 定案
+           this.orderService.save();
+           int i = 10/0;  // 人为设置异常，模拟分布式事务异常
+           // 支付
+           this.restTemplate.getForObject("http://localhost:8020/save", String.class);
+           return "success";
+       }
+   }
+   ```
+
+8. 测试，出现分布式异常后，实现全局回滚，两个数据库都不会写入数据
+
