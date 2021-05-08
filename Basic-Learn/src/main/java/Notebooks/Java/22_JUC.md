@@ -1057,7 +1057,7 @@ class MyThread implements Callable<Integer> {
 <img src="/Users/sugar/Library/Application Support/typora-user-images/image-20210217153550322.png" alt="image-20210217153550322" style="zoom:40%;" />
 
 ```java
-package com.sugar.assist_util;
+package com.sugar.aqs_util;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -1096,7 +1096,7 @@ public class CountDownLatchDemo {
 如果设置的计数大于启动的线程数，则设定的将无法执行。
 
 ```java
-package com.sugar.assist_util;
+package com.sugar.aqs_util;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -1137,7 +1137,7 @@ public class CyclicBarrierDemo {
 抢车位！
 
 ```java
-package com.sugar.assist_util;
+package com.sugar.aqs_util;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;

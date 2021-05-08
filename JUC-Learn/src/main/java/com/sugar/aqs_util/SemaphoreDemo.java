@@ -1,9 +1,7 @@
-package com.sugar.assist_util;
+package com.sugar.aqs_util;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
 
 // 抢车位，限流！
 public class SemaphoreDemo {

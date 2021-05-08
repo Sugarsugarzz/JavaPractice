@@ -1,4 +1,4 @@
-package com.sugar.assist_util;
+package com.sugar.aqs_util;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
